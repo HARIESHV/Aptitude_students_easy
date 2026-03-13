@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Aptitude Master</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .login-page-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            position: relative;
+            padding: 2rem;
+        }
+        .login-page-container::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .back-home {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            z-index: 100;
+            color: #fff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .back-home:hover {
+            color: var(--primary-col);
+            transform: translateX(-5px);
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-home"><i class="fas fa-arrow-left"></i> Back to Home</a>
+    
+    <button id="theme-toggle" class="btn-small" style="position:fixed; top:1.5rem; right:1.5rem; z-index:100; background:var(--glass-bg); border:1px solid var(--glass-border); color:var(--text-main); font-size:1.2rem; cursor:pointer; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+        <i class="fas fa-moon"></i>
+    </button>
+
+    <div class="login-page-container login-landing">
+        <!-- Auth Card -->
+        <div class="glass-panel text-center auth-box" style="animation: fadeInSlideUp 0.6s ease-out forwards; position: relative; z-index: 10;">
+            <div class="logo-box" style="margin-bottom: 2rem;">
+                <i class="fas fa-brain"></i>
+                <h1 style="color: #fff; font-size: 1.8rem; margin-top: 0.5rem;">Aptitude Master</h1>
+            </div>
+
+            <div class="role-selector">
+                <button id="btn-show-student" class="btn-role active">Student</button>
+                <button id="btn-show-admin" class="btn-role">Admin</button>
+            </div>
+
+            <div class="auth-forms">
+                <!-- Login Form -->
+                <form id="login-form" class="active-form">
+                    <h2 style="color: #fff;">Welcome Back</h2>
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="login-username" placeholder="Username" required>
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="login-password" placeholder="Password" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Login <span id="login-role-text">as Student</span></button>
+                    <p class="toggle-text" style="color: #94a3b8; margin-top: 1.5rem;">Don't have an account? <span class="action-link" id="to-register">Register here</span></p>
+                </form>
+
+                <!-- Register Form -->
+                <form id="register-form" style="display: none;">
+                    <h2 style="color: #fff;">Create Account</h2>
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="reg-username" placeholder="Username" required>
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="reg-password" placeholder="Password" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Register <span id="reg-role-text">as Student</span></button>
+                    <p class="toggle-text" style="color: #94a3b8; margin-top: 1.5rem;">Already have an account? <span class="action-link" id="to-login">Login here</span></p>
+                </form>
+            </div>
+            <div id="auth-alert" class="alert hidden"></div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+</body>
+</html>

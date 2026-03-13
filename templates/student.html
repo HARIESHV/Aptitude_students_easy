@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Aptitude</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="dashboard-body">
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-user-graduate"></i>
+            <h2>Student Area</h2>
+        </div>
+        <ul class="nav-links">
+            <li class="active" data-target="practice"><i class="fas fa-pencil-alt"></i> Practice Area</li>
+            <li data-target="history"><i class="fas fa-history"></i> Answered History</li>
+            <li data-target="stats"><i class="fas fa-chart-line"></i> My Stats</li>
+            <li data-target="student-meetlinks"><i class="fas fa-video"></i> Live Classes</li>
+            <li data-target="student-messages"><i class="fas fa-comments"></i> Messages</li>
+        </ul>
+        <button id="logout-btn" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </nav>
+
+    <main class="main-content">
+        <header class="topbar">
+            <h1 id="page-title">Practice Area</h1>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <button id="theme-toggle" class="btn-small" style="background:transparent; border:1px solid var(--border-color); color:var(--text-main); font-size:1.2rem; cursor:pointer;" title="Toggle Theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div class="user-info">
+                    <span id="welcome-text">Welcome, Student</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="content-sections container">
+            <!-- Alert Box -->
+            <div id="dashboard-alert" class="alert hidden"></div>
+            
+            <!-- Practice Area -->
+            <section id="practice" class="active-section dashboard-section">
+                <div class="stats-cards">
+                    <div class="stat-card glass-panel">
+                        <i class="fas fa-tasks"></i>
+                        <div class="stat-info">
+                            <h4 id="stat-attempted">0</h4>
+                            <p>Attempted</p>
+                        </div>
+                    </div>
+                     <div class="stat-card glass-panel">
+                        <i class="fas fa-percentage"></i>
+                        <div class="stat-info">
+                            <h4 id="stat-average">0%</h4>
+                            <p>Average Score</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="quiz-categories-view" class="mt-4">
+                    <div class="quiz-header">
+                        <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem;">Take a Quiz 🎯</h1>
+                        <p class="text-muted">Choose a category to start your aptitude challenge</p>
+                    </div>
+                    <div id="quiz-category-grid" class="quiz-category-grid">
+                        <!-- Category cards will be injected here by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- History Section -->
+            <section id="history" class="dashboard-section" style="display: none;">
+                <div class="card glass-panel">
+                    <h3>My Answered Questions</h3>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Question</th>
+                                    <th>Topic / Subtopic</th>
+                                    <th>My Answer</th>
+                                    <th>Correct Answer</th>
+                                    <th>Status</th>
+                                    <th>Date (IST)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-history-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Stats -->
+            <section id="stats" class="dashboard-section" style="display: none;">
+                <div class="card glass-panel text-center">
+                    <h3>My Performance Summary</h3>
+                    <div class="performance-chart-placeholder">
+                        <i class="fas fa-chart-pie large-icon"></i>
+                        <h2 class="mt-3">Overall Average: <span id="big-average" class="highlight-text">0</span>%</h2>
+                        <p class="mt-2 text-muted">Total Attempted: <span id="big-attempted">0</span> | Correct: <span id="big-correct">0</span></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Meetlinks -->
+            <section id="student-meetlinks" class="dashboard-section" style="display: none;">
+                <div class="card glass-panel">
+                    <h3>Join Live Classes</h3>
+                    <div id="student-meetlinks-list" class="items-list"></div>
+                </div>
+            </section>
+
+            <!-- Messages -->
+            <section id="student-messages" class="dashboard-section" style="display: none;">
+                <div class="card glass-panel mb-4">
+                    <h3>Send a Message (With File)</h3>
+                    <form id="student-send-msg-form" class="custom-form">
+                        <textarea id="s-msg-content" placeholder="Type your doubt or message..." rows="3" required></textarea>
+                        <label class="text-muted" style="font-size:0.85rem;"><i class="fas fa-paperclip"></i> Attach File (Optional):</label>
+                        <input type="file" id="s-msg-file" class="mt-1" accept=".pdf,.doc,.docx,.jpg,.png,.jpeg,.zip" style="width: 100%; border:none;">
+                        <button type="submit" class="btn-primary mt-3">Send to Admin</button>
+                    </form>
+                </div>
+                <div class="card glass-panel">
+                    <h3>Conversation with Admin</h3>
+                    <div id="student-messages-list" class="items-list chat-list"></div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/student.js') }}"></script>
+</body>
+</html>

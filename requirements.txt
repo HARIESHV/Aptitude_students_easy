@@ -1,0 +1,17 @@
+Flask
+Flask-SQLAlchemy
+Flask-CORS
+PyJWT
+Werkzeug
+pandas
+openpyxl
+python-dotenv
+psycopg2-binary
+gunicorn
+cryptography
+SQLAlchemy
+Jinja2
+itsdangerous
+MarkupSafe
+click
+blinker

@@ -1,0 +1,737 @@
+import os
+import threading
+import time
+from datetime import datetime, timedelta
+from functools import wraps
+
+# from flask import ... - heavy imports moved to route level
+from flask import Flask, render_template, request, jsonify, send_from_directory, send_file
+# import pandas as pd  <-- Moved inside export routes to save startup memory
+from flask_cors import CORS
+from dotenv import load_dotenv
+import jwt
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+
+from models import db, User, Question, Submission, MeetLink, Message
+
+# Load environment variables from .env file
+load_dotenv()
+
+app = Flask(__name__)
+CORS(app)
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+database_url = os.environ.get('DATABASE_URL')
+
+# Ensure we have a valid database URL
+if not database_url:
+    # Use fallback quietly
+    database_url = "postgresql://neondb_owner:npg_6ravLTU9Bxmt@ep-spring-snow-adlcovzz-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+
+# Handle Render's legacy postgres:// prefix
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+# Ensure the URL is clean and includes stable SSL/GSS flags for Neon
+if "?" in database_url:
+    base_part, _ = database_url.split("?", 1)
+    # Reconstruct with optimized parameters for cloud stability
+    database_url = f"{base_part}?sslmode=require&connect_timeout=30"
+else:
+    database_url = f"{database_url}?sslmode=require&connect_timeout=30"
+
+print(f"Connected to Cloud Database (Neon/Postgres)")
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_pre_ping": True,
+    "pool_recycle": 280,
+    "pool_size": 10,
+    "max_overflow": 20,
+    "pool_timeout": 30
+}
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'super-secret-aptitude-master-key-1234567890')
+app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'static', 'uploads')
+
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+db.init_app(app)
+
+# Track if setup is done to avoid repeated runs in Gunicorn workers
+_setup_done = False
+
+def run_maintenance(app):
+    global _setup_done
+    while True: # Outer loop for total disaster recovery
+        try:
+            with app.app_context():
+                # 1. Prepare Tables
+                db.create_all()
+                
+                # 2. Seed Admin
+                # Logic: We want at least one admin named 'admin'.
+                # First, check if 'admin' username exists at all (regardless of role)
+                existing_admin_by_name = User.query.filter_by(username='admin').first()
+                
+                if not existing_admin_by_name:
+                    # 'admin' name is free, see if we have ANY admin to rename
+                    any_admin = User.query.filter_by(role='admin').first()
+                    if any_admin:
+                        any_admin.username = 'admin'
+                        db.session.commit()
+                        print("DB Maintenance: Existing admin renamed to 'admin'.")
+                    else:
+                        # No admin at all, create one
+                        new_admin = User(
+                            username='admin',
+                            password=generate_password_hash('admin123', method='pbkdf2:sha256'),
+                            role='admin'
+                        )
+                        db.session.add(new_admin)
+                        db.session.commit()
+                        print("DB Maintenance: New admin user created.")
+                else:
+                    # 'admin' exists, ensure it has the admin role
+                    if existing_admin_by_name.role != 'admin':
+                        existing_admin_by_name.role = 'admin'
+                        db.session.commit()
+                        print("DB Maintenance: User 'admin' promoted to admin role.")
+
+                # 3. Enter Keep-Alive Loop
+                print("DB Maintenance: Keep-alive active.")
+                while True:
+                    try:
+                        # SSL EOF usually happens on idle connections. 
+                        # Use a fresh session check
+                        db.session.execute(db.text("SELECT 1"))
+                        db.session.commit()
+                        db.session.remove() # Clean up session after each ping
+                    except Exception as e:
+                        # If a single ping fails (like EOF), rollback and wait to try again
+                        db.session.rollback()
+                        db.session.remove()
+                        print(f"DB Keep-alive Warning: {e}")
+                        break # Break inner loop to re-initialize context if needed
+                    time.sleep(240)
+        except Exception as e:
+            # Silence common timeout noise in the logs if it's just a transient thing
+            if "timeout expired" in str(e):
+                print("DB Maintenance: Connection timeout, retrying in 30s...")
+                time.sleep(30)
+            else:
+                print(f"DB Maintenance Loop Error: {e}")
+                time.sleep(15)
+
+# --- Global Error Handler ---
+from werkzeug.exceptions import HTTPException
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # pass through HTTP errors
+    if isinstance(e, HTTPException):
+        return e
+    
+    # log the error
+    print(f"CRITICAL SERVER ERROR: {str(e)}")
+    import traceback
+    traceback.print_exc()
+    
+    return jsonify({
+        "message": "A server error occurred. Please try again later.",
+        "details": str(e) if app.debug else None
+    }), 500
+
+# Start background tasks
+def startup():
+    global _setup_done
+    if not _setup_done:
+        threading.Thread(target=run_maintenance, args=(app,), daemon=True).start()
+        _setup_done = True
+
+startup()
+
+# Decorator for verifying JWT
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if 'Authorization' in request.headers:
+            token = request.headers['Authorization'].split(" ")[1]
+
+        if not token:
+            return jsonify({'message': 'Token is missing!'}), 401
+
+        try:
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            current_user = db.session.get(User, data['user_id'])
+        except:
+            return jsonify({'message': 'Token is invalid!'}), 401
+
+        if not current_user:
+             return jsonify({'message': 'User not found!'}), 401
+             
+        return f(current_user, *args, **kwargs)
+    return decorated
+
+# Decorator for Admin only routes
+def admin_required(f):
+    @wraps(f)
+    def decorated(current_user, *args, **kwargs):
+        if current_user.role != 'admin':
+            return jsonify({'message': 'Admin privileges required!'}), 403
+        return f(current_user, *args, **kwargs)
+    return decorated
+
+# -----------------
+# Frontend Routes
+# -----------------
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/login')
+def login_page():
+    return render_template('login.html')
+
+@app.route('/admin_dashboard')
+def admin_dashboard():
+    return render_template('admin.html')
+
+@app.route('/student_dashboard')
+def student_dashboard():
+    return render_template('student.html')
+
+@app.route('/quiz')
+def quiz_page():
+    return render_template('quiz.html')
+
+# -----------------
+# API Authentication
+# -----------------
+@app.route('/api/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    role = data.get('role', 'student') 
+
+    if not username or not password:
+        return jsonify({'message': 'Missing data!'}), 400
+        
+    if User.query.filter_by(username=username).first():
+        return jsonify({'message': 'User already exists!'}), 400
+        
+    hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+    new_user = User(username=username, password=hashed_password, role=role)
+    db.session.add(new_user)
+    db.session.commit()
+    
+    return jsonify({'message': 'User created successfully!'}), 201
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    try:
+        data = request.get_json()
+        raw_username = data.get('username', '')
+        raw_password = data.get('password', '')
+        
+        username = raw_username.strip() if raw_username else None
+        password = raw_password
+        expected_role = data.get('role')
+
+        if not username or not password:
+            return jsonify({'message': 'Missing credentials'}), 400
+
+        user = User.query.filter_by(username=username).first()
+
+        if not user:
+            return jsonify({'message': 'Invalid username or password'}), 401
+
+        if expected_role and user.role != expected_role:
+            return jsonify({'message': f'You must login as {user.role}!'}), 403
+
+        if check_password_hash(user.password, password):
+            import datetime as dt
+            token = jwt.encode(
+                {'user_id': user.id, 'role': user.role, 'exp': dt.datetime.now(dt.timezone.utc) + timedelta(hours=24)}, 
+                app.config['SECRET_KEY'], 
+                algorithm="HS256"
+            )
+            # Ensure token is string (for PyJWT 2.0+)
+            if isinstance(token, bytes):
+                token = token.decode('utf-8')
+                
+            return jsonify({'token': token, 'role': user.role, 'username': user.username, 'user_id': user.id}), 200
+
+        return jsonify({'message': 'Invalid username or password'}), 401
+    except Exception as e:
+        return jsonify({'message': f'Server Error: {str(e)}'}), 500
+
+# -----------------
+# API Admin Features
+# -----------------
+@app.route('/api/questions', methods=['POST'])
+@token_required
+@admin_required
+def add_question(current_user):
+    data = request.get_json()
+    new_question = Question(
+        topic=data.get('topic', 'General'),
+        subtopic=data.get('subtopic', 'General'),
+        time_limit=int(data.get('time_limit', 0)),
+        title=data['title'],
+        description=data.get('description', ''),
+        option_a=data['option_a'],
+        option_b=data['option_b'],
+        option_c=data['option_c'],
+        option_d=data['option_d'],
+        correct_option=data['correct_option']
+    )
+    db.session.add(new_question)
+    db.session.commit()
+    return jsonify({'message': 'Question added successfully!'}), 201
+
+@app.route('/api/questions/<int:id>', methods=['PUT'])
+@token_required
+@admin_required
+def update_question(current_user, id):
+    try:
+        question = db.session.get(Question, id)
+        if not question:
+            return jsonify({'message': 'Question not found!'}), 404
+        
+        data = request.get_json()
+        question.topic = data.get('topic', question.topic)
+        question.subtopic = data.get('subtopic', question.subtopic)
+        question.time_limit = int(data.get('time_limit', question.time_limit))
+        question.title = data.get('title', question.title)
+        question.description = data.get('description', question.description)
+        question.option_a = data.get('option_a', question.option_a)
+        question.option_b = data.get('option_b', question.option_b)
+        question.option_c = data.get('option_c', question.option_c)
+        question.option_d = data.get('option_d', question.option_d)
+        question.correct_option = data.get('correct_option', question.correct_option)
+        
+        db.session.commit()
+        return jsonify({'message': 'Question updated successfully!'}), 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"Update Question Error: {e}")
+        return jsonify({'message': f'Update failed: {str(e)}'}), 500
+
+@app.route('/api/questions/<int:id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_question(current_user, id):
+    try:
+        question = db.session.get(Question, id)
+        if not question:
+            return jsonify({'message': 'Question not found!'}), 404
+        
+        # Delete related submissions first
+        Submission.query.filter_by(question_id=id).delete()
+        
+        db.session.delete(question)
+        db.session.commit()
+        return jsonify({'message': 'Question deleted!'}), 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"Delete Question Error: {e}")
+        return jsonify({'message': f'Delete failed: {str(e)}'}), 500
+
+@app.route('/api/meetlinks', methods=['POST'])
+@token_required
+@admin_required
+def add_meetlink(current_user):
+    data = request.get_json()
+    new_link = MeetLink(title=data['title'], url=data['url'])
+    db.session.add(new_link)
+    db.session.commit()
+    return jsonify({'message': 'Meet link posted!'}), 201
+
+@app.route('/api/meetlinks/<int:id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_meetlink(current_user, id):
+    link = db.session.get(MeetLink, id)
+    if not link:
+        return jsonify({'message': 'Link not found!'}), 404
+    db.session.delete(link)
+    db.session.commit()
+    return jsonify({'message': 'Link deleted!'})
+
+@app.route('/api/students', methods=['GET'])
+@token_required
+@admin_required
+def get_students(current_user):
+    students = User.query.filter_by(role='student').all()
+    output = []
+    for std in students:
+        submissions = Submission.query.filter_by(student_id=std.id).all()
+        total = len(submissions)
+        correct = len([s for s in submissions if s.is_correct])
+        average = (correct / total * 100) if total > 0 else 0
+        output.append({
+            'id': std.id,
+            'username': std.username,
+            'average': round(average, 2),
+            'total_submissions': total
+        })
+    return jsonify({'students': output})
+
+@app.route('/api/students/<int:id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_student(current_user, id):
+    student = db.session.get(User, id)
+    if not student or student.role != 'student':
+        return jsonify({'message': 'Student not found!'}), 404
+        
+    # Delete related data first
+    Submission.query.filter_by(student_id=id).delete()
+    Message.query.filter((Message.sender_id == id) | (Message.receiver_id == id)).delete()
+    
+    db.session.delete(student)
+    db.session.commit()
+    return jsonify({'message': 'Student and all related records deleted successfully!'})
+
+@app.route('/api/export/students', methods=['GET'])
+@token_required
+@admin_required
+def export_students(current_user):
+    import pandas as pd
+    import io
+    students = User.query.filter_by(role='student').all()
+    data = []
+    for std in students:
+        submissions = Submission.query.filter_by(student_id=std.id).all()
+        total = len(submissions)
+        correct = len([s for s in submissions if s.is_correct])
+        average = (correct / total * 100) if total > 0 else 0
+        data.append({
+            'ID': std.id,
+            'Username': std.username,
+            'Total Submissions': total,
+            'Average Score (%)': round(average, 2)
+        })
+        
+    df = pd.DataFrame(data)
+    output = io.BytesIO()
+    
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Students Leaderboard')
+        
+    output.seek(0)
+    return send_file(
+        output,
+        download_name="AptitudeMaster_Student_Leaderboard.xlsx",
+        as_attachment=True,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+@app.route('/api/submissions', methods=['GET'])
+@token_required
+@admin_required
+def get_all_submissions(current_user):
+    submissions = Submission.query.order_by(Submission.timestamp.desc()).all()
+    output = []
+    for sub in submissions:
+        output.append({
+            'id': sub.id,
+            'student': sub.student.username,
+            'question': sub.question.title,
+            'topic': sub.question.topic,
+            'selected_option': sub.selected_option,
+            'is_correct': sub.is_correct,
+            'file_path': sub.file_path,
+            'timestamp': sub.timestamp.strftime('%Y-%m-%d %I:%M %p')
+        })
+    return jsonify({'submissions': output})
+
+@app.route('/api/submissions/<int:id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_submission(current_user, id):
+    submission = db.session.get(Submission, id)
+    if not submission:
+        return jsonify({'message': 'Submission not found!'}), 404
+        
+    db.session.delete(submission)
+    db.session.commit()
+    return jsonify({'message': 'Submission deleted successfully!'})
+
+@app.route('/api/export/submissions', methods=['GET'])
+@token_required
+@admin_required
+def export_submissions(current_user):
+    import pandas as pd
+    import io
+    submissions = Submission.query.order_by(Submission.timestamp.desc()).all()
+    data = []
+    for sub in submissions:
+        data.append({
+            'Submission ID': sub.id,
+            'Student Username': sub.student.username,
+            'Question Title': sub.question.title,
+            'Topic': sub.question.topic,
+            'Selected Option': sub.selected_option,
+            'Correct Option': sub.question.correct_option,
+            'Is Correct': 'Yes' if sub.is_correct else 'No',
+            'Timestamp (IST)': sub.timestamp.strftime('%Y-%m-%d %I:%M %p')
+        })
+        
+    df = pd.DataFrame(data)
+    output = io.BytesIO()
+    
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='All Submissions')
+        
+    output.seek(0)
+    return send_file(
+        output,
+        download_name="AptitudeMaster_All_Submissions.xlsx",
+        as_attachment=True,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+# -----------------
+# API Shared Features
+# -----------------
+@app.route('/api/questions', methods=['GET'])
+@token_required
+def get_questions(current_user):
+    questions = Question.query.order_by(Question.created_at.desc()).all()
+    output = []
+    for q in questions:
+        q_data = {
+            'id': q.id,
+            'topic': q.topic,
+            'subtopic': q.subtopic,
+            'time_limit': q.time_limit,
+            'title': q.title,
+            'description': q.description,
+            'option_a': q.option_a,
+            'option_b': q.option_b,
+            'option_c': q.option_c,
+            'option_d': q.option_d,
+            'created_at': q.created_at.strftime('%Y-%m-%d %I:%M %p') if q.created_at else 'N/A'
+        }
+        if current_user.role == 'admin':
+            q_data['correct_option'] = q.correct_option
+        output.append(q_data)
+    return jsonify({'questions': output})
+
+@app.route('/api/meetlinks', methods=['GET'])
+@token_required
+def get_meetlinks(current_user):
+    links = MeetLink.query.order_by(MeetLink.created_at.desc()).all()
+    output = []
+    for link in links:
+        output.append({
+            'id': link.id,
+            'title': link.title,
+            'url': link.url,
+            'created_at': link.created_at.strftime('%Y-%m-%d %I:%M %p')
+        })
+    return jsonify({'meetlinks': output})
+
+@app.route('/api/messages', methods=['POST'])
+@token_required
+def send_message(current_user):
+    if request.is_json:
+        data = request.get_json()
+        content = data.get('content')
+        receiver_id = data.get('receiver_id')
+        file_path = None
+    else:
+        content = request.form.get('content')
+        receiver_id = request.form.get('receiver_id')
+        
+        file_path = None
+        if 'file' in request.files:
+            file = request.files['file']
+            if file.filename != '':
+                filename = secure_filename(file.filename)
+                timestamp_prefix = datetime.now().strftime('%Y%m%d%H%M%S')
+                filename = f"{timestamp_prefix}_{filename}"
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                file_path = f'/static/uploads/{filename}'
+    
+    if receiver_id == 'all' or receiver_id == '' or receiver_id is None:
+        receiver_id = None
+    else:
+        receiver_id = int(receiver_id)
+
+    # SECURE: If a student is sending a message, force it to the main Admin (ID 1)
+    if current_user.role == 'student':
+        admin_user = User.query.filter_by(role='admin').first()
+        receiver_id = admin_user.id if admin_user else 1
+
+    new_message = Message(
+        sender_id=current_user.id,
+        sender_role=current_user.role,
+        receiver_id=receiver_id,
+        content=content,
+        file_path=file_path
+    )
+    db.session.add(new_message)
+    db.session.commit()
+    return jsonify({'message': 'Message sent successfully!'}), 201
+
+@app.route('/api/messages', methods=['GET'])
+@token_required
+def get_messages(current_user):
+    if current_user.role == 'admin':
+        messages = Message.query.order_by(Message.timestamp.desc()).all()
+    else:
+        # Students see: 
+        # 1. Private messages to them
+        # 2. Messages they sent
+        # 3. Broadcast messages (receiver_id is None) ONLY IF sent by an Admin
+        messages = Message.query.filter(
+            (Message.receiver_id == current_user.id) |
+            (Message.sender_id == current_user.id) |
+            ((Message.receiver_id == None) & (Message.sender_role == 'admin'))
+        ).order_by(Message.timestamp.desc()).all()
+        
+    output = []
+    for m in messages:
+        receiver_name = "All Students"
+        if m.receiver_id:
+            recv = db.session.get(User, m.receiver_id)
+            receiver_name = recv.username if recv else "Unknown"
+            
+        output.append({
+            'id': m.id,
+            'sender': m.sender.username,
+            'sender_role': m.sender_role,
+            'receiver': receiver_name,
+            'receiver_id': m.receiver_id,
+            'content': m.content,
+            'file_path': m.file_path,
+            'timestamp': m.timestamp.strftime('%Y-%m-%d %I:%M %p')
+        })
+    return jsonify({'messages': output})
+
+@app.route('/api/messages/<int:id>', methods=['DELETE'])
+@token_required
+def delete_message(current_user, id):
+    message = db.session.get(Message, id)
+    if not message:
+        return jsonify({'message': 'Message not found!'}), 404
+        
+    # Permission Check: 
+    # Admin can delete anything. 
+    # Students can only delete their own sent messages.
+    if current_user.role != 'admin' and message.sender_id != current_user.id:
+        return jsonify({'message': 'Permission denied!'}), 403
+        
+    db.session.delete(message)
+    db.session.commit()
+    return jsonify({'message': 'Message deleted successfully!'})
+
+# -----------------
+# API Student Features
+# -----------------
+@app.route('/api/submissions', methods=['POST'])
+@token_required
+def submit_answer(current_user):
+    if current_user.role != 'student':
+        return jsonify({'message': 'Only students can submit answers!'}), 403
+
+    if request.is_json:
+        data = request.get_json()
+        question_id = data.get('question_id')
+        selected_option = data.get('selected_option')
+        file_path = None
+    else:
+        # Handle multipart/form-data for file uploads
+        question_id = request.form.get('question_id')
+        selected_option = request.form.get('selected_option')
+        file_path = None
+        
+        if 'file' in request.files:
+            file = request.files['file']
+            if file.filename != '':
+                filename = secure_filename(file.filename)
+                timestamp_prefix = datetime.now().strftime('%Y%m%d%H%M%S')
+                filename = f"sub_{timestamp_prefix}_{filename}"
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                file_path = f'/static/uploads/{filename}'
+
+    if not question_id:
+        return jsonify({'message': 'Missing question ID!'}), 400
+
+    question_id = int(question_id)
+    question = db.session.get(Question, question_id)
+    if not question:
+        return jsonify({'message': 'Question not found!'}), 404
+
+    existing = Submission.query.filter_by(student_id=current_user.id, question_id=question_id).first()
+    if existing:
+        return jsonify({'message': 'You have already submitted an answer for this question!'}), 400
+
+    is_correct = (selected_option == question.correct_option)
+    
+    new_sub = Submission(
+        student_id=current_user.id,
+        question_id=question_id,
+        selected_option=selected_option,
+        is_correct=is_correct,
+        file_path=file_path
+    )
+    db.session.add(new_sub)
+    db.session.commit()
+
+    return jsonify({
+        'message': 'Answer submitted!',
+        'is_correct': is_correct,
+        'correct_option': question.correct_option
+    }), 201
+
+@app.route('/api/student/stats', methods=['GET'])
+@token_required
+def get_student_stats(current_user):
+    if current_user.role != 'student':
+        return jsonify({'message': 'Not a student!'}), 403
+        
+    submissions = Submission.query.filter_by(student_id=current_user.id).all()
+    total = len(submissions)
+    correct = len([s for s in submissions if s.is_correct])
+    average = (correct / total * 100) if total > 0 else 0
+    
+    solved_questions = [s.question_id for s in submissions]
+    
+    return jsonify({
+        'total_attempted': total,
+        'correct_answers': correct,
+        'average': round(average, 2),
+        'solved_questions': solved_questions
+    })
+
+@app.route('/api/student/history', methods=['GET'])
+@token_required
+def get_student_history(current_user):
+    if current_user.role != 'student':
+        return jsonify({'message': 'Not a student!'}), 403
+        
+    submissions = Submission.query.filter_by(student_id=current_user.id).order_by(Submission.timestamp.desc()).all()
+    output = []
+    for sub in submissions:
+        output.append({
+            'id': sub.id,
+            'question_title': sub.question.title,
+            'topic': sub.question.topic,
+            'subtopic': sub.question.subtopic,
+            'selected_option': sub.selected_option,
+            'correct_option': sub.question.correct_option,
+            'is_correct': sub.is_correct,
+            'timestamp': sub.timestamp.strftime('%Y-%m-%d %I:%M %p')
+        })
+    return jsonify({'history': output})
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)

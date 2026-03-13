@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aptitude Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <button id="theme-toggle" class="btn-small" style="position:fixed; top:1.5rem; right:1.5rem; z-index:100; background:var(--glass-bg); border:1px solid var(--border-color); color:var(--text-main); font-size:1.2rem; cursor:pointer; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+        <i class="fas fa-moon"></i>
+    </button>
+    <div class="landing-container home-landing">
+        <div class="centered-hero" style="max-width: 900px; text-align: center; position: relative; z-index: 10; animation: fadeInSlideUp 0.8s ease-out forwards;">
+            <div class="logo-box" style="margin-bottom: 2.5rem;">
+                <i class="fas fa-brain" style="font-size: 5rem; background: linear-gradient(135deg, var(--primary-col), var(--secondary-col)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
+                <h1 style="font-size: 3rem; margin-top: 1rem; color: #fff; font-weight: 800; letter-spacing: -1px;">Aptitude Master</h1>
+            </div>
+            
+            <h2 class="hero-title" style="font-size: 4.5rem; margin-bottom: 1.5rem;">Master Your Logic,<br>Secure Your Future.</h2>
+            <p class="hero-subtitle" style="font-size: 1.4rem; color: #cbd5e1; max-width: 700px; margin: 0 auto 3rem;">The ultimate platform for sharpening your quantitative, logical, and verbal skills. Prepare for placements and competitive exams with real-time tracking.</p>
+            
+            <div style="display: flex; gap: 1.5rem; justify-content: center; margin-bottom: 4rem;">
+                <a href="/login" class="btn-primary" style="font-size: 1.25rem; padding: 1rem 3rem; width: auto; display: inline-flex; align-items: center; gap: 0.75rem; text-decoration: none; border-radius: 50px; box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4);">
+                    Get Started <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+
+            <div class="feature-highlights" style="grid-template-columns: repeat(4, 1fr); gap: 2rem;">
+                <div class="mini-feature" style="padding: 2rem;">
+                    <i class="fas fa-calculator" style="font-size: 2.5rem;"></i>
+                    <h4 style="font-size: 1.2rem; margin-top: 1rem;">Quantitative</h4>
+                </div>
+                <div class="mini-feature" style="padding: 2rem;">
+                    <i class="fas fa-project-diagram" style="font-size: 2.5rem;"></i>
+                    <h4 style="font-size: 1.2rem; margin-top: 1rem;">Logical Reasoning</h4>
+                </div>
+                <div class="mini-feature" style="padding: 2rem;">
+                    <i class="fas fa-comments" style="font-size: 2.5rem;"></i>
+                    <h4 style="font-size: 1.2rem; margin-top: 1rem;">Verbal Ability</h4>
+                </div>
+                <div class="mini-feature" style="padding: 2rem;">
+                    <i class="fas fa-briefcase" style="font-size: 2.5rem;"></i>
+                    <h4 style="font-size: 1.2rem; margin-top: 1rem;">Placement Focus</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+</body>
+</html>
