@@ -245,14 +245,15 @@ def ping():
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
+    username = (data.get('username') or '').strip()   # Strip whitespace
+    password = (data.get('password') or '').strip()   # Strip whitespace (esp. mobile keyboards)
     role = data.get('role', 'student') 
 
     if not username or not password:
         return jsonify({'message': 'Missing data!'}), 400
-        
-    if User.query.filter_by(username=username).first():
+    
+    # Case-insensitive duplicate check: 'Hariesh' and 'hariesh' are the same user
+    if User.query.filter(db.func.lower(User.username) == username.lower()).first():
         return jsonify({'message': 'User already exists!'}), 400
         
     hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
@@ -269,14 +270,16 @@ def login():
         raw_username = data.get('username', '')
         raw_password = data.get('password', '')
         
+        # Strip whitespace from BOTH fields — mobile keyboards often add trailing spaces
         username = raw_username.strip() if raw_username else None
-        password = raw_password
+        password = raw_password.strip() if raw_password else None
         expected_role = data.get('role')
 
         if not username or not password:
             return jsonify({'message': 'Missing credentials'}), 400
 
-        user = User.query.filter_by(username=username).first()
+        # Case-insensitive lookup: 'hariesh', 'Hariesh', 'HARIESH' all find the same account
+        user = User.query.filter(db.func.lower(User.username) == str(username).lower()).first()
 
         if not user:
             return jsonify({'message': 'Invalid username or password'}), 401
