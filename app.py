@@ -47,11 +47,18 @@ print(f"Connected to Cloud Database (Neon/Postgres)")
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_pre_ping": True,
-    "pool_recycle": 280,
-    "pool_size": 10,
-    "max_overflow": 20,
-    "pool_timeout": 30
+    "pool_pre_ping": False,         # Disabled: TCP keepalives handle dropped connections
+    "pool_recycle": 270,            # Recycle connections every 270s (before Neon's ~300s idle timeout)
+    "pool_size": 5,
+    "max_overflow": 10,
+    "pool_timeout": 30,
+    "connect_args": {
+        "keepalives": 1,            # Enable TCP keepalive
+        "keepalives_idle": 30,      # Send keepalive after 30s idle
+        "keepalives_interval": 10,  # Retry keepalive every 10s
+        "keepalives_count": 5,      # Drop after 5 failed keepalives
+        "connect_timeout": 30
+    }
 }
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'super-secret-aptitude-master-key-1234567890')
 app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'static', 'uploads')
@@ -100,30 +107,39 @@ def run_maintenance(app):
                         db.session.commit()
                         print("DB Maintenance: User 'admin' promoted to admin role.")
 
-                # 3. Enter Keep-Alive Loop
-                print("DB Maintenance: Keep-alive active.")
+                # 3. Enter Keep-Alive Loop (ping every 45s — well within Neon's idle timeout)
+                print("DB Maintenance: Keep-alive active (ping every 45s).")
                 while True:
                     try:
-                        # SSL EOF usually happens on idle connections. 
-                        # Use a fresh session check
-                        db.session.execute(db.text("SELECT 1"))
-                        db.session.commit()
-                        db.session.remove() # Clean up session after each ping
+                        # Use a raw connection to avoid ORM session state issues
+                        with db.engine.connect() as conn:
+                            conn.execute(db.text("SELECT 1"))
                     except Exception as e:
-                        # If a single ping fails (like EOF), rollback and wait to try again
-                        db.session.rollback()
+                        err_str = str(e)
+                        # SSL EOF / connection dropped — dispose the whole pool so
+                        # SQLAlchemy creates fresh connections for every future request
+                        print(f"DB Keep-alive: connection lost ({err_str[:80]}). Disposing pool...")
+                        try:
+                            db.engine.dispose()
+                        except Exception:
+                            pass
                         db.session.remove()
-                        print(f"DB Keep-alive Warning: {e}")
-                        break # Break inner loop to re-initialize context if needed
-                    time.sleep(240)
+                        break  # Break inner loop to re-enter outer try and reconnect
+                    time.sleep(45)
         except Exception as e:
-            # Silence common timeout noise in the logs if it's just a transient thing
-            if "timeout expired" in str(e):
-                print("DB Maintenance: Connection timeout, retrying in 30s...")
-                time.sleep(30)
-            else:
-                print(f"DB Maintenance Loop Error: {e}")
+            err_str = str(e)
+            # Dispose pool on any error so fresh connections are used next time
+            try:
+                db.engine.dispose()
+            except Exception:
+                pass
+            db.session.remove()
+            if "timeout expired" in err_str or "EOF" in err_str or "SSL" in err_str:
+                print(f"DB Maintenance: Transient connection error, retrying in 15s... ({err_str[:80]})")
                 time.sleep(15)
+            else:
+                print(f"DB Maintenance Loop Error: {err_str[:120]}")
+                time.sleep(10)
 
 # --- Global Error Handler ---
 from werkzeug.exceptions import HTTPException
@@ -211,6 +227,21 @@ def quiz_page():
 # -----------------
 # API Authentication
 # -----------------
+
+@app.route('/api/ping', methods=['GET'])
+def ping():
+    """Lightweight token validation — no DB hit. Used by frontend to check session."""
+    token = None
+    if 'Authorization' in request.headers:
+        token = request.headers['Authorization'].split(" ")[1]
+    if not token:
+        return jsonify({'message': 'No token'}), 401
+    try:
+        data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+        return jsonify({'role': data.get('role'), 'user_id': data.get('user_id')}), 200
+    except Exception:
+        return jsonify({'message': 'Token invalid or expired'}), 401
+
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json()

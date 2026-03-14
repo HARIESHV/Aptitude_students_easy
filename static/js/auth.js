@@ -100,6 +100,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await res.json();
                 
                 if (res.ok) {
+                    // Clear any stale session so the new user must log in fresh
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    localStorage.removeItem('role');
                     showAlert('Registration successful! Please login.', false);
                     if (toLogin) toLogin.click(); 
                     registerForm.reset();
@@ -146,11 +150,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Check if already logged in
+    // Check if already logged in — validate token with /api/ping (no DB hit, instant)
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
     if (token) {
-        if (role === 'admin') window.location.href = '/admin_dashboard';
-        if (role === 'student') window.location.href = '/student_dashboard';
+        fetch(`${API_BASE}/ping`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        }).then(res => {
+            if (res.ok) {
+                // Token is valid — redirect to the right dashboard
+                if (role === 'admin') window.location.href = '/admin_dashboard';
+                else if (role === 'student') window.location.href = '/student_dashboard';
+            } else {
+                // Token expired or invalid — clear it and stay on login page
+                localStorage.removeItem('token');
+                localStorage.removeItem('username');
+                localStorage.removeItem('role');
+            }
+        }).catch(() => {
+            // Network error — stay on login page
+        });
     }
 });
