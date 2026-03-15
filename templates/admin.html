@@ -9,6 +9,28 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="dashboard-body">
+    <!-- Desktop animated background -->
+    <div id="particles-dashboard"></div>
+    <div class="grid-bg-anim"></div>
+    <div class="orb-scene">
+        <div class="orb-glow"></div>
+        <div class="orbit-ring-anim blue-ring">
+            <div class="ring-dot-anim" style="top:-3px; left:50%; transform:translateX(-50%); background:#3b82f6; box-shadow:0 0 10px #3b82f6, 0 0 20px #3b82f6;"></div>
+        </div>
+        <div class="orbit-ring-anim purple-ring inverse">
+            <div class="ring-dot-anim" style="top:50%; left:-3px; transform:translateY(-50%); background:#a855f7; box-shadow:0 0 10px #a855f7, 0 0 20px #a855f7;"></div>
+        </div>
+        <div class="center-orb">
+            <i class="fas fa-brain"></i>
+        </div>
+        <div class="floating-symbol logic-1"><i class="fas fa-calculator"></i></div>
+        <div class="floating-symbol math-1">∑</div>
+        <div class="floating-symbol logic-2"><i class="fas fa-cogs"></i></div>
+        <div class="floating-symbol math-2">π</div>
+        <div class="floating-symbol math-3">∫</div>
+        <div class="floating-symbol logic-3">{}</div>
+    </div>
+
     <nav class="sidebar">
         <div class="sidebar-header">
             <i class="fas fa-shield-alt"></i>
@@ -281,6 +303,22 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+    if (typeof particlesJS !== 'undefined') {
+        particlesJS("particles-dashboard", {
+            particles: {
+                number: { value: 60 },
+                size: { value: 1.5 },
+                move: { speed: 0.4 },
+                line_linked: { enable: false },
+                color: { value: "#a855f7" },
+                shape: { type: "circle" },
+                opacity: { value: 0.5, random: true }
+            }
+        });
+    }
+    </script>
     <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </body>
 </html>

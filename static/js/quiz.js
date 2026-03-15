@@ -38,10 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const categoryMeta = {
-        'Logical Reasoning': { icon: '🧠', desc: 'Patterns, sequences, puzzles, and analytical thinking' },
-        'Placement / Company Focused': { icon: '💻', desc: 'Mixed aptitude, logical puzzles, and placement-style problems' },
-        'Quantitative Aptitude': { icon: '🔢', desc: 'Numbers, algebra, arithmetic, and mathematical problem solving' },
-        'Verbal Ability': { icon: '🗣️', desc: 'Grammar, vocabulary, comprehension, and verbal reasoning' }
+        'Logical Reasoning': { icon: '<i class="fas fa-brain"></i>', desc: 'Patterns, sequences, puzzles, and analytical thinking' },
+        'Placement / Company Focused': { icon: '<i class="fas fa-laptop-code"></i>', desc: 'Mixed aptitude, logical puzzles, and placement-style problems' },
+        'Quantitative Aptitude': { icon: '<i class="fas fa-calculator"></i>', desc: 'Numbers, algebra, arithmetic, and mathematical problem solving' },
+        'Verbal Ability': { icon: '<i class="fas fa-comment-dots"></i>', desc: 'Grammar, vocabulary, comprehension, and verbal reasoning' }
     };
 
     const alertBox = document.getElementById('quiz-alert');
@@ -118,24 +118,24 @@ document.addEventListener('DOMContentLoaded', () => {
         qCard.id = `q-card-${q.id}`;
         qCard.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 1.5rem;">
-                <h3 style="margin: 0; color: #fff;">${q.title}</h3>
-                <span class="badge" id="timer-badge-${q.id}" style="background:rgba(255,255,255,0.05); color:var(--text-main); border:1px solid rgba(255,255,255,0.1);">
+                <h3 style="margin: 0; color: var(--text-main);">${q.title}</h3>
+                <span class="badge" id="timer-badge-${q.id}" style="background:var(--surface-bg); color:var(--text-main); border:1px solid var(--border-color);">
                     <i class="fas fa-clock"></i> 
                     <span id="timer-${q.id}">${q.time_limit > 0 ? formatTime(q.time_limit) : '∞'}</span>
                 </span>
             </div>
             <div style="margin-bottom: 1.5rem;">
-                <small class="badge" style="background:rgba(99, 102, 241, 0.2); color:#818cf8; border:1px solid rgba(99, 102, 241, 0.3);">${q.topic} &gt; ${q.subtopic}</small>
+                <small class="badge" style="background:rgba(99, 102, 241, 0.2); color:var(--primary-col); border:1px solid rgba(99, 102, 241, 0.3);">${q.topic} &gt; ${q.subtopic}</small>
             </div>
             
             <div id="q-content-${q.id}">
-                <p class="text-main mb-4" style="font-size: 1.2rem; line-height: 1.8; color: #fff;">${q.description}</p>
+                <p class="text-main mb-4" style="font-size: 1.2rem; line-height: 1.8;">${q.description}</p>
                 <form id="solve-form-${q.id}">
                     <div class="q-options-list">
-                        <label class="q-option-label" style="background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.1);"><input type="radio" name="option_${q.id}" value="A" required> A) ${q.option_a}</label>
-                        <label class="q-option-label" style="background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.1);"><input type="radio" name="option_${q.id}" value="B"> B) ${q.option_b}</label>
-                        <label class="q-option-label" style="background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.1);"><input type="radio" name="option_${q.id}" value="C"> C) ${q.option_c}</label>
-                        <label class="q-option-label" style="background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.1);"><input type="radio" name="option_${q.id}" value="D"> D) ${q.option_d}</label>
+                        <label class="q-option-label"><input type="radio" name="option_${q.id}" value="A" required> A) ${q.option_a}</label>
+                        <label class="q-option-label"><input type="radio" name="option_${q.id}" value="B"> B) ${q.option_b}</label>
+                        <label class="q-option-label"><input type="radio" name="option_${q.id}" value="C"> C) ${q.option_c}</label>
+                        <label class="q-option-label"><input type="radio" name="option_${q.id}" value="D"> D) ${q.option_d}</label>
                     </div>
                     
                     <div class="file-upload-section mt-3">

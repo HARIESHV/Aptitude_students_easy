@@ -16,20 +16,13 @@
             position: relative;
             padding: 2rem;
         }
-        .login-page-container::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: rgba(15, 23, 42, 0.7);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
+        /* Ensure auth box has modern frosted glass look */
         .back-home {
             position: fixed;
             top: 2rem;
             left: 2rem;
             z-index: 100;
-            color: #fff;
+            color: var(--text-main);
             text-decoration: none;
             display: flex;
             align-items: center;
@@ -41,9 +34,35 @@
             color: var(--primary-col);
             transform: translateX(-5px);
         }
+        
+        /* Remove static image logic and rely on animated body */
+        .login-page-container.login-landing {
+            background: transparent !important;
+        }
     </style>
 </head>
-<body>
+<body class="dashboard-body">
+    <!-- Desktop animated background -->
+    <div id="particles-dashboard"></div>
+    <div class="grid-bg-anim"></div>
+    <div class="orb-scene" style="left: 50% !important;">
+        <div class="orb-glow"></div>
+        <div class="orbit-ring-anim blue-ring">
+            <div class="ring-dot-anim" style="top:-3px; left:50%; transform:translateX(-50%); background:#3b82f6; box-shadow:0 0 10px #3b82f6, 0 0 20px #3b82f6;"></div>
+        </div>
+        <div class="orbit-ring-anim purple-ring inverse">
+            <div class="ring-dot-anim" style="top:50%; left:-3px; transform:translateY(-50%); background:#a855f7; box-shadow:0 0 10px #a855f7, 0 0 20px #a855f7;"></div>
+        </div>
+        <div class="center-orb">
+            <i class="fas fa-brain"></i>
+        </div>
+        <div class="floating-symbol logic-1"><i class="fas fa-calculator"></i></div>
+        <div class="floating-symbol math-1">∑</div>
+        <div class="floating-symbol logic-2"><i class="fas fa-cogs"></i></div>
+        <div class="floating-symbol math-2">π</div>
+        <div class="floating-symbol math-3">∫</div>
+        <div class="floating-symbol logic-3">{}</div>
+    </div>
     <a href="/" class="back-home"><i class="fas fa-arrow-left"></i> Back to Home</a>
     
     <button id="theme-toggle" class="btn-small" style="position:fixed; top:1.5rem; right:1.5rem; z-index:100; background:var(--glass-bg); border:1px solid var(--glass-border); color:var(--text-main); font-size:1.2rem; cursor:pointer; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
@@ -55,7 +74,7 @@
         <div class="glass-panel text-center auth-box" style="animation: fadeInSlideUp 0.6s ease-out forwards; position: relative; z-index: 10;">
             <div class="logo-box" style="margin-bottom: 2rem;">
                 <i class="fas fa-brain"></i>
-                <h1 style="color: #fff; font-size: 1.8rem; margin-top: 0.5rem;">Aptitude Master</h1>
+                <h1 style="color: var(--heading-col); font-size: 1.8rem; margin-top: 0.5rem;">Aptitude Master</h1>
             </div>
 
             <div class="role-selector">
@@ -66,7 +85,7 @@
             <div class="auth-forms">
                 <!-- Login Form -->
                 <form id="login-form" class="active-form">
-                    <h2 style="color: #fff;">Welcome Back</h2>
+                    <h2 style="color: var(--heading-col);">Welcome Back</h2>
                     <div class="input-group">
                         <i class="fas fa-user"></i>
                         <input type="text" id="login-username" placeholder="Username" required>
@@ -81,7 +100,7 @@
 
                 <!-- Register Form -->
                 <form id="register-form" style="display: none;">
-                    <h2 style="color: #fff;">Create Account</h2>
+                    <h2 style="color: var(--heading-col);">Create Account</h2>
                     <div class="input-group">
                         <i class="fas fa-user"></i>
                         <input type="text" id="reg-username" placeholder="Username" required>
@@ -98,6 +117,22 @@
         </div>
     </div>
     
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+    if (typeof particlesJS !== 'undefined') {
+        particlesJS("particles-dashboard", {
+            particles: {
+                number: { value: 60 },
+                size: { value: 1.5 },
+                move: { speed: 0.4 },
+                line_linked: { enable: false },
+                color: { value: "#a855f7" },
+                shape: { type: "circle" },
+                opacity: { value: 0.5, random: true }
+            }
+        });
+    }
+    </script>
     <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </body>
 </html>

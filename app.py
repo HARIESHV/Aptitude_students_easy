@@ -127,13 +127,14 @@ def run_maintenance(app):
                         break  # Break inner loop to re-enter outer try and reconnect
                     time.sleep(45)
         except Exception as e:
-            err_str = str(e)
-            # Dispose pool on any error so fresh connections are used next time
-            try:
-                db.engine.dispose()
-            except Exception:
-                pass
-            db.session.remove()
+            with app.app_context():
+                err_str = str(e)
+                # Dispose pool on any error so fresh connections are used next time
+                try:
+                    db.engine.dispose()
+                except Exception:
+                    pass
+                db.session.remove()
             if "timeout expired" in err_str or "EOF" in err_str or "SSL" in err_str:
                 print(f"DB Maintenance: Transient connection error, retrying in 15s... ({err_str[:80]})")
                 time.sleep(15)
