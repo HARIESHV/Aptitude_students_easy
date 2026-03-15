@@ -53,19 +53,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     navLinks.forEach(link => {
         link.addEventListener('click', () => {
+            const target = link.getAttribute('data-target');
+            const category = link.getAttribute('data-category');
+            
             navLinks.forEach(l => l.classList.remove('active'));
             sections.forEach(s => s.style.display = 'none');
             
             link.classList.add('active');
-            const target = link.getAttribute('data-target');
-            document.getElementById(target).style.display = 'block';
-            pageTitle.innerText = link.innerText.trim();
+            const targetSection = document.getElementById(target);
+            if (targetSection) targetSection.style.display = 'block';
+            
+            if (pageTitle) pageTitle.innerText = link.innerText.trim();
 
-            if(target === 'practice') fetchStudentQuestions();
+            if (target === 'practice') {
+                if (category) {
+                    showQuestionsInCategory(category);
+                } else {
+                    fetchStudentQuestions();
+                }
+            }
             if(target === 'history') fetchHistory();
             if(target === 'stats') loadStatsChart();
             if(target === 'student-meetlinks') fetchMeetLinks();
             if(target === 'student-messages') fetchMessages();
+            if(target === 'leaderboard-section') fetchLeaderboard();
         });
     });
 
@@ -376,33 +387,27 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) { console.error(err); }
     };
 
-    // --- Daily Challenge Logic ---
-    const challengeCard = document.querySelector('.daily-challenge-card');
-    if (challengeCard) {
-        const options = challengeCard.querySelectorAll('.btn-option');
-        const checkBtn = challengeCard.querySelector('.btn-primary-glow');
-        let selected = null;
 
-        options.forEach(opt => {
-            opt.addEventListener('click', () => {
-                options.forEach(o => o.style.background = 'rgba(255,255,255,0.05)');
-                opt.style.background = 'var(--primary-col)';
-                selected = opt.innerText;
+    // --- Leaderboard Section ---
+    async function fetchLeaderboard() {
+        try {
+            const res = await fetch(`${API_BASE}/leaderboard`, { headers: getHeaders() });
+            const data = await res.json();
+            const tbody = document.getElementById('student-leaderboard-tbody');
+            tbody.innerHTML = '';
+            
+            data.leaderboard.forEach((std, index) => {
+                const tr = document.createElement('tr');
+                if (std.is_me) tr.style.background = 'rgba(99, 102, 241, 0.1)';
+                tr.innerHTML = `
+                    <td><strong>#${index + 1}</strong></td>
+                    <td>${std.username} ${std.is_me ? '<span class="badge correct">You</span>' : ''}</td>
+                    <td>${std.total_submissions}</td>
+                    <td><span class="highlight-text">${std.average}%</span></td>
+                `;
+                tbody.appendChild(tr);
             });
-        });
-
-        checkBtn.addEventListener('click', () => {
-            if (!selected) {
-                showAlert('Please select an option first!', true);
-                return;
-            }
-            if (selected === '42') {
-                showAlert('Correct! Sequence: n(n+1) -> 6*7 = 42');
-                gsap.to('.reward-points', { scale: 1.5, color: '#fbbf24', duration: 0.5, yoyo: true, repeat: 1 });
-            } else {
-                showAlert('Wrong! Try again.', true);
-            }
-        });
+        } catch (err) { console.error(err); }
     }
 
     // Initialize

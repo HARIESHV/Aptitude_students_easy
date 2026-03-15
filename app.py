@@ -417,6 +417,26 @@ def get_students(current_user):
         })
     return jsonify({'students': output})
 
+@app.route('/api/leaderboard', methods=['GET'])
+@token_required
+def get_leaderboard(current_user):
+    students = User.query.filter_by(role='student').all()
+    output = []
+    for std in students:
+        submissions = Submission.query.filter_by(student_id=std.id).all()
+        total = len(submissions)
+        correct = len([s for s in submissions if s.is_correct])
+        average = (correct / total * 100) if total > 0 else 0
+        output.append({
+            'username': std.username,
+            'average': round(average, 2),
+            'total_submissions': total,
+            'is_me': std.id == current_user.id
+        })
+    # Sort by average score descending
+    output.sort(key=lambda x: x['average'], reverse=True)
+    return jsonify({'leaderboard': output})
+
 @app.route('/api/students/<int:id>', methods=['DELETE'])
 @token_required
 @admin_required

@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard - Aptitude</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body class="dashboard-body">
     <!-- Modern Background Layers -->
     <div id="particles-dashboard"></div>
@@ -15,7 +18,7 @@
         <canvas id="polygon-canvas"></canvas>
     </div>
     <div class="sphere-container" id="sphere-3d"></div> <!-- 3D Wireframe Sphere -->
-    
+
     <div class="holographic-overlay"></div>
     <div class="scanner-line"></div>
 
@@ -26,17 +29,17 @@
         </div>
         <ul class="nav-links">
             <li class="active" data-target="practice"><i class="fas fa-th-large"></i> Dashboard</li>
-            <li data-target="practice"><i class="fas fa-divide"></i> Quantitative</li>
-            <li data-target="practice"><i class="fas fa-puzzle-piece"></i> Logical Reasoning</li>
-            <li data-target="practice"><i class="fas fa-font"></i> Verbal Ability</li>
-            <li data-target="practice"><i class="fas fa-building"></i> Company Tests</li>
-            <li data-target="history"><i class="fas fa-trophy"></i> Leaderboard</li>
+            <li data-target="practice" data-category="Quantitative Aptitude"><i class="fas fa-divide"></i> Quantitative
+            </li>
+            <li data-target="practice" data-category="Logical Reasoning"><i class="fas fa-puzzle-piece"></i> Logical
+                Reasoning</li>
+            <li data-target="practice" data-category="Verbal Ability"><i class="fas fa-font"></i> Verbal Ability</li>
+            <li data-target="practice" data-category="Placement / Company Focused"><i class="fas fa-building"></i>
+                Company Tests</li>
+            <li data-target="leaderboard-section"><i class="fas fa-trophy"></i> Leaderboard</li>
             <li data-target="stats"><i class="fas fa-user-circle"></i> Profile</li>
+            <li data-target="history"><i class="fas fa-history"></i> My History</li>
         </ul>
-        <div class="sidebar-prog">
-            <div class="small-label">MONTHLY GOAL</div>
-            <div class="hud-bar"><div class="hud-fill" style="width: 65%;"></div></div>
-        </div>
         <button id="logout-btn" class="btn-logout"><i class="fas fa-power-off"></i> Logout</button>
     </nav>
 
@@ -46,30 +49,31 @@
             <div class="hero-content">
                 <h1 class="animate-reveal">The challenge begins, <span id="user-display-name">Learner</span></h1>
                 <p class="animate-reveal delay-1">Sharpen your aptitude skills. Solve problems. Track your growth.</p>
-                <div class="hero-stats animate-reveal delay-2">
-                    <div class="hero-stat-item">
-                        <span class="val">1250</span>
-                        <span class="lbl">TOTAL XP</span>
-                    </div>
-                    <div class="hero-stat-divider"></div>
-                    <div class="hero-stat-item">
-                        <span class="val">#12</span>
-                        <span class="lbl">RANK</span>
-                    </div>
-                </div>
             </div>
         </section>
 
-        <header class="topbar hidden-desktop"> <!-- Mobile Topbar -->
-            <div class="user-info">
-                <span id="welcome-text">Dashboard</span>
+        <header class="topbar">
+            <div class="topbar-left">
+                <h1 id="page-title">Dashboard</h1>
+                <button class="btn-home-pill" onclick="window.location.href='/student_dashboard'">
+                    <i class="fas fa-home"></i> Home
+                </button>
+            </div>
+
+            <div class="topbar-right">
+                <button id="theme-toggle" class="theme-btn-orb">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div class="user-info-badge">
+                    <span id="welcome-text">Welcome, Hariesh</span>
+                </div>
             </div>
         </header>
 
         <div class="content-sections container">
             <!-- Alert Box -->
             <div id="dashboard-alert" class="alert hidden"></div>
-            
+
             <!-- Practice Area -->
             <section id="practice" class="active-section dashboard-section">
                 <div class="stats-cards">
@@ -80,7 +84,7 @@
                             <p>Attempted</p>
                         </div>
                     </div>
-                     <div class="stat-card glass-panel">
+                    <div class="stat-card glass-panel">
                         <i class="fas fa-percentage"></i>
                         <div class="stat-info">
                             <h4 id="stat-average">0%</h4>
@@ -89,35 +93,8 @@
                     </div>
                 </div>
 
-                <!-- Daily Aptitude Challenge Card -->
-                <div class="daily-challenge-container mt-4 animate-reveal delay-2">
-                    <div class="daily-challenge-card glass-panel">
-                        <div class="challenge-badge">DAILY CHALLENGE</div>
-                        <div class="challenge-content">
-                            <h3>Find the missing number in the sequence</h3>
-                            <p class="challenge-problem">2, 6, 12, 20, 30, ?</p>
-                            <div class="challenge-meta">
-                                <span class="difficulty-badge medium">Medium</span>
-                                <span class="reward-points"><i class="fas fa-star"></i> +50 XP</span>
-                            </div>
-                            <div class="challenge-options mt-3">
-                                <button class="btn-option">40</button>
-                                <button class="btn-option">42</button>
-                                <button class="btn-option">44</button>
-                                <button class="btn-option">48</button>
-                            </div>
-                        </div>
-                        <div class="challenge-footer">
-                            <button class="btn-primary-glow">Check Answer</button>
-                        </div>
-                    </div>
-                </div>
 
                 <div id="quiz-categories-view" class="mt-4">
-                    <div class="quiz-header">
-                        <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem;">Take a Quiz 🎯</h1>
-                        <p class="text-muted">Choose a category to start your aptitude challenge</p>
-                    </div>
                     <div id="quiz-category-grid" class="quiz-category-grid">
                         <!-- Category cards will be injected here by JS -->
                     </div>
@@ -153,7 +130,8 @@
                     <div class="performance-chart-placeholder">
                         <i class="fas fa-chart-pie large-icon"></i>
                         <h2 class="mt-3">Overall Average: <span id="big-average" class="highlight-text">0</span>%</h2>
-                        <p class="mt-2 text-muted">Total Attempted: <span id="big-attempted">0</span> | Correct: <span id="big-correct">0</span></p>
+                        <p class="mt-2 text-muted">Total Attempted: <span id="big-attempted">0</span> | Correct: <span
+                                id="big-correct">0</span></p>
                     </div>
                 </div>
             </section>
@@ -171,15 +149,45 @@
                 <div class="card glass-panel mb-4">
                     <h3>Send a Message (With File)</h3>
                     <form id="student-send-msg-form" class="custom-form">
-                        <textarea id="s-msg-content" placeholder="Type your doubt or message..." rows="3" required></textarea>
-                        <label class="text-muted" style="font-size:0.85rem;"><i class="fas fa-paperclip"></i> Attach File (Optional):</label>
-                        <input type="file" id="s-msg-file" class="mt-1" accept=".pdf,.doc,.docx,.jpg,.png,.jpeg,.zip" style="width: 100%; border:none;">
+                        <textarea id="s-msg-content" placeholder="Type your doubt or message..." rows="3"
+                            required></textarea>
+                        <label class="text-muted" style="font-size:0.85rem;"><i class="fas fa-paperclip"></i> Attach
+                            File (Optional):</label>
+                        <input type="file" id="s-msg-file" class="mt-1" accept=".pdf,.doc,.docx,.jpg,.png,.jpeg,.zip"
+                            style="width: 100%; border:none;">
                         <button type="submit" class="btn-primary mt-3">Send to Admin</button>
                     </form>
                 </div>
                 <div class="card glass-panel">
                     <h3>Conversation with Admin</h3>
                     <div id="student-messages-list" class="items-list chat-list"></div>
+                </div>
+            </section>
+
+            <!-- Leaderboard Section -->
+            <section id="leaderboard-section" class="dashboard-section" style="display: none;">
+                <div class="card glass-panel">
+                    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom: 1.5rem;">
+                        <i class="fas fa-trophy" style="font-size:1.8rem; color:#f59e0b;"></i>
+                        <div>
+                            <h3 style="margin:0;">Leaderboard</h3>
+                            <p style="margin:0; font-size:0.85rem; color:var(--text-muted);">Top students ranked by
+                                average score</p>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Student</th>
+                                    <th>Questions Attempted</th>
+                                    <th>Average Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-leaderboard-tbody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
@@ -194,4 +202,5 @@
     <script src="{{ url_for('static', filename='js/dashboard-3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/student.js') }}"></script>
 </body>
+
 </html>
