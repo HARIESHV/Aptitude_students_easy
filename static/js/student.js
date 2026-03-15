@@ -25,6 +25,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('welcome-text').innerText = `Welcome, ${username}`;
+    document.getElementById('user-display-name').innerText = username;
+
+    // --- Cinematic Reveal Animations (GSAP) ---
+    if (typeof gsap !== 'undefined') {
+        gsap.to('.animate-reveal', {
+            opacity: 1,
+            y: 0,
+            duration: 1,
+            stagger: 0.2,
+            ease: "power4.out"
+        });
+
+        // Floating Card Animation for Daily Challenge
+        gsap.to('.daily-challenge-card', {
+            y: -10,
+            duration: 3,
+            repeat: -1,
+            yoyo: true,
+            ease: "sine.inOut"
+        });
+    }
 
     const navLinks = document.querySelectorAll('.nav-links li');
     const sections = document.querySelectorAll('.dashboard-section');
@@ -354,6 +375,35 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (err) { console.error(err); }
     };
+
+    // --- Daily Challenge Logic ---
+    const challengeCard = document.querySelector('.daily-challenge-card');
+    if (challengeCard) {
+        const options = challengeCard.querySelectorAll('.btn-option');
+        const checkBtn = challengeCard.querySelector('.btn-primary-glow');
+        let selected = null;
+
+        options.forEach(opt => {
+            opt.addEventListener('click', () => {
+                options.forEach(o => o.style.background = 'rgba(255,255,255,0.05)');
+                opt.style.background = 'var(--primary-col)';
+                selected = opt.innerText;
+            });
+        });
+
+        checkBtn.addEventListener('click', () => {
+            if (!selected) {
+                showAlert('Please select an option first!', true);
+                return;
+            }
+            if (selected === '42') {
+                showAlert('Correct! Sequence: n(n+1) -> 6*7 = 42');
+                gsap.to('.reward-points', { scale: 1.5, color: '#fbbf24', duration: 0.5, yoyo: true, repeat: 1 });
+            } else {
+                showAlert('Wrong! Try again.', true);
+            }
+        });
+    }
 
     // Initialize
     fetchStudentQuestions();

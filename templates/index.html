@@ -14,10 +14,18 @@
 
         body.hero-page {
             font-family: 'Poppins', sans-serif;
-            background: #050a1a;
+            background: linear-gradient(-45deg, #050a1a, #0f172a, #1e1b4b, #312e81);
+            background-size: 400% 400%;
+            animation: bgMovement 15s ease infinite;
             color: #fff;
             min-height: 100vh;
             overflow-x: hidden;
+        }
+
+        @keyframes bgMovement {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         /* ─── PARTICLES.JS ─────────────────────────── */
@@ -42,6 +50,7 @@
         }
 
         .grid-bg {
+            display: none;
             position: fixed;
             bottom: 0; left: -200px;
             width: calc(100% + 400px);
@@ -587,11 +596,6 @@
             </div>
             <i class="fas fa-brain brain-core"></i>
 
-            <div class="floating-symbol logic-1"><i class="fas fa-calculator"></i></div>
-            <div class="floating-symbol math-1">∑</div>
-            <div class="floating-symbol logic-2"><i class="fas fa-cogs"></i></div>
-            <div class="floating-symbol math-2">π</div>
-            <div class="floating-symbol math-3">∫</div>
             <div class="floating-symbol logic-3">{}</div>
         </div>
 
@@ -737,5 +741,6 @@
         themeBtn.innerHTML = isLight ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
     });
     </script>
+    <script src="{{ url_for('static', filename='js/aptitude-effects.js') }}"></script>
 </body>
 </html>
