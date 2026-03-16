@@ -3,25 +3,49 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Dashboard - Aptitude</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="Aptitude PRO – Practice Quantitative Aptitude, Logical Reasoning, Verbal Ability, and Placement tests.">
+    <title>Student Dashboard – Aptitude PRO</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Desktop CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Mobile CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+
+    <style>
+        /* ── Layout switcher ── */
+        .desktop-layout { display: flex; }
+        .mobile-layout  { display: none; }
+
+        @media (max-width: 768px) {
+            .desktop-layout { display: none !important; }
+            .mobile-layout  { display: block !important; }
+        }
+        @media (min-width: 769px) {
+            .desktop-layout { display: flex !important; }
+            .mobile-layout  { display: none !important; }
+        }
+    </style>
 </head>
 
 <body class="dashboard-body">
-    <!-- Modern Background Layers -->
-    <div id="particles-dashboard"></div>
-    <div class="polygon-bg-container">
-        <canvas id="polygon-canvas"></canvas>
-    </div>
-    <div class="sphere-container" id="sphere-3d"></div> <!-- 3D Wireframe Sphere -->
 
+<!-- ═══════════════════════════════════════════════════════════
+     DESKTOP LAYOUT  (≥ 769 px)  — Original sidebar design
+═══════════════════════════════════════════════════════════ -->
+<div class="desktop-layout" id="desktop-layout">
+    <!-- Background FX -->
+    <div id="particles-dashboard"></div>
+    <div class="polygon-bg-container"><canvas id="polygon-canvas"></canvas></div>
+    <div class="sphere-container" id="sphere-3d"></div>
     <div class="holographic-overlay"></div>
     <div class="scanner-line"></div>
 
+    <!-- Sidebar -->
     <nav class="sidebar">
         <div class="sidebar-header">
             <div class="brand-orb"><i class="fas fa-brain"></i></div>
@@ -29,13 +53,10 @@
         </div>
         <ul class="nav-links">
             <li class="active" data-target="practice"><i class="fas fa-th-large"></i> Dashboard</li>
-            <li data-target="practice" data-category="Quantitative Aptitude"><i class="fas fa-divide"></i> Quantitative
-            </li>
-            <li data-target="practice" data-category="Logical Reasoning"><i class="fas fa-puzzle-piece"></i> Logical
-                Reasoning</li>
+            <li data-target="practice" data-category="Quantitative Aptitude"><i class="fas fa-divide"></i> Quantitative</li>
+            <li data-target="practice" data-category="Logical Reasoning"><i class="fas fa-puzzle-piece"></i> Logical Reasoning</li>
             <li data-target="practice" data-category="Verbal Ability"><i class="fas fa-font"></i> Verbal Ability</li>
-            <li data-target="practice" data-category="Placement / Company Focused"><i class="fas fa-building"></i>
-                Company Tests</li>
+            <li data-target="practice" data-category="Placement / Company Focused"><i class="fas fa-building"></i> Company Tests</li>
             <li data-target="leaderboard-section"><i class="fas fa-trophy"></i> Leaderboard</li>
             <li data-target="student-meetlinks"><i class="fas fa-video"></i> Live Classes</li>
             <li data-target="student-messages"><i class="fas fa-envelope"></i> Doubts / Messages</li>
@@ -45,8 +66,9 @@
         <button id="logout-btn" class="btn-logout"><i class="fas fa-power-off"></i> Logout</button>
     </nav>
 
+    <!-- Main Content -->
     <main class="main-content">
-        <!-- Dashboard Hero Section -->
+        <!-- Hero -->
         <section class="dashboard-hero">
             <div class="hero-content">
                 <h1 class="animate-reveal">The challenge begins, <span id="user-display-name">Learner</span></h1>
@@ -61,19 +83,13 @@
                     <i class="fas fa-home"></i> Home
                 </button>
             </div>
-
             <div class="topbar-right">
-                <button id="theme-toggle" class="theme-btn-orb">
-                    <i class="fas fa-moon"></i>
-                </button>
-                <div class="user-info-badge">
-                    <span id="welcome-text">Welcome, Hariesh</span>
-                </div>
+                <button id="theme-toggle" class="theme-btn-orb"><i class="fas fa-moon"></i></button>
+                <div class="user-info-badge"><span id="welcome-text">Welcome, Student</span></div>
             </div>
         </header>
 
         <div class="content-sections container">
-            <!-- Alert Box -->
             <div id="dashboard-alert" class="alert hidden"></div>
 
             <!-- Practice Area -->
@@ -81,42 +97,29 @@
                 <div class="stats-cards">
                     <div class="stat-card glass-panel">
                         <i class="fas fa-tasks"></i>
-                        <div class="stat-info">
-                            <h4 id="stat-attempted">0</h4>
-                            <p>Attempted</p>
-                        </div>
+                        <div class="stat-info"><h4 id="stat-attempted">0</h4><p>Attempted</p></div>
                     </div>
                     <div class="stat-card glass-panel">
                         <i class="fas fa-percentage"></i>
-                        <div class="stat-info">
-                            <h4 id="stat-average">0%</h4>
-                            <p>Average Score</p>
-                        </div>
+                        <div class="stat-info"><h4 id="stat-average">0%</h4><p>Average Score</p></div>
                     </div>
                 </div>
-
-
                 <div id="quiz-categories-view" class="mt-4">
-                    <div id="quiz-category-grid" class="quiz-category-grid">
-                        <!-- Category cards will be injected here by JS -->
-                    </div>
+                    <div id="quiz-category-grid" class="quiz-category-grid"></div>
                 </div>
             </section>
 
-            <!-- History Section -->
-            <section id="history" class="dashboard-section" style="display: none;">
+            <!-- History -->
+            <section id="history" class="dashboard-section" style="display:none;">
                 <div class="card glass-panel">
                     <h3>My Answered Questions</h3>
                     <div class="table-responsive">
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Question</th>
-                                    <th>Topic / Subtopic</th>
-                                    <th>My Answer</th>
-                                    <th>Correct Answer</th>
-                                    <th>Status</th>
-                                    <th>Date (IST)</th>
+                                    <th>Question</th><th>Topic / Subtopic</th>
+                                    <th>My Answer</th><th>Correct Answer</th>
+                                    <th>Status</th><th>Date (IST)</th>
                                 </tr>
                             </thead>
                             <tbody id="student-history-tbody"></tbody>
@@ -125,21 +128,20 @@
                 </div>
             </section>
 
-            <!-- Stats -->
-            <section id="stats" class="dashboard-section" style="display: none;">
+            <!-- Stats / Profile -->
+            <section id="stats" class="dashboard-section" style="display:none;">
                 <div class="card glass-panel text-center">
                     <h3>My Performance Summary</h3>
                     <div class="performance-chart-placeholder">
                         <i class="fas fa-chart-pie large-icon"></i>
                         <h2 class="mt-3">Overall Average: <span id="big-average" class="highlight-text">0</span>%</h2>
-                        <p class="mt-2 text-muted">Total Attempted: <span id="big-attempted">0</span> | Correct: <span
-                                id="big-correct">0</span></p>
+                        <p class="mt-2 text-muted">Total Attempted: <span id="big-attempted">0</span> | Correct: <span id="big-correct">0</span></p>
                     </div>
                 </div>
             </section>
 
-            <!-- Meetlinks -->
-            <section id="student-meetlinks" class="dashboard-section" style="display: none;">
+            <!-- Meet Links -->
+            <section id="student-meetlinks" class="dashboard-section" style="display:none;">
                 <div class="card glass-panel">
                     <h3>Join Live Classes</h3>
                     <div id="student-meetlinks-list" class="items-list"></div>
@@ -147,16 +149,13 @@
             </section>
 
             <!-- Messages -->
-            <section id="student-messages" class="dashboard-section" style="display: none;">
+            <section id="student-messages" class="dashboard-section" style="display:none;">
                 <div class="card glass-panel mb-4">
                     <h3>Send a Message (With File)</h3>
                     <form id="student-send-msg-form" class="custom-form">
-                        <textarea id="s-msg-content" placeholder="Type your doubt or message..." rows="3"
-                            required></textarea>
-                        <label class="text-muted" style="font-size:0.85rem;"><i class="fas fa-paperclip"></i> Attach
-                            File (Optional):</label>
-                        <input type="file" id="s-msg-file" class="mt-1" accept=".pdf,.doc,.docx,.jpg,.png,.jpeg,.zip"
-                            style="width: 100%; border:none;">
+                        <textarea id="s-msg-content" placeholder="Type your doubt or message..." rows="3" required></textarea>
+                        <label class="text-muted" style="font-size:0.85rem;"><i class="fas fa-paperclip"></i> Attach File (Optional):</label>
+                        <input type="file" id="s-msg-file" class="mt-1" accept=".pdf,.doc,.docx,.jpg,.png,.jpeg,.zip" style="width:100%;border:none;">
                         <button type="submit" class="btn-primary mt-3">Send to Admin</button>
                     </form>
                 </div>
@@ -166,43 +165,263 @@
                 </div>
             </section>
 
-            <!-- Leaderboard Section -->
-            <section id="leaderboard-section" class="dashboard-section" style="display: none;">
+            <!-- Leaderboard -->
+            <section id="leaderboard-section" class="dashboard-section" style="display:none;">
                 <div class="card glass-panel">
-                    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom: 1.5rem;">
-                        <i class="fas fa-trophy" style="font-size:1.8rem; color:#f59e0b;"></i>
+                    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.5rem;">
+                        <i class="fas fa-trophy" style="font-size:1.8rem;color:#f59e0b;"></i>
                         <div>
                             <h3 style="margin:0;">Leaderboard</h3>
-                            <p style="margin:0; font-size:0.85rem; color:var(--text-muted);">Top students ranked by
-                                average score</p>
+                            <p style="margin:0;font-size:0.85rem;color:var(--text-muted);">Top students ranked by average score</p>
                         </div>
                     </div>
                     <div class="table-responsive">
                         <table class="data-table">
                             <thead>
-                                <tr>
-                                    <th>Rank</th>
-                                    <th>Student</th>
-                                    <th>Questions Attempted</th>
-                                    <th>Average Score</th>
-                                </tr>
+                                <tr><th>Rank</th><th>Student</th><th>Questions Attempted</th><th>Average Score</th></tr>
                             </thead>
                             <tbody id="student-leaderboard-tbody"></tbody>
                         </table>
                     </div>
                 </div>
             </section>
-
         </div>
     </main>
 
-    <!-- Three.js for 3D Sphere -->
+    <!-- Desktop Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <script src="{{ url_for('static', filename='js/aptitude-effects.js') }}"></script>
     <script src="{{ url_for('static', filename='js/dashboard-3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/student.js') }}"></script>
-</body>
+</div>
 
+
+<!-- ═══════════════════════════════════════════════════════════
+     MOBILE LAYOUT  (≤ 768 px)  — Modern bottom-nav design
+═══════════════════════════════════════════════════════════ -->
+<div class="mobile-layout mob-app" id="mobile-layout">
+
+    <!-- ── TOP HEADER ─────────────────────────────────── -->
+    <header class="mob-header">
+        <div class="mob-logo">
+            <div class="mob-logo-icon"><i class="fas fa-brain"></i></div>
+            <span class="mob-logo-text">Aptitude<span>PRO</span></span>
+        </div>
+        <div class="mob-header-right">
+            <button id="mob-theme-toggle" class="mob-icon-btn" title="Toggle theme" aria-label="Toggle light/dark mode">
+                <i class="fas fa-sun"></i>
+            </button>
+            <div class="mob-avatar" id="mob-avatar" title="Profile">
+                <span id="avatar-initials">A</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Alert Toast -->
+    <div id="mob-alert" class="mob-alert" role="alert" aria-live="polite"></div>
+
+    <!-- ── SCROLLABLE CONTENT ──────────────────────────── -->
+    <div class="mob-scroll" id="mob-scroll">
+
+        <!-- ─────────────────────────────────────────────
+             SECTION 1: HOME
+        ──────────────────────────────────────────────── -->
+        <section id="mob-home" class="mob-section mob-active">
+            <div class="mob-hero">
+                <div class="mob-pill-badge">The Future of Aptitude Practice</div>
+                <h1 class="mob-hero-title">
+                    Master Your<br>
+                    <span class="hero-grad">Aptitude Skills</span>
+                </h1>
+                <p class="mob-hero-desc">
+                    Practice Quantitative Aptitude, Logical Reasoning, Verbal Ability, and Placement-level questions.
+                </p>
+                <button class="mob-cta-btn" id="mob-cta-practice">
+                    Start Practice <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <div class="mob-stats-strip">
+                <div class="mob-stat-pill">
+                    <div class="mob-stat-icon"><i class="fas fa-tasks"></i></div>
+                    <div class="mob-stat-info">
+                        <h4 id="mob-stat-attempted">0</h4><p>Attempted</p>
+                    </div>
+                </div>
+                <div class="mob-stat-pill">
+                    <div class="mob-stat-icon"><i class="fas fa-percentage"></i></div>
+                    <div class="mob-stat-info">
+                        <h4 id="mob-stat-average">0%</h4><p>Avg Score</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mob-section-head">
+                <h2>📚 Practice Categories</h2>
+            </div>
+            <div class="mob-cards-list" id="mob-category-grid"></div>
+            <div class="mob-spacer"></div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────
+             SECTION 2: PRACTICE
+        ──────────────────────────────────────────────── -->
+        <section id="mob-practice" class="mob-section">
+            <div class="mob-section-head" style="padding-top:20px;">
+                <h2>🎯 All Practice Topics</h2>
+            </div>
+            <div class="mob-cards-list" id="mob-practice-grid"></div>
+            <div class="mob-spacer"></div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────
+             SECTION 3: COMPANY TESTS
+        ──────────────────────────────────────────────── -->
+        <section id="mob-company" class="mob-section">
+            <div class="mob-hero" style="padding-bottom:12px;">
+                <h1 class="mob-hero-title" style="font-size:1.6rem;">
+                    <span class="hero-grad">Company Tests</span>
+                </h1>
+                <p class="mob-hero-desc">Placement-style mixed aptitude & logical puzzles from top companies.</p>
+            </div>
+            <div class="mob-cards-list" id="mob-company-grid"></div>
+            <div class="mob-spacer"></div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────
+             SECTION 4: LIVE CLASSES (Meet Links)
+        ──────────────────────────────────────────────── -->
+        <section id="mob-classes" class="mob-section">
+            <div class="mob-section-head" style="padding-top:20px;">
+                <h2>📹 Live Classes</h2>
+            </div>
+            <div class="mob-content-card">
+                <h3><i class="fas fa-video"></i> Active Sessions</h3>
+                <div class="mob-meet-list" id="mob-meet-list">
+                    <p class="mob-empty">Loading classes…</p>
+                </div>
+            </div>
+
+            <!-- Upcoming / Info Banner -->
+            <div class="mob-content-card">
+                <h3><i class="fas fa-calendar-alt"></i> Schedule</h3>
+                <div class="mob-schedule-info">
+                    <p style="color:var(--mob-muted);font-size:0.82rem;line-height:1.7;">
+                        Live aptitude sessions are posted by your admin here. Join with a single tap. Classes include quantitative problem solving, logical reasoning walkthroughs, and company-specific mock tests.
+                    </p>
+                    <div class="mob-info-chips">
+                        <span class="mob-chip"><i class="fas fa-clock"></i> Real-time</span>
+                        <span class="mob-chip"><i class="fas fa-users"></i> Group Session</span>
+                        <span class="mob-chip"><i class="fas fa-chalkboard-teacher"></i> Live Q&amp;A</span>
+                    </div>
+                </div>
+            </div>
+            <div class="mob-spacer"></div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────
+             SECTION 5: LEADERBOARD
+        ──────────────────────────────────────────────── -->
+        <section id="mob-leaderboard" class="mob-section">
+            <div class="mob-section-head" style="padding-top:20px;">
+                <h2><i class="fas fa-trophy" style="color:#f59e0b;"></i>&nbsp; Leaderboard</h2>
+            </div>
+            <div class="mob-content-card">
+                <h3><i class="fas fa-medal"></i> Top Students</h3>
+                <div class="mob-lb-list" id="mob-lb-list">
+                    <p class="mob-empty">Loading leaderboard…</p>
+                </div>
+            </div>
+            <div class="mob-spacer"></div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────
+             SECTION 6: PROFILE
+        ──────────────────────────────────────────────── -->
+        <section id="mob-profile" class="mob-section">
+            <div class="mob-profile-hero">
+                <div class="mob-profile-av" id="mob-profile-av">A</div>
+                <div class="mob-profile-name" id="mob-profile-name">Student</div>
+                <div class="mob-profile-role">Aptitude Learner 🎓</div>
+                <div class="mob-profile-stats">
+                    <div class="mob-pstat"><h4 id="mob-prof-attempted">0</h4><p>Attempted</p></div>
+                    <div class="mob-pstat"><h4 id="mob-prof-correct">0</h4><p>Correct</p></div>
+                    <div class="mob-pstat"><h4 id="mob-prof-avg">0%</h4><p>Avg Score</p></div>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="mob-content-card">
+                <h3><i class="fas fa-history"></i> My Question History</h3>
+                <div class="mob-hist-list" id="mob-hist-list">
+                    <p class="mob-empty">Loading history…</p>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="mob-content-card">
+                <h3><i class="fas fa-envelope"></i> Doubts / Messages</h3>
+                <form id="mob-msg-form" class="mob-msg-form">
+                    <textarea id="mob-msg-content" placeholder="Type your doubt or question…" rows="3" required></textarea>
+                    <div class="mob-file-label"><i class="fas fa-paperclip"></i> Attach file (optional)</div>
+                    <input type="file" id="mob-msg-file" accept=".pdf,.doc,.docx,.jpg,.png,.jpeg,.zip">
+                    <button type="submit" class="mob-send-btn">
+                        <i class="fas fa-paper-plane"></i> Send to Admin
+                    </button>
+                </form>
+            </div>
+
+            <div class="mob-content-card">
+                <h3><i class="fas fa-comments"></i> Conversation</h3>
+                <div class="mob-chat-list" id="mob-chat-list">
+                    <p class="mob-empty">No messages yet.</p>
+                </div>
+            </div>
+
+            <!-- Logout -->
+            <div style="padding:0 16px 20px;">
+                <button id="mob-logout-btn" class="mob-logout-btn">
+                    <i class="fas fa-power-off"></i> Logout
+                </button>
+            </div>
+        </section>
+
+    </div><!-- end mob-scroll -->
+
+    <!-- ── BOTTOM NAVIGATION (6 items) ────────────────────── -->
+    <nav class="mob-bottom-nav" id="mob-bottom-nav">
+        <div class="mob-nav-item mob-nav-active" data-section="mob-home">
+            <div class="mob-nav-icon"><i class="fas fa-home"></i></div>
+            <span class="mob-nav-label">Home</span>
+        </div>
+        <div class="mob-nav-item" data-section="mob-practice">
+            <div class="mob-nav-icon"><i class="fas fa-dumbbell"></i></div>
+            <span class="mob-nav-label">Practice</span>
+        </div>
+        <div class="mob-nav-item" data-section="mob-company">
+            <div class="mob-nav-icon"><i class="fas fa-building"></i></div>
+            <span class="mob-nav-label">Company</span>
+        </div>
+        <div class="mob-nav-item" data-section="mob-classes">
+            <div class="mob-nav-icon"><i class="fas fa-video"></i></div>
+            <span class="mob-nav-label">Classes</span>
+        </div>
+        <div class="mob-nav-item" data-section="mob-leaderboard">
+            <div class="mob-nav-icon"><i class="fas fa-trophy"></i></div>
+            <span class="mob-nav-label">Rank</span>
+        </div>
+        <div class="mob-nav-item" data-section="mob-profile">
+            <div class="mob-nav-icon"><i class="fas fa-user-circle"></i></div>
+            <span class="mob-nav-label">Profile</span>
+        </div>
+    </nav>
+
+</div><!-- end mobile-layout -->
+
+<!-- Mobile Script (only runs when mobile layout is visible) -->
+<script src="{{ url_for('static', filename='js/student-mobile.js') }}"></script>
+
+</body>
 </html>

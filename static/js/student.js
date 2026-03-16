@@ -1,6 +1,11 @@
 const API_BASE = '/api';
 
 document.addEventListener('DOMContentLoaded', () => {
+    /* ── Desktop-only guard: skip on mobile screens ── */
+    if (window.innerWidth <= 768) return;
+    const desktopEl = document.getElementById('desktop-layout');
+    if (!desktopEl) return;
+
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
     const username = localStorage.getItem('username');
