@@ -131,11 +131,14 @@ document.addEventListener('DOMContentLoaded', () => {
             time_limit: totalSeconds,
             title: document.getElementById('q-title').value,
             description: document.getElementById('q-desc').value,
+            question_type: document.getElementById('q-type').value,
+            answer_description: document.getElementById('q-ans-desc').value,
             option_a: document.getElementById('q-opt-a').value,
             option_b: document.getElementById('q-opt-b').value,
             option_c: document.getElementById('q-opt-c').value,
             option_d: document.getElementById('q-opt-d').value,
-            correct_option: document.getElementById('q-correct').value
+            correct_option: document.getElementById('q-correct').value,
+            correct_text_answer: document.getElementById('q-text-answer').value
         };
 
         try {
@@ -170,11 +173,14 @@ document.addEventListener('DOMContentLoaded', () => {
             time_limit: totalSeconds,
             title: document.getElementById('edit-q-title').value,
             description: document.getElementById('edit-q-desc').value,
+            question_type: document.getElementById('edit-q-type').value,
+            answer_description: document.getElementById('edit-q-ans-desc').value,
             option_a: document.getElementById('edit-q-opt-a').value,
             option_b: document.getElementById('edit-q-opt-b').value,
             option_c: document.getElementById('edit-q-opt-c').value,
             option_d: document.getElementById('edit-q-opt-d').value,
-            correct_option: document.getElementById('edit-q-correct').value
+            correct_option: document.getElementById('edit-q-correct').value,
+            correct_text_answer: document.getElementById('edit-q-text-answer').value
         };
 
         try {
@@ -214,8 +220,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <h4>${q.title}</h4>
                             <span class="badge ${q.time_limit > 0 ? 'correct' : ''}"><i class="fas fa-clock"></i> ${q.time_limit > 0 ? formatTime(q.time_limit) : 'Lifetime Access'}</span>
                         </div>
-                        <p class="mb-2"><small class="badge bg-secondary" style="background:#e2e8f0; color:#475569;">${q.topic} &gt; ${q.subtopic}</small></p>
-                        <p>Correct Option: <strong>${q.correct_option}</strong></p>
+                        <p class="mb-2"><small class="badge bg-secondary" style="background:#e2e8f0; color:#475569;">${q.topic} &gt; ${q.subtopic}</small> <small class="badge bg-secondary" style="margin-left: 0.5rem; background:#cbd5e1; color:#334155;">${q.question_type === 'text' ? 'Text Answer' : 'MCQ'}</small></p>
+                        <p>Correct Answer: <strong>${q.question_type === 'text' ? q.correct_text_answer : 'Option ' + q.correct_option}</strong></p>
                     </div>
                     <div class="item-actions">
                         <button class="btn-primary btn-small" onclick='editQuestion(${JSON.stringify(q).replace(/'/g, "&apos;")})' style="width:auto; background: var(--success); margin-right: 0.5rem;">
@@ -296,11 +302,21 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('edit-q-mins').value = m;
         document.getElementById('edit-q-secs').value = s;
 
-        document.getElementById('edit-q-opt-a').value = q.option_a;
-        document.getElementById('edit-q-opt-b').value = q.option_b;
-        document.getElementById('edit-q-opt-c').value = q.option_c;
-        document.getElementById('edit-q-opt-d').value = q.option_d;
-        document.getElementById('edit-q-correct').value = q.correct_option;
+        // Populate new fields
+        document.getElementById('edit-q-type').value = q.question_type || 'mcq';
+        document.getElementById('edit-q-ans-desc').value = q.answer_description || '';
+        document.getElementById('edit-q-text-answer').value = q.correct_text_answer || '';
+
+        document.getElementById('edit-q-opt-a').value = q.option_a || '';
+        document.getElementById('edit-q-opt-b').value = q.option_b || '';
+        document.getElementById('edit-q-opt-c').value = q.option_c || '';
+        document.getElementById('edit-q-opt-d').value = q.option_d || '';
+        document.getElementById('edit-q-correct').value = q.correct_option || '';
+
+        // Toggle visibility to correctly reflect the type
+        if (typeof toggleQuestionType === 'function') {
+            toggleQuestionType('edit');
+        }
 
         openEditModal();
     };
@@ -327,7 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${sub.student}</td>
                     <td>${sub.question}</td>
                     <td>${sub.topic}</td>
-                    <td>Opt ${sub.selected_option}</td>
+                    <td>${['A','B','C','D'].includes(sub.selected_option) ? 'Opt ' + sub.selected_option : sub.selected_option}</td>
                     <td><span class="badge ${sub.is_correct ? 'correct' : 'incorrect'}">${sub.is_correct ? 'Correct' : 'Incorrect'}</span></td>
                     <td>${sub.file_path ? `<a href="${sub.file_path}" target="_blank" class="btn-small" style="background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.2); color:#818cf8; text-decoration:none;"><i class="fas fa-eye"></i> View</a>` : '<span class="text-muted">None</span>'}</td>
                     <td><small>${sub.timestamp}</small></td>

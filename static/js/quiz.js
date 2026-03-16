@@ -131,12 +131,18 @@ document.addEventListener('DOMContentLoaded', () => {
             <div id="q-content-${q.id}">
                 <p class="text-main mb-4" style="font-size: 1.2rem; line-height: 1.8;">${q.description}</p>
                 <form id="solve-form-${q.id}">
+                    ${q.question_type === 'text' ? `
+                    <div class="q-text-answer mt-3 mb-4">
+                        <input type="text" name="text_answer_${q.id}" id="text_answer_${q.id}" class="form-control" placeholder="Type your answer here..." required style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--surface-bg); color: var(--text-main); font-size: 1.1rem;">
+                    </div>
+                    ` : `
                     <div class="q-options-list">
                         <label class="q-option-label"><input type="radio" name="option_${q.id}" value="A" required> A) ${q.option_a}</label>
                         <label class="q-option-label"><input type="radio" name="option_${q.id}" value="B"> B) ${q.option_b}</label>
                         <label class="q-option-label"><input type="radio" name="option_${q.id}" value="C"> C) ${q.option_c}</label>
                         <label class="q-option-label"><input type="radio" name="option_${q.id}" value="D"> D) ${q.option_d}</label>
                     </div>
+                    `}
                     
                     <div class="file-upload-section mt-3">
                         <label class="text-muted mb-2" style="display:block; font-size:0.9rem;">
@@ -188,8 +194,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const formEl = document.getElementById(`solve-form-${q.id}`);
         formEl.addEventListener('submit', (e) => {
             e.preventDefault();
-            const selectedInput = document.querySelector(`input[name="option_${q.id}"]:checked`);
-            const selected = selectedInput ? selectedInput.value : 'None';
+            let selected = 'None';
+            if (q.question_type === 'text') {
+                const textInput = document.getElementById(`text_answer_${q.id}`);
+                selected = textInput ? textInput.value : '';
+            } else {
+                const selectedInput = document.querySelector(`input[name="option_${q.id}"]:checked`);
+                selected = selectedInput ? selectedInput.value : 'None';
+            }
             const fileInput = document.getElementById(`file-${q.id}`);
             const file = fileInput && fileInput.files[0] ? fileInput.files[0] : null;
             submitAnswer(q.id, selected, file, formEl, qCard);
@@ -232,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (subData.is_correct) {
                     if(msgBox) msgBox.innerHTML = `<span class="badge correct"><i class="fas fa-check"></i> Correct! Well done.</span>`;
                 } else {
-                    if(msgBox) msgBox.innerHTML = `<span class="badge incorrect"><i class="fas fa-times"></i> Incorrect. The right answer was Option ${subData.correct_option}</span>`;
+                    if(msgBox) msgBox.innerHTML = `<span class="badge incorrect"><i class="fas fa-times"></i> Incorrect. The right answer was ${(subData.correct_option && ['A','B','C','D'].includes(subData.correct_option)) ? 'Option ' + subData.correct_option : subData.correct_option}</span>`;
                 }
                 
                 if (formEl) {
@@ -272,9 +284,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     badge.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Time's Up!`;
                     
                     const formEl = document.getElementById(`solve-form-${qId}`);
-                    const checkedInputs = document.querySelector(`input[name="option_${qId}"]:checked`);
-                    const selectedVal = checkedInputs ? checkedInputs.value : 'None';
-                    submitAnswer(qId, selectedVal, formEl, document.getElementById(`q-card-${qId}`));
+                    let selectedVal = 'None';
+                    const textInput = document.getElementById(`text_answer_${qId}`);
+                    if (textInput) {
+                        selectedVal = textInput.value;
+                    } else {
+                        const checkedInputs = document.querySelector(`input[name="option_${qId}"]:checked`);
+                        selectedVal = checkedInputs ? checkedInputs.value : 'None';
+                    }
+                    submitAnswer(qId, selectedVal, null, formEl, document.getElementById(`q-card-${qId}`));
                 }
             }, 1000);
         } else {

@@ -262,8 +262,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 tr.innerHTML = `
                     <td><strong>${sub.question_title}</strong></td>
                     <td><small>${sub.topic} &gt; ${sub.subtopic}</small></td>
-                    <td><strong>Opt ${sub.selected_option}</strong></td>
-                    <td>Opt ${sub.correct_option}</td>
+                    <td><strong>${['A','B','C','D'].includes(sub.selected_option) ? 'Opt ' + sub.selected_option : sub.selected_option}</strong></td>
+                    <td>${['A','B','C','D'].includes(sub.correct_option) ? 'Opt ' + sub.correct_option : sub.correct_option}</td>
                     <td><span class="badge ${sub.is_correct ? 'correct' : 'incorrect'}">${sub.is_correct ? 'Correct' : 'Incorrect'}</span></td>
                     <td><small>${sub.timestamp}</small></td>
                 `;

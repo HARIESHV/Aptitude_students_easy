@@ -319,11 +319,14 @@ def add_question(current_user):
         time_limit=int(data.get('time_limit', 0)),
         title=data['title'],
         description=data.get('description', ''),
-        option_a=data['option_a'],
-        option_b=data['option_b'],
-        option_c=data['option_c'],
-        option_d=data['option_d'],
-        correct_option=data['correct_option']
+        option_a=data.get('option_a'),
+        option_b=data.get('option_b'),
+        option_c=data.get('option_c'),
+        option_d=data.get('option_d'),
+        correct_option=data.get('correct_option'),
+        question_type=data.get('question_type', 'mcq'),
+        answer_description=data.get('answer_description'),
+        correct_text_answer=data.get('correct_text_answer')
     )
     db.session.add(new_question)
     db.session.commit()
@@ -349,6 +352,9 @@ def update_question(current_user, id):
         question.option_c = data.get('option_c', question.option_c)
         question.option_d = data.get('option_d', question.option_d)
         question.correct_option = data.get('correct_option', question.correct_option)
+        question.question_type = data.get('question_type', question.question_type)
+        question.answer_description = data.get('answer_description', question.answer_description)
+        question.correct_text_answer = data.get('correct_text_answer', question.correct_text_answer)
         
         db.session.commit()
         return jsonify({'message': 'Question updated successfully!'}), 200
@@ -572,10 +578,13 @@ def get_questions(current_user):
             'option_b': q.option_b,
             'option_c': q.option_c,
             'option_d': q.option_d,
+            'question_type': q.question_type,
+            'answer_description': q.answer_description,
             'created_at': q.created_at.strftime('%Y-%m-%d %I:%M %p') if q.created_at else 'N/A'
         }
         if current_user.role == 'admin':
             q_data['correct_option'] = q.correct_option
+            q_data['correct_text_answer'] = q.correct_text_answer
         output.append(q_data)
     return jsonify({'questions': output})
 
@@ -729,7 +738,12 @@ def submit_answer(current_user):
     if existing:
         return jsonify({'message': 'You have already submitted an answer for this question!'}), 400
 
-    is_correct = (selected_option == question.correct_option)
+    if question.question_type == 'text':
+        is_correct = False
+        if selected_option and question.correct_text_answer:
+            is_correct = str(selected_option).strip().lower() == str(question.correct_text_answer).strip().lower()
+    else:
+        is_correct = (selected_option == question.correct_option)
     
     new_sub = Submission(
         student_id=current_user.id,
@@ -744,7 +758,8 @@ def submit_answer(current_user):
     return jsonify({
         'message': 'Answer submitted!',
         'is_correct': is_correct,
-        'correct_option': question.correct_option
+        'correct_option': question.correct_option if question.question_type != 'text' else question.correct_text_answer,
+        'answer_description': question.answer_description
     }), 201
 
 @app.route('/api/student/stats', methods=['GET'])
@@ -782,7 +797,7 @@ def get_student_history(current_user):
             'topic': sub.question.topic,
             'subtopic': sub.question.subtopic,
             'selected_option': sub.selected_option,
-            'correct_option': sub.question.correct_option,
+            'correct_option': sub.question.correct_option if sub.question.question_type != 'text' else sub.question.correct_text_answer,
             'is_correct': sub.is_correct,
             'timestamp': sub.timestamp.strftime('%Y-%m-%d %I:%M %p')
         })

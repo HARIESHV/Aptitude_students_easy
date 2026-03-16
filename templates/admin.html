@@ -102,6 +102,14 @@
                         <input type="text" id="q-title" placeholder="Question Title" required>
                         <textarea id="q-desc" placeholder="Question Description (Optional)" rows="2"></textarea>
                         
+                        <h4 class="mt-3" style="font-size: 0.9rem; color: var(--text-muted);">Question Format</h4>
+                        <div class="options-grid">
+                            <select id="q-type" required onchange="toggleQuestionType('add')">
+                                <option value="mcq" selected>Multiple Choice (MCQ)</option>
+                                <option value="text">Text Based / Fill in the Blanks</option>
+                            </select>
+                        </div>
+                        
                         <h4 class="mt-3" style="font-size: 0.9rem; color: var(--text-muted);">Time Limit per Question</h4>
                         <div class="options-grid" style="grid-template-columns: repeat(4, 1fr);">
                             <input type="number" id="q-days" placeholder="Days" min="0" value="0" required>
@@ -110,20 +118,29 @@
                             <input type="number" id="q-secs" placeholder="Secs" min="0" value="0" required>
                         </div>
                         
-                        <h4 class="mt-3" style="font-size: 0.9rem; color: var(--text-muted);">Options</h4>
-                        <div class="options-grid">
-                            <input type="text" id="q-opt-a" placeholder="Option A" required>
-                            <input type="text" id="q-opt-b" placeholder="Option B" required>
-                            <input type="text" id="q-opt-c" placeholder="Option C" required>
-                            <input type="text" id="q-opt-d" placeholder="Option D" required>
+                        <h4 class="mt-3" style="font-size: 0.9rem; color: var(--text-muted);">Options / Answer</h4>
+                        <div id="add-mcq-fields">
+                            <div class="options-grid">
+                                <input type="text" id="q-opt-a" placeholder="Option A" required>
+                                <input type="text" id="q-opt-b" placeholder="Option B" required>
+                                <input type="text" id="q-opt-c" placeholder="Option C" required>
+                                <input type="text" id="q-opt-d" placeholder="Option D" required>
+                            </div>
+                            <select id="q-correct" required>
+                                <option value="" disabled selected>Select Correct Option</option>
+                                <option value="A">Option A</option>
+                                <option value="B">Option B</option>
+                                <option value="C">Option C</option>
+                                <option value="D">Option D</option>
+                            </select>
                         </div>
-                        <select id="q-correct" required>
-                            <option value="" disabled selected>Select Correct Option</option>
-                            <option value="A">Option A</option>
-                            <option value="B">Option B</option>
-                            <option value="C">Option C</option>
-                            <option value="D">Option D</option>
-                        </select>
+                        <div id="add-text-fields" style="display: none;">
+                            <input type="text" id="q-text-answer" placeholder="Correct Text Answer">
+                            <p style="font-size: 0.8rem; color: var(--text-muted); padding-left: 0.8rem;">Students must type this exact text (case-insensitive) to be marked correct.</p>
+                        </div>
+                        
+                        <textarea id="q-ans-desc" placeholder="Answer Description / Explanation (Optional)" rows="2" class="mt-3"></textarea>
+
                         <button type="submit" class="btn-primary mt-3">Post Question</button>
                     </form>
                 </div>
@@ -274,6 +291,14 @@
                 <input type="text" id="edit-q-title" placeholder="Question Title" required>
                 <textarea id="edit-q-desc" placeholder="Question Description (Optional)" rows="2"></textarea>
                 
+                <h4 class="mt-3" style="font-size: 0.9rem; color: var(--text-muted);">Question Format</h4>
+                <div class="options-grid">
+                    <select id="edit-q-type" required onchange="toggleQuestionType('edit')">
+                        <option value="mcq" selected>Multiple Choice (MCQ)</option>
+                        <option value="text">Text Based / Fill in the Blanks</option>
+                    </select>
+                </div>
+                
                 <h4 class="mt-3" style="font-size: 0.9rem; color: var(--text-muted);">Time Limit per Question</h4>
                 <div class="options-grid" style="grid-template-columns: repeat(4, 1fr);">
                     <input type="number" id="edit-q-days" placeholder="Days" min="0">
@@ -282,19 +307,28 @@
                     <input type="number" id="edit-q-secs" placeholder="Secs" min="0">
                 </div>
                 
-                <h4 class="mt-3" style="font-size: 0.9rem; color: var(--text-muted);">Options</h4>
-                <div class="options-grid">
-                    <input type="text" id="edit-q-opt-a" placeholder="Option A" required>
-                    <input type="text" id="edit-q-opt-b" placeholder="Option B" required>
-                    <input type="text" id="edit-q-opt-c" placeholder="Option C" required>
-                    <input type="text" id="edit-q-opt-d" placeholder="Option D" required>
+                <h4 class="mt-3" style="font-size: 0.9rem; color: var(--text-muted);">Options / Answer</h4>
+                <div id="edit-mcq-fields">
+                    <div class="options-grid">
+                        <input type="text" id="edit-q-opt-a" placeholder="Option A" required>
+                        <input type="text" id="edit-q-opt-b" placeholder="Option B" required>
+                        <input type="text" id="edit-q-opt-c" placeholder="Option C" required>
+                        <input type="text" id="edit-q-opt-d" placeholder="Option D" required>
+                    </div>
+                    <select id="edit-q-correct" required>
+                        <option value="A">Option A</option>
+                        <option value="B">Option B</option>
+                        <option value="C">Option C</option>
+                        <option value="D">Option D</option>
+                    </select>
                 </div>
-                <select id="edit-q-correct" required>
-                    <option value="A">Option A</option>
-                    <option value="B">Option B</option>
-                    <option value="C">Option C</option>
-                    <option value="D">Option D</option>
-                </select>
+                <div id="edit-text-fields" style="display: none;">
+                    <input type="text" id="edit-q-text-answer" placeholder="Correct Text Answer">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); padding-left: 0.8rem;">Students must type this exact text (case-insensitive) to be marked correct.</p>
+                </div>
+                
+                <textarea id="edit-q-ans-desc" placeholder="Answer Description / Explanation (Optional)" rows="2" class="mt-3"></textarea>
+
                 <div style="display:flex; gap:1rem; margin-top:1.5rem;">
                     <button type="submit" class="btn-primary">Save Changes</button>
                     <button type="button" class="btn-danger" onclick="closeEditModal()" style="width: auto;">Cancel</button>
@@ -317,6 +351,28 @@
                 opacity: { value: 0.5, random: true }
             }
         });
+    }
+    </script>
+    <script>
+    function toggleQuestionType(mode) {
+        const typeSelect = document.getElementById(mode === 'add' ? 'q-type' : 'edit-q-type');
+        const mcqFields = document.getElementById(mode === 'add' ? 'add-mcq-fields' : 'edit-mcq-fields');
+        const textFields = document.getElementById(mode === 'add' ? 'add-text-fields' : 'edit-text-fields');
+        
+        const mcqInputs = mcqFields.querySelectorAll('input, select');
+        const textInputs = textFields.querySelectorAll('input');
+
+        if (typeSelect.value === 'text') {
+            mcqFields.style.display = 'none';
+            textFields.style.display = 'block';
+            mcqInputs.forEach(el => el.removeAttribute('required'));
+            textInputs.forEach(el => el.setAttribute('required', 'required'));
+        } else {
+            mcqFields.style.display = 'block';
+            textFields.style.display = 'none';
+            mcqInputs.forEach(el => el.setAttribute('required', 'required'));
+            textInputs.forEach(el => el.removeAttribute('required'));
+        }
     }
     </script>
     <script src="{{ url_for('static', filename='js/admin.js') }}"></script>

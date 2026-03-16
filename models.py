@@ -20,18 +20,21 @@ class Question(db.Model):
     time_limit = db.Column(db.Integer, default=0) # Total seconds
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
-    option_a = db.Column(db.String(200), nullable=False)
-    option_b = db.Column(db.String(200), nullable=False)
-    option_c = db.Column(db.String(200), nullable=False)
-    option_d = db.Column(db.String(200), nullable=False)
-    correct_option = db.Column(db.String(10), nullable=False) # 'A', 'B', 'C', 'D'
+    option_a = db.Column(db.String(200), nullable=True)
+    option_b = db.Column(db.String(200), nullable=True)
+    option_c = db.Column(db.String(200), nullable=True)
+    option_d = db.Column(db.String(200), nullable=True)
+    correct_option = db.Column(db.String(10), nullable=True) # 'A', 'B', 'C', 'D'
+    question_type = db.Column(db.String(20), default='mcq')
+    answer_description = db.Column(db.Text, nullable=True)
+    correct_text_answer = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=ist_now)
 
 class Submission(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     question_id = db.Column(db.Integer, db.ForeignKey('question.id'), nullable=False)
-    selected_option = db.Column(db.String(10), nullable=False)
+    selected_option = db.Column(db.Text, nullable=True)
     is_correct = db.Column(db.Boolean, nullable=False)
     file_path = db.Column(db.String(255), nullable=True)
     timestamp = db.Column(db.DateTime, default=ist_now)
