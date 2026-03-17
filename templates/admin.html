@@ -97,20 +97,12 @@
             color: white;
         }
 
-        @media (max-width: 1023px) {
-            #mobile-block { display: flex; }
-            #desktop-layout { display: none; }
-        }
+        /* Admin unblocked on mobile */
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
 
-    <!-- Mobile Screen Blocker (Desktop Only) -->
-    <div id="mobile-block" class="fixed inset-0 z-[9999] hidden flex-col items-center justify-center bg-slate-900 text-white p-8 text-center">
-        <i class="fas fa-laptop text-6xl mb-6 text-indigo-400"></i>
-        <h1 class="text-2xl font-bold mb-2">Desktop Only Panel</h1>
-        <p class="text-slate-400">Please access the Admin Panel on a laptop or desktop for precision management.</p>
-    </div>
+    <!-- Admin unblocked -->
 
     <!-- Three.js Background -->
     <div id="three-bg-container"></div>

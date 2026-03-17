@@ -97,12 +97,16 @@
         /* ─── FLOATING CORE SCENE ─────────────────────── */
         .core-scene {
             position: relative;
-            width: 320px;
-            height: 320px;
-            margin: 2rem auto 1rem;
+            width: 260px;
+            height: 260px;
+            margin: 1.5rem auto 1rem;
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        @media (min-width: 768px) {
+            .core-scene { width: 320px; height: 320px; }
         }
 
         @keyframes glowPulse {
@@ -198,8 +202,12 @@
         /* ─── CTA BUTTONS ─────────────────────────────── */
         .cta-group {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 1.5rem;
+            gap: 1rem;
+        }
+        @media (min-width: 768px) {
+            .cta-group { flex-direction: row; gap: 1.5rem; }
         }
 
         .btn-cta-primary {
@@ -237,11 +245,14 @@
         .panels-row {
             width: 100%;
             max-width: 1000px;
-            margin: 4rem auto 0;
+            margin: 3rem auto 0;
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            padding: 0 2rem 4rem;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            padding: 0 1.5rem 4rem;
+        }
+        @media (min-width: 768px) {
+            .panels-row { grid-template-columns: 1fr 1fr; gap: 2rem; padding: 0 2rem 4rem; }
         }
 
         .float-panel {
@@ -277,20 +288,12 @@
         }
 
         /* ─── RESPONSIVE ──────────────────────────────── */
-        @media (max-width: 1023px) {
-            #mobile-block { display: flex; }
-            #desktop-content { display: none; }
-        }
+        /* User is no longer blocked on mobile */
     </style>
 </head>
 <body class="bg-[#050a1a]">
 
-    <!-- Mobile Screen Blocker -->
-    <div id="mobile-block" class="fixed inset-0 z-[9999] hidden flex-col items-center justify-center bg-[#050a1a] text-white p-8 text-center lg:hidden">
-        <i class="fas fa-laptop text-6xl mb-6 text-indigo-400"></i>
-        <h1 class="text-2xl font-bold mb-2">Desktop Only</h1>
-        <p class="text-slate-400">Please open AptitudeLab on a laptop for the best experience.</p>
-    </div>
+    <!-- Landing unblocked -->
 
     <!-- Three.js Background -->
     <div id="three-bg-container"></div>
@@ -300,13 +303,15 @@
         
         <!-- Top Nav -->
         <nav class="top-nav">
-            <div class="brand-logo">Aptitude<span>Lab</span></div>
-            <div class="flex items-center gap-10">
+            <div class="brand-logo text-lg md:text-xl">Aptitude<span>Lab</span></div>
+            <div class="hidden md:flex items-center gap-10">
                 <a href="#" class="btn-cta-secondary">Features</a>
                 <a href="#" class="btn-cta-secondary">Topics</a>
                 <a href="#" class="btn-cta-secondary">Leaderboard</a>
                 <a href="/login" class="px-8 py-3 bg-white text-[#050a1a] rounded-full font-bold hover:scale-105 transition-all">Get Started</a>
             </div>
+            <!-- Mobile Menu Simple Button -->
+            <a href="/login" class="md:hidden px-6 py-2 bg-white text-[#050a1a] rounded-full font-bold text-xs uppercase tracking-wider">Join Lab</a>
         </nav>
 
         <div class="hero-container">

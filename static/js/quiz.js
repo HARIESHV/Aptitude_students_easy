@@ -90,12 +90,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const solvedInCat = allQuestions.filter(q => q.topic === categoryName && solvedQuestionsList.includes(q.id));
 
         if (filteredQuestions.length === 0) {
-            list.innerHTML = `<div class="glass-panel rounded-3xl p-12 text-center space-y-6">
-                <div class="w-24 h-24 bg-green-100 dark:bg-green-900/20 text-green-600 rounded-full flex items-center justify-center text-5xl mx-auto shadow-xl shadow-green-500/20">
+            list.innerHTML = `<div class="glass-panel rounded-3xl p-8 md:p-12 text-center space-y-6">
+                <div class="w-20 h-20 md:w-24 md:h-24 bg-green-100 dark:bg-green-900/20 text-green-600 rounded-full flex items-center justify-center text-4xl md:text-5xl mx-auto shadow-xl shadow-green-500/20">
                     <i class="fas fa-check-double"></i>
                 </div>
-                <h1 class="text-3xl font-bold font-orbitron">Category Conquered!</h1>
-                <p class="text-slate-500 font-medium text-lg">You have completed all available questions in <br/><span class="text-indigo-600 font-bold">${categoryName}</span>.</p>
+                <h1 class="text-2xl md:text-3xl font-bold font-orbitron">Category Conquered!</h1>
+                <p class="text-slate-500 font-medium text-base md:text-lg">You have completed all available questions in <br/><span class="text-indigo-600 font-bold">${categoryName}</span>.</p>
                 <button onclick="window.location.href='/student_dashboard'" class="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all">Return to Dashboard</button>
             </div>`;
             return;
@@ -104,16 +104,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const meta = categoryMeta[categoryName] || { icon: '❓' };
         
         const header = document.createElement('div');
-        header.className = 'flex items-end justify-between mb-8';
+        header.className = 'flex flex-row items-end justify-between mb-8 gap-4';
         header.innerHTML = `
-            <div class="space-y-2">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-xl">${meta.icon}</div>
-                    <h1 class="text-2xl font-bold font-orbitron tracking-tight">${categoryName}</h1>
+            <div class="space-y-1">
+                <div class="flex items-center gap-2 md:gap-3">
+                    <div class="w-8 h-8 md:w-10 md:h-10 bg-indigo-600 text-white rounded-lg md:rounded-xl flex items-center justify-center text-base md:text-xl">${meta.icon}</div>
+                    <h1 class="text-xl md:text-2xl font-bold font-orbitron tracking-tight">${categoryName}</h1>
                 </div>
-                <p class="text-slate-400 font-bold uppercase tracking-widest text-xs">Question ${currentQuestionIndex + 1} of ${filteredQuestions.length}</p>
+                <p class="text-slate-400 font-bold uppercase tracking-widest text-[10px] md:text-xs">Question ${currentQuestionIndex + 1} of ${filteredQuestions.length}</p>
             </div>
-            <div class="nav-dots flex gap-2">
+            <div class="nav-dots flex gap-1.5 md:gap-2 overflow-x-auto pb-1">
                 ${filteredQuestions.map((_, i) => `<span class="dot ${i === currentQuestionIndex ? 'active' : ''}"></span>`).join('')}
             </div>
         `;
@@ -121,69 +121,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const q = filteredQuestions[currentQuestionIndex];
         const qCard = document.createElement('div');
-        qCard.className = 'glass-panel rounded-[2.5rem] p-12 space-y-10 relative overflow-hidden active-question-card animate-reveal';
+        qCard.className = 'glass-panel rounded-3xl md:rounded-[2.5rem] p-6 md:p-12 space-y-8 md:space-y-10 relative overflow-hidden active-question-card animate-reveal';
         qCard.id = `q-card-${q.id}`;
         qCard.innerHTML = `
-            <div class="flex justify-between items-start">
+            <div class="flex flex-col md:flex-row justify-between items-start gap-4 md:items-center">
                 <div class="space-y-1">
-                    <span class="text-[10px] font-black uppercase tracking-widest text-indigo-500">${q.subtopic}</span>
-                    <h3 class="text-3xl font-bold leading-tight">${q.title}</h3>
+                    <span class="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-indigo-500">${q.subtopic}</span>
+                    <h3 class="text-2xl md:text-3xl font-bold leading-tight">${q.title}</h3>
                 </div>
-                <div id="timer-badge-${q.id}" class="px-6 py-3 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-black/5 dark:border-white/5 flex items-center gap-3 font-bold">
+                <div id="timer-badge-${q.id}" class="px-4 py-2 md:px-6 md:py-3 bg-slate-100 dark:bg-slate-900 rounded-xl md:rounded-2xl border border-black/5 dark:border-white/5 flex items-center gap-2 md:gap-3 font-bold text-sm md:text-base">
                     <i class="fas fa-clock text-slate-400"></i> 
                     <span id="timer-${q.id}">${q.time_limit > 0 ? formatTime(q.time_limit) : '∞'}</span>
                 </div>
             </div>
 
-            <div id="q-content-${q.id}" class="space-y-10">
-                <p class="text-xl text-slate-600 dark:text-slate-300 font-medium leading-relaxed">${q.description}</p>
+            <div id="q-content-${q.id}" class="space-y-8 md:space-y-10">
+                <p class="text-lg md:text-xl text-slate-600 dark:text-slate-300 font-medium leading-relaxed">${q.description}</p>
                 
                 <form id="solve-form-${q.id}" class="space-y-8">
                     ${q.question_type === 'text' ? `
                     <div class="relative group">
-                        <i class="fas fa-pen-nib absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition-colors"></i>
-                        <input type="text" name="text_answer_${q.id}" id="text_answer_${q.id}" placeholder="Type your numeric or word answer here..." required 
-                        class="w-full pl-14 pr-8 py-5 bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-100 dark:border-slate-800 focus:outline-none focus:border-indigo-600 transition-all font-bold text-lg text-slate-900 dark:text-white">
+                        <i class="fas fa-pen-nib absolute left-5 md:left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition-colors"></i>
+                        <input type="text" name="text_answer_${q.id}" id="text_answer_${q.id}" placeholder="Type your answer..." required 
+                        class="w-full pl-12 md:pl-14 pr-6 md:pr-8 py-4 md:py-5 bg-white dark:bg-slate-900 rounded-xl md:rounded-2xl border-2 border-slate-100 dark:border-slate-800 focus:outline-none focus:border-indigo-600 transition-all font-bold text-base md:text-lg text-slate-900 dark:text-white">
                     </div>
                     ` : `
-                    <div class="grid grid-cols-2 gap-4 q-options-list">
-                        <div class="q-option-card glass-panel !bg-white/40 dark:!bg-slate-900/40 p-6 rounded-3xl flex items-center gap-5" data-option="A">
-                            <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 opt-letter">A</div>
-                            <span class="font-bold text-lg opt-text">${q.option_a}</span>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 q-options-list">
+                        <div class="q-option-card glass-panel !bg-white/40 dark:!bg-slate-900/40 p-5 md:p-6 rounded-2xl md:rounded-3xl flex items-center gap-4 md:gap-5" data-option="A">
+                            <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 opt-letter text-sm md:text-base">A</div>
+                            <span class="font-bold text-base md:text-lg opt-text">${q.option_a}</span>
                             <input type="radio" name="option_${q.id}" value="A" required class="hidden">
                         </div>
-                        <div class="q-option-card glass-panel !bg-white/40 dark:!bg-slate-900/40 p-6 rounded-3xl flex items-center gap-5" data-option="B">
-                            <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 opt-letter">B</div>
-                            <span class="font-bold text-lg opt-text">${q.option_b}</span>
+                        <div class="q-option-card glass-panel !bg-white/40 dark:!bg-slate-900/40 p-5 md:p-6 rounded-2xl md:rounded-3xl flex items-center gap-4 md:gap-5" data-option="B">
+                            <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 opt-letter text-sm md:text-base">B</div>
+                            <span class="font-bold text-base md:text-lg opt-text">${q.option_b}</span>
                             <input type="radio" name="option_${q.id}" value="B" class="hidden">
                         </div>
-                        <div class="q-option-card glass-panel !bg-white/40 dark:!bg-slate-900/40 p-6 rounded-3xl flex items-center gap-5" data-option="C">
-                            <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 opt-letter">C</div>
-                            <span class="font-bold text-lg opt-text">${q.option_c}</span>
+                        <div class="q-option-card glass-panel !bg-white/40 dark:!bg-slate-900/40 p-5 md:p-6 rounded-2xl md:rounded-3xl flex items-center gap-4 md:gap-5" data-option="C">
+                            <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 opt-letter text-sm md:text-base">C</div>
+                            <span class="font-bold text-base md:text-lg opt-text">${q.option_c}</span>
                             <input type="radio" name="option_${q.id}" value="C" class="hidden">
                         </div>
-                        <div class="q-option-card glass-panel !bg-white/40 dark:!bg-slate-900/40 p-6 rounded-3xl flex items-center gap-5" data-option="D">
-                            <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 opt-letter">D</div>
-                            <span class="font-bold text-lg opt-text">${q.option_d}</span>
+                        <div class="q-option-card glass-panel !bg-white/40 dark:!bg-slate-900/40 p-5 md:p-6 rounded-2xl md:rounded-3xl flex items-center gap-4 md:gap-5" data-option="D">
+                            <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 opt-letter text-sm md:text-base">D</div>
+                            <span class="font-bold text-base md:text-lg opt-text">${q.option_d}</span>
                             <input type="radio" name="option_${q.id}" value="D" class="hidden">
                         </div>
                     </div>
                     `}
                     
-                    <div class="flex items-center justify-between pt-6 border-t border-black/5 dark:border-white/5">
+                    <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 pt-6 border-t border-black/5 dark:border-white/5">
                         <div class="flex items-center gap-4">
-                            <label class="cursor-pointer group flex items-center gap-3 px-5 py-3 bg-slate-50 dark:bg-slate-900 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition-all">
+                            <label class="cursor-pointer group flex items-center gap-3 px-4 md:px-5 py-2.5 md:py-3 bg-slate-50 dark:bg-slate-900 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition-all">
                                 <i class="fas fa-paperclip text-slate-400 group-hover:text-indigo-600"></i>
-                                <span class="text-xs font-bold text-slate-500 group-hover:text-indigo-600 uppercase tracking-widest">Attach Proof</span>
+                                <span class="text-[10px] md:text-xs font-bold text-slate-500 group-hover:text-indigo-600 uppercase tracking-widest">Attach Proof</span>
                                 <input type="file" id="file-${q.id}" class="hidden" accept=".pdf,.doc,.docx,image/*">
                             </label>
-                            <div id="file-status-${q.id}" class="text-[10px] font-black uppercase text-indigo-600 tracking-widest hidden">File Ready</div>
+                            <div id="file-status-${q.id}" class="text-[9px] md:text-[10px] font-black uppercase text-indigo-600 tracking-widest hidden">File Ready</div>
                         </div>
 
-                        <div class="flex gap-4">
-                            <button type="button" id="prev-btn" class="px-6 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl font-bold ${currentQuestionIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-200'} transition-all">Prev</button>
-                            <button type="submit" id="btn-submit-${q.id}" class="px-10 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-xl shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all">Submit Answer &rarr;</button>
-                            <button type="button" id="next-btn" class="px-6 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl font-bold ${currentQuestionIndex === filteredQuestions.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-200'} transition-all">Next</button>
+                        <div class="flex gap-3 md:gap-4">
+                            <button type="button" id="prev-btn" class="flex-1 md:flex-none px-4 md:px-6 py-3 md:py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl md:rounded-2xl font-bold ${currentQuestionIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-200'} transition-all text-sm md:text-base">Prev</button>
+                            <button type="submit" id="btn-submit-${q.id}" class="flex-[2] md:flex-none px-6 md:px-10 py-3 md:py-4 bg-indigo-600 text-white rounded-xl md:rounded-2xl font-bold shadow-xl shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all text-sm md:text-base">Submit</button>
+                            <button type="button" id="next-btn" class="flex-1 md:flex-none px-4 md:px-6 py-3 md:py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl md:rounded-2xl font-bold ${currentQuestionIndex === filteredQuestions.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-200'} transition-all text-sm md:text-base">Next</button>
                         </div>
                     </div>
                 </form>

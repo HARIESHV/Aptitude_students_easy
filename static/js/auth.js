@@ -1,8 +1,7 @@
 const API_BASE = '/api';
 
 document.addEventListener('DOMContentLoaded', () => {
-    /* ── Desktop-only guard ── */
-    if (window.innerWidth < 1024) return;
+    /* Mobile guard removed */
 
     // Initialize Theme
     const themeToggle = document.getElementById('theme-toggle');

@@ -2,20 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aptitude PRO - Dashboard</title>
-    <!-- Modern Typography: Plus Jakarta Sans -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="Aptitude PRO — Practice Quantitative Aptitude, Logical Reasoning, Verbal Ability, and Placement tests.">
+    <title>Dashboard — Aptitude PRO</title>
+
+    <!-- UI Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- CSS Framework & Assets -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
                     },
                     colors: {
                         brand: {
@@ -28,6 +34,7 @@
             }
         }
     </script>
+    
     <style>
         :root {
             --glass-bg: rgba(255, 255, 255, 0.7);
@@ -41,21 +48,14 @@
             --bg-gradient: linear-gradient(135deg, #020617 0%, #0f172a 100%);
         }
 
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            overflow-x: hidden;
-            background: var(--bg-gradient);
-            background-attachment: fixed;
-            min-height: 100vh;
-            color: #0f172a;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
+        /* ─── Layout Switching ─── */
+        @media (max-width: 767px) {
+            body { 
+                background: var(--bg-gradient);
+                background-attachment: fixed;
+            }
         }
-
-        .dark-mode body {
-            color: #f8fafc;
-        }
-
+        
         /* Glassmorphism utility */
         .glass-morphism {
             background: var(--glass-bg);
@@ -65,7 +65,6 @@
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
         }
 
-        /* Gradient Text */
         .text-gradient {
             background: linear-gradient(135deg, #6366f1, #3b82f6);
             -webkit-background-clip: text;
@@ -73,7 +72,6 @@
             -webkit-text-fill-color: transparent;
         }
 
-        /* Primary CTA Gradient */
         .btn-gradient {
             background: linear-gradient(135deg, #6366f1, #3b82f6);
             box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
@@ -82,10 +80,9 @@
 
         .btn-gradient:active {
             transform: scale(0.95);
-            box-shadow: 0 5px 15px -5px rgba(99, 102, 241, 0.4);
         }
 
-        /* Bottom Nav Styling */
+        /* Mobile Bottom Nav */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -120,36 +117,11 @@
             color: #6366f1;
         }
 
-        .nav-icon-link i {
-            font-size: 1.25rem;
-            margin-bottom: 2px;
-        }
-
-        .nav-icon-link.active i {
-            transform: translateY(-2px);
-        }
-
-        /* Card Interactions */
-        .category-card {
-            transition: all 0.3s ease;
-            border-radius: 20px;
-        }
-
-        .category-card:active {
-            transform: scale(0.97);
-            background: rgba(255, 255, 255, 0.4);
-        }
-
-        .dark-mode .category-card:active {
-            background: rgba(15, 23, 42, 0.4);
-        }
-
         /* Hide scrollbars */
         ::-webkit-scrollbar { display: none; }
         * { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Animation for section switching */
-        .dashboard-section {
+        .dashboard-section-mob {
             animation: fadeInScale 0.4s ease-out both;
         }
 
@@ -170,189 +142,310 @@
             display: inline-block;
         }
 
-        .mobile-container {
-            width: 100%;
-            max-width: 430px;
-            margin: 0 auto;
-            position: relative;
+        /* Desktop specific tweaks to avoid conflicts */
+        .hidden.md\:block.desktop-layout {
+            display: none;
         }
-
-        /* Top Header Blur effect */
-        header {
-            max-width: 430px;
-            margin: 0 auto;
-            left: 0;
-            right: 0;
+        @media (min-width: 768px) {
+            .hidden.md\:block.desktop-layout {
+                display: flex !important;
+            }
+            body {
+                user-select: auto;
+            }
         }
     </style>
 </head>
-<body class="dark:text-slate-100">
+<body class="dashboard-body dark:text-slate-100">
 
-    <!-- Fixed Top Header -->
-    <header class="fixed top-0 z-[100] h-16 px-6 flex items-center justify-between glass-morphism rounded-b-2xl">
-        <div class="flex items-center gap-2">
-            <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                <i class="fas fa-brain text-white text-sm"></i>
+    <!-- ==========================================
+         MOBILE LAYOUT (block md:hidden)
+         ========================================== -->
+    <div class="block md:hidden">
+        <!-- Fixed Top Header -->
+        <header class="fixed top-0 left-0 right-0 z-[100] h-16 px-6 flex items-center justify-between glass-morphism rounded-b-2xl max-w-[430px] mx-auto">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <i class="fas fa-brain text-white text-sm"></i>
+                </div>
+                <span class="font-extrabold text-lg tracking-tight text-indigo-600 dark:text-indigo-400">Aptitude<span class="text-slate-900 dark:text-white">PRO</span></span>
             </div>
-            <span class="font-extrabold text-lg tracking-tight text-indigo-600 dark:text-indigo-400">Aptitude<span class="text-slate-900 dark:text-white">PRO</span></span>
-        </div>
-        <div class="flex items-center gap-3">
-            <button id="theme-toggle" class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-                <i class="fas fa-moon"></i>
-            </button>
-            <div class="w-10 h-10 rounded-full border-2 border-indigo-500/20 p-0.5" id="nav-profile-trigger">
-                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" class="w-full h-full rounded-full bg-indigo-100 dark:bg-indigo-900">
+            <div class="flex items-center gap-3">
+                <button id="theme-toggle-mob" class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div class="w-10 h-10 rounded-full border-2 border-indigo-500/20 p-0.5" onclick="document.querySelector('[data-target=\'stats\']').click()">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" class="w-full h-full rounded-full bg-indigo-100 dark:bg-indigo-900">
+                </div>
             </div>
-        </div>
-    </header>
+        </header>
 
-    <!-- Main Content for Mobile -->
-    <main class="mobile-container pt-20 pb-28 px-4 space-y-8 flex flex-col items-center">
-        
-        <div id="dashboard-alert" class="hidden fixed top-20 left-4 right-4 z-[110] px-6 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-2xl border backdrop-blur-md"></div>
-
-        <!-- HERO SECTION (CENTERED) -->
-        <section id="hero-section" class="flex flex-col items-center text-center space-y-6 pt-4 w-full">
-            <div class="pill-badge">THE FUTURE OF APTITUDE PRACTICE</div>
-            <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white leading-[1.15]">
-                Master Your <br/> <span class="text-gradient">Aptitude Skills</span>
-            </h1>
-            <p class="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed max-w-[300px]">
-                Practice Quantitative Aptitude, Logical Reasoning, Verbal Ability, and Placement-level questions.
-            </p>
-            <button class="btn-gradient w-full py-4.5 rounded-full text-white font-bold text-base flex items-center justify-center gap-2 mt-2" onclick="document.querySelector('[data-target=\'practice\']').click()">
-                Start Practice <i class="fas fa-arrow-right text-xs"></i>
-            </button>
-        </section>
-
-        <!-- DASHBOARD SECTION (PRACTICE) -->
-        <section id="practice" class="dashboard-section w-full space-y-6">
-            <div class="flex items-center justify-between px-2">
-                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Aptitude Topics</h3>
-                <span class="text-[10px] font-bold uppercase text-indigo-600 tracking-wider">All Categories</span>
-            </div>
+        <!-- Main Content for Mobile -->
+        <main class="w-full max-w-[430px] mx-auto pt-20 pb-28 px-4 space-y-8 flex flex-col items-center">
             
-            <div id="quiz-category-grid" class="flex flex-col gap-4 w-full">
-                <!-- Stacked Mobile Cards are injected here -->
-                <!-- Example of final card structure for reference (JS will override) -->
-                <div class="glass-morphism p-5 flex flex-col gap-4 category-card">
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-xl flex items-center justify-center text-xl shadow-inner">
-                            <i class="fas fa-brain"></i>
+            <div id="dashboard-alert-mob" class="hidden fixed top-20 left-4 right-4 z-[110] px-6 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-2xl border backdrop-blur-md"></div>
+
+            <!-- HERO SECTION (CENTERED) -->
+            <section id="hero-section" class="flex flex-col items-center text-center space-y-6 pt-4 w-full">
+                <div class="pill-badge">THE FUTURE OF APTITUDE PRACTICE</div>
+                <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white leading-[1.15]">
+                    Master Your <br/> <span class="text-gradient">Aptitude Skills</span>
+                </h1>
+                <p class="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed max-w-[300px]">
+                    Practice Quantitative Aptitude, Logical Reasoning, Verbal Ability, and Placement-level questions.
+                </p>
+                <button class="btn-gradient w-full py-4 rounded-full text-white font-bold text-base flex items-center justify-center gap-2 mt-2" onclick="document.querySelector('[data-target=\'practice\']').click()">
+                    Start Practice <i class="fas fa-arrow-right text-xs"></i>
+                </button>
+            </section>
+
+            <!-- DASHBOARD SECTION (PRACTICE) -->
+            <section id="practice-mob" class="dashboard-section-mob w-full space-y-6">
+                <div class="flex items-center justify-between px-2">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Aptitude Topics</h3>
+                    <span class="text-[10px] font-bold uppercase text-indigo-600 tracking-wider">All Categories</span>
+                </div>
+                
+                <div id="quiz-category-grid-mob" class="flex flex-col gap-4 w-full">
+                    <!-- Cards injected by JS -->
+                </div>
+            </section>
+
+            <!-- LEADERBOARD SECTION -->
+            <section id="leaderboard-section-mob" class="dashboard-section-mob hidden w-full space-y-6">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white text-center">Elite Achievers</h3>
+                <div class="glass-morphism rounded-3xl overflow-hidden shadow-xl">
+                    <table class="w-full text-left">
+                        <tbody id="student-leaderboard-tbody-mob" class="divide-y divide-black/5 dark:divide-white/5"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- HISTORY SECTION -->
+            <section id="history-mob" class="dashboard-section-mob hidden w-full space-y-6">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white text-center">Past Missions</h3>
+                <div id="student-history-tbody-mob" class="space-y-4"></div>
+            </section>
+
+            <!-- PROFILE SECTION -->
+            <section id="stats-mob" class="dashboard-section-mob hidden w-full space-y-8">
+                <div class="bg-indigo-600/5 dark:bg-indigo-500/5 rounded-3xl p-8 flex flex-col items-center space-y-4">
+                    <div class="w-24 h-24 bg-indigo-600 rounded-3xl flex items-center justify-center text-white text-3xl shadow-2xl shadow-indigo-600/40">
+                        <i class="fas fa-user-astronaut"></i>
+                    </div>
+                    <div class="text-center">
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white" id="welcome-text-mob">Student</h2>
+                        <p class="text-indigo-500 font-bold text-[10px] uppercase tracking-widest mt-1">Aptitude PRO Scholar</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="glass-morphism p-6 rounded-3xl text-center space-y-1">
+                        <div class="text-2xl font-black text-indigo-600" id="big-attempted-mob">0</div>
+                        <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Attempts</div>
+                    </div>
+                    <div class="glass-morphism p-6 rounded-3xl text-center space-y-1">
+                        <div class="text-2xl font-black text-emerald-500" id="big-correct-mob">0</div>
+                        <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Accuracy</div>
+                    </div>
+                    <div class="glass-morphism p-8 col-span-2 rounded-[32px] text-center bg-gradient-to-br from-indigo-600/5 to-blue-600/5 border-none">
+                        <div class="text-5xl font-black text-indigo-600 mb-2"><span id="big-average-mob">0</span>%</div>
+                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Overall Proficiency</div>
+                    </div>
+                </div>
+
+                <button id="logout-btn-mob" class="w-full py-4.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-2xl font-bold text-sm transition-all active:scale-95">
+                    Logout Terminal
+                </button>
+            </section>
+        </main>
+
+        <!-- Fixed Bottom Navigation -->
+        <nav class="bottom-nav glass-morphism max-w-[430px]">
+            <div class="nav-icon-link active" data-target="hero-section">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </div>
+            <div class="nav-icon-link" data-target="practice-mob">
+                <i class="fas fa-rocket"></i>
+                <span>Practice</span>
+            </div>
+            <div class="nav-icon-link" data-target="practice-mob" data-category="Placement / Company Tests">
+                <i class="fas fa-briefcase"></i>
+                <span>Exams</span>
+            </div>
+            <div class="nav-icon-link" data-target="leaderboard-section-mob">
+                <i class="fas fa-trophy"></i>
+                <span>Rank</span>
+            </div>
+            <div class="nav-icon-link" data-target="stats-mob">
+                <i class="fas fa-user-circle"></i>
+                <span>Profile</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- ==========================================
+         DESKTOP LAYOUT (hidden md:block)
+         ========================================== -->
+    <div class="hidden md:block desktop-layout" id="desktop-layout">
+        <!-- Background FX -->
+        <div id="particles-dashboard"></div>
+        <div class="polygon-bg-container"><canvas id="polygon-canvas"></canvas></div>
+        <div class="sphere-container" id="sphere-3d"></div>
+        <div class="holographic-overlay"></div>
+        <div class="scanner-line"></div>
+
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-orb"><i class="fas fa-brain"></i></div>
+                <h2>Aptitude <span>PRO</span></h2>
+            </div>
+            <ul class="nav-links">
+                <li class="active" data-target="practice"><i class="fas fa-th-large"></i> Dashboard</li>
+                <li data-target="practice" data-category="Quantitative Aptitude"><i class="fas fa-divide"></i> Quantitative</li>
+                <li data-target="practice" data-category="Logical Reasoning"><i class="fas fa-puzzle-piece"></i> Logical Reasoning</li>
+                <li data-target="practice" data-category="Verbal Ability"><i class="fas fa-font"></i> Verbal Ability</li>
+                <li data-target="practice" data-category="Placement / Company Tests"><i class="fas fa-building"></i> Company Tests</li>
+                <li data-target="leaderboard-section"><i class="fas fa-trophy"></i> Leaderboard</li>
+                <li data-target="student-meetlinks"><i class="fas fa-video"></i> Live Classes</li>
+                <li data-target="student-messages"><i class="fas fa-envelope"></i> Doubts / Messages</li>
+                <li data-target="stats"><i class="fas fa-user-circle"></i> Profile</li>
+                <li data-target="history"><i class="fas fa-history"></i> My History</li>
+            </ul>
+            <button id="logout-btn" class="btn-logout"><i class="fas fa-power-off"></i> Logout</button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Hero -->
+            <section class="dashboard-hero">
+                <div class="hero-content">
+                    <h1 class="animate-reveal">The challenge begins, <span id="user-display-name">Learner</span></h1>
+                    <p class="animate-reveal delay-1">Sharpen your aptitude skills. Solve problems. Track your growth.</p>
+                </div>
+            </section>
+
+            <header class="topbar">
+                <div class="topbar-left">
+                    <h1 id="page-title">Dashboard</h1>
+                    <button class="btn-home-pill" onclick="window.location.href='/student_dashboard'">
+                        <i class="fas fa-home"></i> Home
+                    </button>
+                </div>
+                <div class="topbar-right">
+                    <button id="theme-toggle" class="theme-btn-orb"><i class="fas fa-moon"></i></button>
+                    <div class="user-info-badge"><span id="welcome-text">Welcome, Student</span></div>
+                </div>
+            </header>
+
+            <div class="content-sections container">
+                <div id="dashboard-alert" class="alert hidden"></div>
+
+                <!-- Practice Area -->
+                <section id="practice" class="active-section dashboard-section">
+                    <div class="stats-cards">
+                        <div class="stat-card glass-panel">
+                            <i class="fas fa-tasks"></i>
+                            <div class="stat-info"><h4 id="stat-attempted">0</h4><p>Attempted</p></div>
                         </div>
-                        <div class="flex-1 space-y-0.5">
-                            <h3 class="text-base font-bold text-slate-900 dark:text-white">Logical Reasoning</h3>
-                            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium line-clamp-2">Patterns, sequences, and analytical puzzles.</p>
+                        <div class="stat-card glass-panel">
+                            <i class="fas fa-percentage"></i>
+                            <div class="stat-info"><h4 id="stat-average">0%</h4><p>Average Score</p></div>
                         </div>
                     </div>
-                    <div class="flex items-center justify-between pt-3 border-t border-black/5 dark:border-white/5">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">120+ Questions</span>
-                        <button class="px-5 py-2 bg-indigo-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-indigo-600/20">
-                            Start Quiz
-                        </button>
+                    <div id="quiz-categories-view" class="mt-4">
+                        <div id="quiz-category-grid" class="quiz-category-grid"></div>
                     </div>
-                </div>
-            </div>
-        </section>
+                </section>
 
-        <!-- LEADERBOARD SECTION -->
-        <section id="leaderboard-section" class="dashboard-section hidden w-full space-y-6">
-            <h3 class="text-lg font-bold text-slate-900 dark:text-white text-center">Elite Achievers</h3>
-            <div class="glass-morphism rounded-3xl overflow-hidden shadow-xl">
-                <div class="p-4 bg-indigo-600/5 dark:bg-indigo-500/5 text-center border-b border-black/5 dark:border-white/5">
-                    <p class="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Global Ranking</p>
-                </div>
-                <table class="w-full text-left">
-                    <tbody id="student-leaderboard-tbody" class="divide-y divide-black/5 dark:divide-white/5"></tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- HISTORY SECTION -->
-        <section id="history" class="dashboard-section hidden w-full space-y-6">
-            <h3 class="text-lg font-bold text-slate-900 dark:text-white text-center">Past Missions</h3>
-            <div class="space-y-4" id="student-history-list">
-                <div id="student-history-tbody"></div>
-            </div>
-        </section>
-
-        <!-- PROFILE SECTION -->
-        <section id="stats" class="dashboard-section hidden w-full space-y-8">
-            <div class="bg-indigo-600/5 dark:bg-indigo-500/5 rounded-3xl p-8 flex flex-col items-center space-y-4">
-                <div class="w-24 h-24 bg-indigo-600 rounded-3xl flex items-center justify-center text-white text-3xl shadow-2xl shadow-indigo-600/40 relative">
-                    <i class="fas fa-user-astronaut"></i>
-                    <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-emerald-500 rounded-full border-4 border-white dark:border-slate-900 flex items-center justify-center">
-                        <i class="fas fa-check text-[10px]"></i>
+                <!-- History -->
+                <section id="history" class="dashboard-section" style="display:none;">
+                    <div class="card glass-panel">
+                        <h3>My Answered Questions</h3>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Question</th><th>Topic / Subtopic</th>
+                                        <th>My Answer</th><th>Correct Answer</th>
+                                        <th>Status</th><th>Date (IST)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="student-history-tbody"></tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-                <div class="text-center">
-                    <h2 class="text-2xl font-bold text-slate-900 dark:text-white" id="welcome-text">Student</h2>
-                    <p class="text-indigo-500 font-bold text-[10px] uppercase tracking-widest mt-1">Aptitude PRO Scholar</p>
-                </div>
+                </section>
+
+                <!-- Stats / Profile -->
+                <section id="stats" class="dashboard-section" style="display:none;">
+                    <div class="card glass-panel text-center">
+                        <h3>My Performance Summary</h3>
+                        <div class="performance-chart-placeholder">
+                            <i class="fas fa-chart-pie large-icon"></i>
+                            <h2 class="mt-3">Overall Average: <span id="big-average" class="highlight-text">0</span>%</h2>
+                            <p class="mt-2 text-muted">Total Attempted: <span id="big-attempted">0</span> | Correct: <span id="big-correct">0</span></p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Meet Links -->
+                <section id="student-meetlinks" class="dashboard-section" style="display:none;">
+                    <div class="card glass-panel">
+                        <h3>Join Live Classes</h3>
+                        <div id="student-meetlinks-list" class="items-list"></div>
+                    </div>
+                </section>
+
+                <!-- Messages -->
+                <section id="student-messages" class="dashboard-section" style="display:none;">
+                    <div class="card glass-panel mb-4">
+                        <h3>Send a Message (With File)</h3>
+                        <form id="student-send-msg-form" class="custom-form">
+                            <textarea id="s-msg-content" placeholder="Type your doubt or message..." rows="3" required></textarea>
+                            <label class="text-muted" style="font-size:0.85rem;"><i class="fas fa-paperclip"></i> Attach File (Optional):</label>
+                            <input type="file" id="s-msg-file" class="mt-1" accept=".pdf,.doc,.docx,.jpg,.png,.jpeg,.zip" style="width:100%;border:none;">
+                            <button type="submit" class="btn-primary mt-3">Send to Admin</button>
+                        </form>
+                    </div>
+                    <div class="card glass-panel">
+                        <h3>Conversation with Admin</h3>
+                        <div id="student-messages-list" class="items-list chat-list"></div>
+                    </div>
+                </section>
+
+                <!-- Leaderboard -->
+                <section id="leaderboard-section" class="dashboard-section" style="display:none;">
+                    <div class="card glass-panel">
+                        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.5rem;">
+                            <i class="fas fa-trophy" style="font-size:1.8rem;color:#f59e0b;"></i>
+                            <div>
+                                <h3 style="margin:0;">Leaderboard</h3>
+                                <p style="margin:0;font-size:0.85rem;color:var(--text-muted);">Top students ranked by average score</p>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr><th>Rank</th><th>Student</th><th>Questions Attempted</th><th>Average Score</th></tr>
+                                </thead>
+                                <tbody id="student-leaderboard-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
             </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div class="glass-morphism p-6 rounded-3xl text-center space-y-1">
-                    <div class="text-2xl font-black text-indigo-600" id="big-attempted">0</div>
-                    <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Attempts</div>
-                </div>
-                <div class="glass-morphism p-6 rounded-3xl text-center space-y-1">
-                    <div class="text-2xl font-black text-emerald-500" id="big-correct">0</div>
-                    <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Accuracy</div>
-                </div>
-                <div class="glass-morphism p-8 col-span-2 rounded-[32px] text-center bg-gradient-to-br from-indigo-600/5 to-blue-600/5 border-none">
-                    <div class="text-5xl font-black text-indigo-600 mb-2"><span id="big-average">0</span>%</div>
-                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Standard Performance</div>
-                </div>
-            </div>
-
-            <button id="logout-btn" class="w-full py-4.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-2xl font-bold text-sm tracking-wide transition-all active:scale-95">
-                Logout Terminal
-            </button>
-        </section>
-
-        <!-- COMPANY TESTS (Dynamic from data-category) -->
-        <section id="company-tests" class="dashboard-section hidden w-full space-y-6">
-            <h3 class="text-lg font-bold text-slate-900 dark:text-white text-center">Placement Drive</h3>
-            <div id="company-tests-grid" class="flex flex-col gap-4 w-full">
-                <!-- Similar cards but filtered for company focus -->
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Fixed Bottom Navigation -->
-    <nav class="bottom-nav glass-morphism">
-        <div class="nav-icon-link active" data-target="hero-section">
-            <i class="fas fa-home"></i>
-            <span>Home</span>
-        </div>
-        <div class="nav-icon-link" data-target="practice">
-            <i class="fas fa-rocket"></i>
-            <span>Practice</span>
-        </div>
-        <div class="nav-icon-link" data-target="practice" data-category="Placement / Company Focused">
-            <i class="fas fa-briefcase"></i>
-            <span>Exams</span>
-        </div>
-        <div class="nav-icon-link" data-target="leaderboard-section">
-            <i class="fas fa-trophy"></i>
-            <span>Rank</span>
-        </div>
-        <div class="nav-icon-link" data-target="stats">
-            <i class="fas fa-user-circle"></i>
-            <span>Profile</span>
-        </div>
-    </nav>
+        </main>
+    </div>
 
     <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="{{ url_for('static', filename='js/aptitude-effects.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard-3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/student.js') }}"></script>
-    <script>
-        // Smooth scroll for nav clicks handled by student.js
-        // We add some extra polish here if needed
-        document.getElementById('nav-profile-trigger').addEventListener('click', () => {
-            document.querySelector('[data-target="stats"]').click();
-        });
-    </script>
 </body>
 </html>

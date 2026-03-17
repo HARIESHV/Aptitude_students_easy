@@ -52,10 +52,7 @@
             color: #6366f1;
         }
 
-        @media (max-width: 1023px) {
-            #mobile-block { display: flex; }
-            #login-container { display: none; }
-        }
+        /* Removed mobile blocking media query */
 
         /* Select & Option Styling - Global */
         select option {
@@ -79,12 +76,7 @@
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center min-h-screen">
 
-    <!-- Mobile Screen Blocker -->
-    <div id="mobile-block" class="fixed inset-0 z-[9999] hidden flex-col items-center justify-center bg-slate-900 text-white p-8 text-center">
-        <i class="fas fa-laptop text-6xl mb-6 text-indigo-400"></i>
-        <h1 class="text-2xl font-bold mb-2">Desktop Only</h1>
-        <p class="text-slate-400">Please access AptitudeLab on a laptop or desktop.</p>
-    </div>
+    <!-- Login unblocked -->
 
     <!-- Three.js BG -->
     <div id="three-bg-container"></div>
