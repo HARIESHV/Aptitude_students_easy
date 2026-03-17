@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Dashboard - AptitudeLab</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dashboard - Aptitude PRO</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -15,7 +15,14 @@
         }
     </script>
     <style>
-        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            overflow-x: hidden;
+            background: #fdfdff;
+            color: #1a1a1a;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
         .font-orbitron { font-family: 'Orbitron', sans-serif; }
         
         #three-bg-container {
@@ -23,365 +30,272 @@
             top: 0; left: 0;
             width: 100%; height: 100%;
             z-index: -1;
-            background: #f8fafc;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         }
         
-        .dark-mode #three-bg-container { background: #020617; }
+        .dark-mode #three-bg-container { 
+            background: linear-gradient(135deg, #0f172a 0%, #020617 100%); 
+        }
 
-        .glass-sidebar {
-            background: rgba(255, 255, 255, 0.8);
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        
-        .dark-mode .glass-sidebar {
-            background: rgba(15, 23, 42, 0.8);
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
-        .nav-item {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
+        .dark-mode .glass-morphism {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .nav-item.active {
-            background: rgba(99, 102, 241, 0.1);
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 75px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            z-index: 100;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-icon-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #94a3b8;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+
+        .nav-icon-link.active {
             color: #6366f1;
-            box-shadow: inset 4px 0 0 #6366f1;
         }
 
-        .nav-item:hover:not(.active) {
-            background: rgba(0, 0, 0, 0.02);
-            transform: translateX(4px);
+        .nav-icon-link i {
+            font-size: 1.25rem;
         }
 
-        .dark-mode .nav-item:not(.active) {
-            color: rgba(255, 255, 255, 0.5);
+        .mobile-card {
+            border-radius: 24px;
+            overflow: hidden;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        .nav-item:not(.active) {
-            color: rgba(15, 23, 42, 0.5);
+        .mobile-card:active {
+            transform: scale(0.96);
         }
 
-        .content-card {
-            background: white;
-            border-radius: 20px;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
+        .btn-gradient {
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);
         }
 
-        .dark-mode .content-card {
-            background: #0f172a;
-            border-color: rgba(255, 255, 255, 0.05);
+        .text-gradient {
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .content-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+        ::-webkit-scrollbar { display: none; }
+
+        .dashboard-section {
+            animation: slideUp 0.5s ease-out both;
         }
 
-        /* Answer highlights */
-        .option-item {
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid transparent;
-        }
-        .option-item:hover { border-color: #6366f1; background: rgba(99, 102, 241, 0.05); }
-        .option-item.correct { background: rgba(34, 197, 94, 0.1); border-color: #22c55e; color: #166534; box-shadow: 0 0 15px rgba(34, 197, 94, 0.3); }
-        .option-item.wrong { background: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #991b1b; box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
-
-        @media (max-width: 1023px) {
-            #desktop-layout { display: none; }
-            #mobile-block { display: flex; }
-        }
-        @media (min-width: 1024px) {
-            #mobile-block { display: none; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .dark-mode ::-webkit-scrollbar-thumb { background: #334155; }
+        /* Hero Pill Gradient Border */
+        .pill-badge {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            padding: 6px 16px;
+            border-radius: 100px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: #6366f1;
+            text-transform: uppercase;
+        }
+
+        /* Select & Option Styling - Global */
+        select option {
+            background-color: white;
+            color: #1a1a1a;
+        }
+
+        .dark-mode select option {
+            background-color: #0f172a;
+            color: white;
+        }
+
+        select {
+            color: #1a1a1a;
+        }
+
+        .dark-mode select {
+            color: white;
+        }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-
-    <!-- Mobile Block Overlay -->
-    <div id="mobile-block" class="fixed inset-0 z-[9999] hidden flex-col items-center justify-center bg-slate-900 text-white p-8 text-center">
-        <i class="fas fa-laptop text-6xl mb-6 text-indigo-400"></i>
-        <h1 class="text-2xl font-bold mb-2">Desktop Only Experience</h1>
-        <p class="text-slate-400">Please open this site on a laptop or desktop for the best experience.</p>
-    </div>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
 
     <!-- Three.js BG -->
     <div id="three-bg-container"></div>
 
-    <div id="desktop-layout" class="flex min-h-screen">
+    <!-- Top Navigation Bar -->
+    <header class="fixed top-0 left-0 right-0 h-20 px-6 flex items-center justify-between z-[100] glass-morphism border-b border-black/5 dark:border-white/5">
+        <div class="flex items-center gap-2">
+            <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <i class="fas fa-brain text-white text-lg"></i>
+            </div>
+            <span class="font-orbitron text-lg font-bold tracking-tighter text-indigo-600 dark:text-indigo-400">Aptitude<span class="text-slate-900 dark:text-white">PRO</span></span>
+        </div>
+        <div class="flex items-center gap-4">
+            <button id="theme-toggle" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
+                <i class="fas fa-moon"></i>
+            </button>
+            <div class="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/40 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                <i class="fas fa-user text-sm"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="pt-24 pb-32 px-6 max-w-[430px] mx-auto space-y-10">
         
-        <!-- Sidebar -->
-        <aside class="fixed left-0 top-0 w-72 h-screen glass-sidebar z-50 flex flex-col">
-            <div class="px-8 py-10 flex items-center gap-3">
-                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                    <i class="fas fa-brain text-white text-xl"></i>
-                </div>
-                <span class="font-orbitron text-xl font-bold tracking-tighter text-indigo-600 dark:text-indigo-400">Aptitude<span class="text-slate-900 dark:text-white">Lab</span></span>
+        <div id="dashboard-alert" class="hidden fixed top-24 left-6 right-6 z-[110] px-4 py-3 rounded-2xl font-bold text-sm shadow-xl flex items-center gap-3"></div>
+
+        <!-- HERO SECTION -->
+        <section id="hero-section" class="flex flex-col items-center text-center space-y-6 pt-6">
+            <div class="pill-badge">THE FUTURE OF APTITUDE PRACTICE</div>
+            <h1 class="text-3xl font-black font-orbitron text-slate-900 dark:text-white leading-[1.1]">
+                Master Your <br/> <span class="text-gradient">Aptitude Skills</span>
+            </h1>
+            <p class="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed max-w-[280px]">
+                Practice Quantitative Aptitude, Logical Reasoning, Verbal Ability, and Placement-level questions.
+            </p>
+            <button class="btn-gradient w-full py-5 rounded-[20px] text-white font-black text-sm tracking-wide flex items-center justify-center gap-2" onclick="document.querySelector('[data-target=\'practice\']').click()">
+                START PRACTICE <i class="fas fa-arrow-right text-xs"></i>
+            </button>
+        </section>
+
+        <!-- DASHBOARD SECTION (PRACTICE) -->
+        <section id="practice" class="dashboard-section space-y-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-black font-orbitron text-slate-900 dark:text-white">Aptitude Topics</h3>
+                <span class="text-[10px] font-black uppercase text-indigo-600 tracking-widest">View All</span>
             </div>
-
-            <nav class="flex-1 px-4 space-y-1 overflow-y-auto nav-links">
-                <li class="nav-item active flex items-center gap-4 px-6 py-4 rounded-xl cursor-pointer font-semibold" data-target="practice">
-                    <i class="fas fa-th-large text-lg"></i> Dashboard
-                </li>
-                <li class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl cursor-pointer font-semibold" data-target="practice" data-category="Quantitative Aptitude">
-                    <i class="fas fa-calculator text-lg"></i> Quantitative
-                </li>
-                <li class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl cursor-pointer font-semibold" data-target="practice" data-category="Logical Reasoning">
-                    <i class="fas fa-brain text-lg"></i> Logical reasoning
-                </li>
-                <li class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl cursor-pointer font-semibold" data-target="practice" data-category="Verbal Ability">
-                    <i class="fas fa-comment-dots text-lg"></i> Verbal Ability
-                </li>
-                <li class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl cursor-pointer font-semibold" data-target="practice" data-category="Placement / Company Focused">
-                    <i class="fas fa-laptop-code text-lg"></i> Company Tests
-                </li>
-                <li class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl cursor-pointer font-semibold" data-target="leaderboard-section">
-                    <i class="fas fa-trophy text-lg"></i> Leaderboard
-                </li>
-                <li class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl cursor-pointer font-semibold" data-target="stats">
-                    <i class="fas fa-user text-lg"></i> My Profile
-                </li>
-                <li class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl cursor-pointer font-semibold" data-target="history">
-                    <i class="fas fa-history text-lg"></i> My History
-                </li>
-                <li class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl cursor-pointer font-semibold text-slate-500" data-target="student-messages">
-                    <i class="fas fa-envelope text-lg"></i> Doubts
-                </li>
-            </nav>
-
-            <div class="p-6 border-t border-slate-100 dark:border-slate-800">
-                <button id="logout-btn" class="w-full flex items-center justify-center gap-3 px-4 py-4 bg-red-50 dark:bg-red-900/10 text-red-600 rounded-xl font-bold hover:bg-red-600 hover:text-white transition-all">
-                    <i class="fas fa-power-off"></i> Logout
-                </button>
-            </div>
-        </aside>
-
-        <!-- Main Content 영역 -->
-        <main class="flex-1 ml-72 flex flex-col">
             
-            <!-- Top Nav -->
-            <header class="h-24 px-12 flex items-center justify-between sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-                <div class="flex-1 max-w-2xl px-8">
-                    <div class="relative group">
-                        <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <input type="text" placeholder="Search questions, topics, mock tests..." class="w-full pl-14 pr-6 py-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium">
-                    </div>
+            <div id="quiz-category-grid" class="space-y-5">
+                <!-- Stacked Mobile Cards will be injected here by JS -->
+                <div class="flex flex-col items-center justify-center py-20 opacity-50">
+                    <div class="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                 </div>
-
-                <div class="flex items-center gap-6">
-                    <button id="theme-toggle" class="w-12 h-12 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
-                        <i class="fas fa-moon"></i>
-                    </button>
-                    <div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/40 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 relative">
-                        <i class="fas fa-bell"></i>
-                        <span class="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-slate-900 rounded-full"></span>
-                    </div>
-                    <div class="h-12 flex items-center gap-4 pl-4 border-l border-slate-200 dark:border-slate-800">
-                        <div class="text-right">
-                            <div class="text-sm font-bold text-slate-900 dark:text-white" id="user-display-name">Learner</div>
-                            <div class="text-[10px] text-slate-400 uppercase font-black tracking-widest leading-none">Student</div>
-                        </div>
-                        <div class="w-12 h-12 bg-slate-900 dark:bg-white rounded-2xl flex items-center justify-center text-white dark:text-slate-900 font-bold">
-                            <i class="fas fa-user"></i>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Dashboard Content -->
-            <div class="p-12 space-y-12 content-sections">
-                
-                <div id="dashboard-alert" class="hidden px-6 py-4 rounded-2xl font-bold flex items-center gap-3"></div>
-
-                <!-- DASHBOARD SECTION -->
-                <section id="practice" class="dashboard-section space-y-10">
-                    <div class="flex items-end justify-between">
-                        <div>
-                            <h1 id="page-title" class="text-4xl font-bold font-orbitron tracking-tight mb-2 text-slate-900 dark:text-white">My Dashboard</h1>
-                            <p class="text-slate-500 dark:text-slate-400 font-medium">Welcome back! Continue your preparation journey.</p>
-                        </div>
-                        <div class="flex gap-4">
-                            <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-4 min-w-[200px]">
-                                <div class="w-12 h-12 bg-green-100 dark:bg-green-900/20 text-green-600 rounded-xl flex items-center justify-center text-xl"><i class="fas fa-check-circle"></i></div>
-                                <div>
-                                    <div class="text-2xl font-bold text-slate-900 dark:text-white" id="stat-attempted">0</div>
-                                    <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Attempted</div>
-                                </div>
-                            </div>
-                            <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-4 min-w-[200px]">
-                                <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 text-blue-600 rounded-xl flex items-center justify-center text-xl"><i class="fas fa-chart-line"></i></div>
-                                <div>
-                                    <div class="text-2xl font-bold text-slate-900 dark:text-white" id="stat-average">0%</div>
-                                    <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Avg Score</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-3 gap-8">
-                        <!-- Daily Test Card -->
-                        <div class="col-span-1 content-card p-10 bg-indigo-600 !text-white relative overflow-hidden group cursor-pointer">
-                            <div class="relative z-10">
-                                <span class="bg-white/20 px-3 py-1 rounded-full text-[10px] uppercase font-black tracking-widest mb-6 inline-block">Daily Challenge</span>
-                                <h3 class="text-3xl font-bold mb-4">Start Daily <br/>Aptitude Test</h3>
-                                <p class="text-indigo-100 mb-8 font-medium">10 mixed questions. Reset daily at 12 AM.</p>
-                                <button class="px-6 py-3 bg-white text-indigo-600 rounded-xl font-bold group-hover:px-8 transition-all">Enter Test &rarr;</button>
-                            </div>
-                            <i class="fas fa-rocket absolute -right-4 -bottom-4 text-9xl opacity-10 group-hover:rotate-12 transition-all"></i>
-                        </div>
-
-                        <!-- Progress Card -->
-                        <div class="col-span-2 content-card p-10 flex gap-10">
-                            <div class="flex-1 space-y-6">
-                                <h3 class="text-xl font-bold text-slate-900 dark:text-white">Progress Statistics</h3>
-                                <div class="space-y-4">
-                                    <div class="space-y-2">
-                                        <div class="flex justify-between text-xs font-bold uppercase tracking-widest"><span class="text-slate-400">Quantitative</span><span>82%</span></div>
-                                        <div class="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden"><div class="h-full bg-indigo-500 w-[82%]"></div></div>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <div class="flex justify-between text-xs font-bold uppercase tracking-widest"><span class="text-slate-400">Logical</span><span>65%</span></div>
-                                        <div class="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden"><div class="h-full bg-purple-500 w-[65%]"></div></div>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <div class="flex justify-between text-xs font-bold uppercase tracking-widest"><span class="text-slate-400">Verbal</span><span>42%</span></div>
-                                        <div class="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden"><div class="h-full bg-blue-500 w-[42%]"></div></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="w-1/3 flex flex-col items-center justify-center border-l border-slate-100 dark:border-slate-800 pl-10">
-                                <div class="text-5xl font-bold text-indigo-600 mb-2" id="big-average-2">0</div>
-                                <div class="text-[10px] text-slate-400 font-black uppercase tracking-widest text-center">Standard Proficiency Score</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="space-y-6">
-                        <h3 class="text-2xl font-bold text-slate-900 dark:text-white">Practice by Topic</h3>
-                        <div id="quiz-category-grid" class="grid grid-cols-4 gap-6">
-                            <!-- Populated by JS -->
-                        </div>
-                    </div>
-                </section>
-
-                <!-- LEADERBOARD SECTION -->
-                <section id="leaderboard-section" class="dashboard-section hidden space-y-8">
-                    <h1 class="text-4xl font-bold font-orbitron tracking-tight">Global Leaderboard</h1>
-                    <div class="content-card overflow-hidden">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
-                                <tr>
-                                    <th class="px-10 py-5 text-[10px] uppercase font-black tracking-widest text-slate-400">Rank</th>
-                                    <th class="px-10 py-5 text-[10px] uppercase font-black tracking-widest text-slate-400">Learner</th>
-                                    <th class="px-10 py-5 text-[10px] uppercase font-black tracking-widest text-slate-400">Attempts</th>
-                                    <th class="px-10 py-5 text-[10px] uppercase font-black tracking-widest text-slate-400 text-right">Avg Score</th>
-                                </tr>
-                            </thead>
-                            <tbody id="student-leaderboard-tbody" class="divide-y divide-slate-50 dark:divide-slate-800/50"></tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <!-- HISTORY SECTION -->
-                <section id="history" class="dashboard-section hidden space-y-8">
-                    <h1 class="text-4xl font-bold font-orbitron tracking-tight">Practice History</h1>
-                    <div class="content-card overflow-hidden">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
-                                <tr>
-                                    <th class="px-10 py-5 text-[10px] uppercase font-black tracking-widest text-slate-400">Question</th>
-                                    <th class="px-10 py-5 text-[10px] uppercase font-black tracking-widest text-slate-400">Category</th>
-                                    <th class="px-10 py-5 text-[10px] uppercase font-black tracking-widest text-slate-400">Result</th>
-                                    <th class="px-10 py-5 text-[10px] uppercase font-black tracking-widest text-slate-400 text-right">Date</th>
-                                </tr>
-                            </thead>
-                            <tbody id="student-history-tbody" class="divide-y divide-slate-50 dark:divide-slate-800/50"></tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <!-- PROFILE SECTION -->
-                <section id="stats" class="dashboard-section hidden space-y-10">
-                    <h1 class="text-4xl font-bold font-orbitron tracking-tight">My Profile</h1>
-                    <div class="grid grid-cols-3 gap-10">
-                        <div class="col-span-1 content-card p-10 text-center space-y-6">
-                            <div class="w-32 h-32 bg-indigo-600 rounded-3xl mx-auto flex items-center justify-center text-white text-5xl shadow-2xl shadow-indigo-600/30">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <div>
-                                <h2 class="text-2xl font-bold" id="welcome-text">Student Name</h2>
-                                <p class="text-slate-400 font-medium">Aptitude Master Rank: Elite</p>
-                            </div>
-                        </div>
-                        <div class="col-span-2 content-card p-10 flex flex-col justify-center gap-12">
-                            <div class="grid grid-cols-3 gap-8">
-                                <div class="text-center">
-                                    <div class="text-5xl font-bold text-indigo-600 mb-2" id="big-attempted">0</div>
-                                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Total Attempts</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-5xl font-bold text-green-500 mb-2" id="big-correct">0</div>
-                                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Correct Answers</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-5xl font-bold text-purple-500 mb-2 text-slate-900 dark:text-white"><span id="big-average">0</span>%</div>
-                                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Accuracy</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- MESSAGES/DOUBTS -->
-                <section id="student-messages" class="dashboard-section hidden space-y-8">
-                    <h1 class="text-4xl font-bold font-orbitron tracking-tight">Doubt Resolver</h1>
-                    <div class="grid grid-cols-2 gap-10 items-start">
-                        <div class="content-card p-10 space-y-8">
-                            <h3 class="text-xl font-bold">Ask the Expert</h3>
-                            <form id="student-send-msg-form" class="space-y-6">
-                                <textarea id="s-msg-content" placeholder="Describe your doubt in detail..." rows="5" class="w-full p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-all text-slate-900 dark:text-white" required></textarea>
-                                
-                                <div class="space-y-2">
-                                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Attach Supporting File (Optional)</label>
-                                    <input type="file" id="s-msg-file" class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-                                </div>
-
-                                <button type="submit" class="w-full py-5 bg-indigo-600 text-white rounded-2xl font-bold shadow-xl shadow-indigo-600/20 hover:scale-[1.02] active:scale-95 transition-all">
-                                    Dispatch Message &rarr;
-                                </button>
-                            </form>
-                        </div>
-                        <div class="space-y-6" id="student-messages-list">
-                            <!-- Messages appear here -->
-                        </div>
-                    </div>
-                </section>
-
             </div>
-        </main>
-    </div>
+        </section>
+
+        <!-- LEADERBOARD SECTION -->
+        <section id="leaderboard-section" class="dashboard-section hidden space-y-6">
+            <h3 class="text-xl font-black font-orbitron text-slate-900 dark:text-white text-center">Top Achievers</h3>
+            <div class="glass-morphism rounded-[32px] overflow-hidden">
+                <table class="w-full text-left">
+                    <tbody id="student-leaderboard-tbody" class="divide-y divide-black/5 dark:divide-white/5"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- HISTORY SECTION -->
+        <section id="history" class="dashboard-section hidden space-y-6">
+            <h3 class="text-xl font-black font-orbitron text-slate-900 dark:text-white text-center">Past Missions</h3>
+            <div id="student-history-list" class="space-y-4">
+                <tbody id="student-history-tbody"></tbody>
+            </div>
+        </section>
+
+        <!-- PROFILE SECTION -->
+        <section id="stats" class="dashboard-section hidden space-y-8">
+            <div class="flex flex-col items-center space-y-6">
+                <div class="w-24 h-24 bg-indigo-600 rounded-[32px] flex items-center justify-center text-white text-3xl shadow-2xl shadow-indigo-600/30">
+                    <i class="fas fa-user-astronaut"></i>
+                </div>
+                <div class="text-center">
+                    <h2 class="text-2xl font-black" id="welcome-text">Student Name</h2>
+                    <p class="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Elite Rank Explorer</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="glass-morphism p-6 rounded-[28px] text-center space-y-1 border-none shadow-sm">
+                    <div class="text-3xl font-black text-indigo-600" id="big-attempted">0</div>
+                    <div class="text-[9px] text-slate-400 font-black uppercase tracking-widest">Attempts</div>
+                </div>
+                <div class="glass-morphism p-6 rounded-[28px] text-center space-y-1 border-none shadow-sm">
+                    <div class="text-3xl font-black text-green-500" id="big-correct">0</div>
+                    <div class="text-[9px] text-slate-400 font-black uppercase tracking-widest">Correct</div>
+                </div>
+                <div class="glass-morphism p-8 col-span-2 rounded-[32px] text-center border-none shadow-sm">
+                    <div class="text-5xl font-black text-indigo-600 mb-2"><span id="big-average">0</span>%</div>
+                    <div class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Standard Accuracy</div>
+                </div>
+            </div>
+
+            <button id="logout-btn" class="w-full py-5 bg-red-50 dark:bg-red-900/10 text-red-600 rounded-2xl font-black text-xs uppercase tracking-widest">
+                Logout Terminal
+            </button>
+        </section>
+
+        <!-- DOUBTS SECTION -->
+        <section id="student-messages" class="dashboard-section hidden space-y-8 text-center">
+            <h3 class="text-xl font-black font-orbitron text-slate-900 dark:text-white">Doubt Resolver</h3>
+            <div class="glass-morphism p-8 rounded-[32px] space-y-6 text-left">
+                <form id="student-send-msg-form" class="space-y-6">
+                    <textarea id="s-msg-content" placeholder="Type your doubt..." rows="4" class="w-full p-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-600 text-sm font-medium text-slate-900 dark:text-white"></textarea>
+                    <button type="submit" class="w-full py-4 btn-gradient text-white rounded-xl font-black text-xs uppercase tracking-widest">Send Transmission</button>
+                </form>
+            </div>
+            <div class="space-y-4" id="student-messages-list"></div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav glass-morphism">
+        <div class="nav-icon-link active" data-target="hero-section">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </div>
+        <div class="nav-icon-link" data-target="practice">
+            <i class="fas fa-rocket"></i>
+            <span>Practice</span>
+        </div>
+        <div class="nav-icon-link" data-target="practice" data-category="Placement / Company Focused">
+            <i class="fas fa-laptop-code"></i>
+            <span>Exams</span>
+        </div>
+        <div class="nav-icon-link" data-target="leaderboard-section">
+            <i class="fas fa-trophy"></i>
+            <span>Rank</span>
+        </div>
+        <div class="nav-icon-link" data-target="stats">
+            <i class="fas fa-user-circle"></i>
+            <span>Profile</span>
+        </div>
+    </nav>
 
     <script src="{{ url_for('static', filename='js/three-background.js') }}"></script>
     <script src="{{ url_for('static', filename='js/student.js') }}"></script>
-    <script>
-        // Adjust JS slightly for new IDs/Classes if needed
-        document.addEventListener('DOMContentLoaded', () => {
-             // Redundant sync for big average
-             const observer = new MutationObserver(() => {
-                 const avg = document.getElementById('big-average').innerText;
-                 document.getElementById('big-average-2').innerText = avg;
-             });
-             observer.observe(document.getElementById('big-average'), { characterData: true, childList: true });
-        });
-    </script>
 </body>
 </html>

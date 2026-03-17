@@ -1,9 +1,8 @@
 const API_BASE = '/api';
 
 document.addEventListener('DOMContentLoaded', () => {
-    /* ── Desktop-only guard ── */
-    if (window.innerWidth < 1024) return;
-
+    // Desktop guard removed for mobile-first redesign
+    
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
     const username = localStorage.getItem('username');
@@ -31,14 +30,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('welcome-text')) {
         document.getElementById('welcome-text').innerText = `${username}`;
     }
-    if (document.getElementById('user-display-name')) {
-        document.getElementById('user-display-name').innerText = username;
-    }
 
     // --- Navigation ---
-    const navItems = document.querySelectorAll('.nav-links .nav-item');
+    const navItems = document.querySelectorAll('.nav-icon-link');
     const sections = document.querySelectorAll('.dashboard-section');
-    const pageTitle = document.getElementById('page-title');
+    const heroSection = document.getElementById('hero-section');
 
     navItems.forEach(item => {
         item.addEventListener('click', () => {
@@ -47,16 +43,15 @@ document.addEventListener('DOMContentLoaded', () => {
             
             navItems.forEach(i => i.classList.remove('active'));
             sections.forEach(s => s.classList.add('hidden'));
+            if(heroSection) heroSection.classList.add('hidden');
             
             item.classList.add('active');
-            const targetSection = document.getElementById(target);
-            if (targetSection) targetSection.classList.remove('hidden');
             
-            if (pageTitle) {
-                // Get text without icon
-                const textOnly = item.cloneNode(true);
-                textOnly.querySelector('i').remove();
-                pageTitle.innerText = textOnly.innerText.trim();
+            if (target === 'hero-section') {
+                heroSection.classList.remove('hidden');
+            } else {
+                const targetSection = document.getElementById(target);
+                if (targetSection) targetSection.classList.remove('hidden');
             }
 
             if (target === 'practice') {
@@ -70,6 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if(target === 'stats') loadStats();
             if(target === 'student-messages') fetchMessages();
             if(target === 'leaderboard-section') fetchLeaderboard();
+            
+            // Scroll to top on navigation
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     });
 
@@ -77,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showAlert(msg, isError = false) {
         if (!alertBox) return;
         alertBox.textContent = msg;
-        alertBox.className = `px-6 py-4 rounded-2xl font-bold flex items-center gap-3 ${isError ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`;
+        alertBox.className = `fixed top-24 left-6 right-6 z-[110] px-6 py-4 rounded-2xl font-bold flex items-center gap-3 border shadow-xl ${isError ? 'bg-red-500 dark:bg-red-600 text-white border-red-400' : 'bg-green-500 dark:bg-green-600 text-white border-green-400'}`;
         alertBox.classList.remove('hidden');
         setTimeout(() => alertBox.classList.add('hidden'), 3000);
     }
@@ -161,25 +159,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const count = catQuestions.length;
 
             const card = document.createElement('div');
-            card.className = 'content-card p-10 space-y-8 flex flex-col justify-between group cursor-pointer hover:border-indigo-500 transition-all';
-            card.onclick = () => showQuestionsInCategory(catName);
+            card.className = 'glass-morphism p-6 flex flex-col gap-6 mobile-card shadow-sm border-none';
             
             card.innerHTML = `
-                <div class="space-y-6">
-                    <div class="w-16 h-16 bg-${meta.color}-100 dark:bg-${meta.color}-900/20 text-${meta.color}-600 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                <div class="flex items-start gap-5">
+                    <div class="w-14 h-14 bg-${meta.color}-100 dark:bg-${meta.color}-900/20 text-${meta.color}-600 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
                         ${meta.icon}
                     </div>
-                    <div class="space-y-2">
-                        <h3 class="text-xl font-bold text-slate-900 dark:text-white">${catName}</h3>
-                        <p class="text-slate-500 dark:text-slate-400 text-sm font-medium line-clamp-2">${meta.desc}</p>
+                    <div class="space-y-1">
+                        <h3 class="text-lg font-black text-slate-900 dark:text-white leading-tight">${catName}</h3>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">${meta.desc}</p>
                     </div>
                 </div>
-                <div class="flex items-center justify-between pt-6 border-t border-slate-50 dark:border-slate-800">
+                <div class="flex items-center justify-between pt-4 border-t border-black/5 dark:border-white/5">
                     <div class="flex items-center gap-2">
                         <div class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
-                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">${count} Challenges</span>
+                        <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">${count} Nodes Available</span>
                     </div>
-                    <i class="fas fa-arrow-right text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all"></i>
+                    <button class="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20" onclick="showQuestionsInCategory('${catName}')">
+                        Start Quiz
+                    </button>
                 </div>
             `;
             grid.appendChild(card);
@@ -200,30 +199,23 @@ document.addEventListener('DOMContentLoaded', () => {
             tbody.innerHTML = '';
             
             if (data.history.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="px-10 py-20 text-center text-slate-400 font-bold font-orbitron">No History Found</td></tr>';
+                tbody.innerHTML = '<tr><td class="px-6 py-10 text-center text-slate-400 font-black text-xs uppercase tracking-widest">No Logs Found</td></tr>';
                 return;
             }
 
             data.history.forEach(sub => {
                 const tr = document.createElement('tr');
-                tr.className = 'group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
+                tr.className = 'flex flex-col p-6 space-y-3';
                 tr.innerHTML = `
-                    <td class="px-10 py-6">
-                        <div class="font-bold text-slate-900 dark:text-white">${sub.question_title}</div>
-                        <div class="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">${sub.subtopic}</div>
-                    </td>
-                    <td class="px-10 py-6">
-                        <span class="px-3 py-1 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest">${sub.topic}</span>
-                    </td>
-                    <td class="px-10 py-6">
-                        <div class="flex items-center gap-2">
-                            <div class="w-2 h-2 rounded-full ${sub.is_correct ? 'bg-green-500' : 'bg-red-500'}"></div>
-                            <span class="font-bold text-xs ${sub.is_correct ? 'text-green-600' : 'text-red-500'} uppercase tracking-widest">${sub.is_correct ? 'Correct' : 'Incorrect'}</span>
-                        </div>
-                    </td>
-                    <td class="px-10 py-6 text-right">
-                        <div class="text-xs font-bold text-slate-500">${sub.timestamp}</div>
-                    </td>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-indigo-500">${sub.topic}</span>
+                        <span class="text-[9px] font-bold text-slate-400">${sub.timestamp.split(' ')[0]}</span>
+                    </div>
+                    <div class="font-bold text-slate-900 dark:text-white text-sm line-clamp-1">${sub.question_title}</div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full ${sub.is_correct ? 'bg-green-500' : 'bg-red-500'}"></div>
+                        <span class="text-[9px] font-black uppercase tracking-widest ${sub.is_correct ? 'text-green-600' : 'text-red-500'}">${sub.is_correct ? 'Completed' : 'Failed'}</span>
+                    </div>
                 `;
                 tbody.appendChild(tr);
             });
@@ -244,11 +236,6 @@ document.addEventListener('DOMContentLoaded', () => {
             formObj.append('content', document.getElementById('s-msg-content').value);
             formObj.append('receiver_id', '1'); 
             
-            const fileInput = document.getElementById('s-msg-file');
-            if(fileInput && fileInput.files.length > 0) {
-                formObj.append('file', fileInput.files[0]);
-            }
-            
             try {
                 const res = await fetch(`${API_BASE}/messages`, {
                     method: 'POST',
@@ -256,11 +243,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: formObj
                 });
                 if (res.ok) {
-                    showAlert('Message dispatched to control center!');
+                    showAlert('Message synced with control center!');
                     msgForm.reset();
                     fetchMessages();
                 } else {
-                    showAlert('Failed to dispatch message', true);
+                    showAlert('Sync failed', true);
                 }
             } catch (error) { showAlert('Critical Error', true); }
             finally {
@@ -279,34 +266,26 @@ document.addEventListener('DOMContentLoaded', () => {
             list.innerHTML = '';
             
             if (data.messages.length === 0) {
-                 list.innerHTML = '<div class="content-card p-10 text-center text-slate-400 font-bold font-orbitron">No active logs found</div>';
+                 list.innerHTML = '<div class="glass-morphism p-10 text-center text-slate-400 font-bold text-xs uppercase tracking-widest">No Transmissions</div>';
                  return;
             }
             
             data.messages.forEach(m => {
                 const item = document.createElement('div');
-                item.className = 'content-card p-8 space-y-4';
-                
+                item.className = 'glass-morphism p-6 space-y-3 text-left rounded-[24px] border-none shadow-sm';
                 const isAdmin = m.sender_role === 'admin' || m.receiver_id === null;
                 
                 item.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg ${isAdmin ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600'} flex items-center justify-center text-xs">
-                                <i class="fas fa-${isAdmin ? 'shield-alt' : 'user'}"></i>
-                            </div>
-                            <div>
-                                <div class="text-[10px] font-black uppercase tracking-widest text-slate-400">${isAdmin ? 'Admin Console' : 'Sent by Me'}</div>
-                                <div class="text-xs font-bold text-slate-500">${m.timestamp}</div>
-                            </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg ${isAdmin ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600'} flex items-center justify-center text-[10px]">
+                            <i class="fas fa-${isAdmin ? 'shield-alt' : 'user'}"></i>
+                        </div>
+                        <div>
+                            <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">${isAdmin ? 'Control Center' : 'Your Transmission'}</div>
+                            <div class="text-[9px] font-bold text-slate-500">${m.timestamp}</div>
                         </div>
                     </div>
-                    <p class="text-slate-600 dark:text-slate-300 font-medium">${m.content}</p>
-                    ${m.file_path ? `
-                        <a href="${m.file_path}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50 transition-all">
-                            <i class="fas fa-file-alt"></i> View Attachment
-                        </a>
-                    ` : ''}
+                    <p class="text-xs font-medium text-slate-600 dark:text-slate-300">${m.content}</p>
                 `;
                 list.appendChild(item);
             });
@@ -324,30 +303,23 @@ document.addEventListener('DOMContentLoaded', () => {
             
             data.leaderboard.forEach((std, index) => {
                 const tr = document.createElement('tr');
-                tr.className = std.is_me ? 'bg-indigo-600/5' : 'hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
+                tr.className = `flex items-center gap-4 px-6 py-5 ${std.is_me ? 'bg-indigo-600/5' : ''}`;
                 tr.innerHTML = `
-                    <td class="px-10 py-6">
-                        <div class="w-8 h-8 rounded-lg ${index < 3 ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'} flex items-center justify-center font-black text-xs">
-                            #${index + 1}
+                    <div class="w-7 h-7 rounded-lg ${index < 3 ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'} flex items-center justify-center font-black text-[10px]">
+                        ${index + 1}
+                    </div>
+                    <div class="flex-1 flex items-center gap-3">
+                        <div class="w-9 h-9 bg-slate-900 dark:bg-white rounded-xl flex items-center justify-center text-white dark:text-slate-900 font-bold text-[10px] uppercase">
+                            ${std.username.charAt(0)}
                         </div>
-                    </td>
-                    <td class="px-10 py-6">
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 bg-slate-900 dark:bg-white rounded-xl flex items-center justify-center text-white dark:text-slate-900 font-bold text-xs uppercase">
-                                ${std.username.charAt(0)}
-                            </div>
-                            <div>
-                                <div class="font-bold text-slate-900 dark:text-white">${std.username} ${std.is_me ? '<span class="ml-2 text-[8px] px-2 py-0.5 bg-indigo-600 text-white rounded-full uppercase">You</span>' : ''}</div>
-                                <div class="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none">Novice Learner</div>
-                            </div>
+                        <div>
+                            <div class="text-xs font-black text-slate-900 dark:text-white">${std.username} ${std.is_me ? '<span class="ml-1 text-[7px] px-1.5 py-0.5 bg-indigo-600 text-white rounded-full uppercase">You</span>' : ''}</div>
+                            <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">Novice Explorer</div>
                         </div>
-                    </td>
-                    <td class="px-10 py-6">
-                        <span class="text-sm font-bold text-slate-500">${std.total_submissions}</span>
-                    </td>
-                    <td class="px-10 py-6 text-right">
-                        <span class="text-xl font-black text-indigo-600 font-orbitron">${std.average}%</span>
-                    </td>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm font-black text-indigo-600 font-orbitron">${std.average}%</div>
+                    </div>
                 `;
                 tbody.appendChild(tr);
             });

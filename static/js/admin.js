@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showAlert(msg, isError = false) {
         if (!alertBox) return;
         alertBox.textContent = msg;
-        alertBox.className = `px-6 py-4 rounded-2xl font-bold flex items-center gap-3 ${isError ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`;
+        alertBox.className = `px-6 py-4 rounded-2xl font-bold flex items-center gap-3 border shadow-lg ${isError ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/50' : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/50'}`;
         alertBox.classList.remove('hidden');
         setTimeout(() => alertBox.classList.add('hidden'), 3000);
     }

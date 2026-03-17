@@ -109,7 +109,5 @@ function animate() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (window.innerWidth >= 1024) {
-        initThree();
-    }
+    initThree();
 });

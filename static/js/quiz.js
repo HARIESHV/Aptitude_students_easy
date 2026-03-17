@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="relative group">
                         <i class="fas fa-pen-nib absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition-colors"></i>
                         <input type="text" name="text_answer_${q.id}" id="text_answer_${q.id}" placeholder="Type your numeric or word answer here..." required 
-                        class="w-full pl-14 pr-8 py-5 bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-100 dark:border-slate-800 focus:outline-none focus:border-indigo-600 transition-all font-bold text-lg">
+                        class="w-full pl-14 pr-8 py-5 bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-100 dark:border-slate-800 focus:outline-none focus:border-indigo-600 transition-all font-bold text-lg text-slate-900 dark:text-white">
                     </div>
                     ` : `
                     <div class="grid grid-cols-2 gap-4 q-options-list">
