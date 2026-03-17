@@ -3,64 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dashboard - Aptitude PRO</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Aptitude PRO - Dashboard</title>
+    <!-- Modern Typography: Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         tailwind.config = {
             darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            purple: '#6366f1',
+                            blue: '#3b82f6',
+                            indigo: '#4f46e5'
+                        }
+                    }
+                }
+            }
         }
     </script>
     <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+
+        .dark-mode {
+            --glass-bg: rgba(15, 23, 42, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.05);
+            --bg-gradient: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+        }
+
         body { 
-            font-family: 'Inter', sans-serif; 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
             overflow-x: hidden;
-            background: #fdfdff;
-            color: #1a1a1a;
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: #0f172a;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
-        .font-orbitron { font-family: 'Orbitron', sans-serif; }
-        
-        #three-bg-container {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: -1;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        }
-        
-        .dark-mode #three-bg-container { 
-            background: linear-gradient(135deg, #0f172a 0%, #020617 100%); 
+
+        .dark-mode body {
+            color: #f8fafc;
         }
 
+        /* Glassmorphism utility */
         .glass-morphism {
-            background: rgba(255, 255, 255, 0.7);
+            background: var(--glass-bg);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
         }
 
-        .dark-mode .glass-morphism {
-            background: rgba(15, 23, 42, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+        /* Gradient Text */
+        .text-gradient {
+            background: linear-gradient(135deg, #6366f1, #3b82f6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
+        /* Primary CTA Gradient */
+        .btn-gradient {
+            background: linear-gradient(135deg, #6366f1, #3b82f6);
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-gradient:active {
+            transform: scale(0.95);
+            box-shadow: 0 5px 15px -5px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Bottom Nav Styling */
         .bottom-nav {
             position: fixed;
             bottom: 0;
-            left: 0;
-            right: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 430px;
             height: 75px;
             display: flex;
             justify-content: space-around;
             align-items: center;
             padding-bottom: env(safe-area-inset-bottom);
-            z-index: 100;
-            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+            border-top: 1px solid var(--glass-border);
+            border-radius: 24px 24px 0 0;
         }
 
         .nav-icon-link {
@@ -70,10 +110,10 @@
             gap: 4px;
             color: #94a3b8;
             font-size: 0.65rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            width: 20%;
         }
 
         .nav-icon-link.active {
@@ -82,135 +122,146 @@
 
         .nav-icon-link i {
             font-size: 1.25rem;
+            margin-bottom: 2px;
         }
 
-        .mobile-card {
-            border-radius: 24px;
-            overflow: hidden;
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        .nav-icon-link.active i {
+            transform: translateY(-2px);
         }
 
-        .mobile-card:active {
-            transform: scale(0.96);
+        /* Card Interactions */
+        .category-card {
+            transition: all 0.3s ease;
+            border-radius: 20px;
         }
 
-        .btn-gradient {
-            background: linear-gradient(135deg, #6366f1, #a855f7);
-            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);
+        .category-card:active {
+            transform: scale(0.97);
+            background: rgba(255, 255, 255, 0.4);
         }
 
-        .text-gradient {
-            background: linear-gradient(135deg, #6366f1, #a855f7);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .dark-mode .category-card:active {
+            background: rgba(15, 23, 42, 0.4);
         }
 
+        /* Hide scrollbars */
         ::-webkit-scrollbar { display: none; }
+        * { -ms-overflow-style: none; scrollbar-width: none; }
 
+        /* Animation for section switching */
         .dashboard-section {
-            animation: slideUp 0.5s ease-out both;
+            animation: fadeInScale 0.4s ease-out both;
         }
 
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: translateY(10px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* Hero Pill Gradient Border */
         .pill-badge {
             background: rgba(99, 102, 241, 0.1);
             border: 1px solid rgba(99, 102, 241, 0.2);
             padding: 6px 16px;
             border-radius: 100px;
             font-size: 0.7rem;
-            font-weight: 800;
-            letter-spacing: 2px;
+            font-weight: 700;
+            letter-spacing: 1px;
             color: #6366f1;
-            text-transform: uppercase;
+            display: inline-block;
         }
 
-        /* Select & Option Styling - Global */
-        select option {
-            background-color: white;
-            color: #1a1a1a;
+        .mobile-container {
+            width: 100%;
+            max-width: 430px;
+            margin: 0 auto;
+            position: relative;
         }
 
-        .dark-mode select option {
-            background-color: #0f172a;
-            color: white;
-        }
-
-        select {
-            color: #1a1a1a;
-        }
-
-        .dark-mode select {
-            color: white;
+        /* Top Header Blur effect */
+        header {
+            max-width: 430px;
+            margin: 0 auto;
+            left: 0;
+            right: 0;
         }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
+<body class="dark:text-slate-100">
 
-    <!-- Three.js BG -->
-    <div id="three-bg-container"></div>
-
-    <!-- Top Navigation Bar -->
-    <header class="fixed top-0 left-0 right-0 h-20 px-6 flex items-center justify-between z-[100] glass-morphism border-b border-black/5 dark:border-white/5">
+    <!-- Fixed Top Header -->
+    <header class="fixed top-0 z-[100] h-16 px-6 flex items-center justify-between glass-morphism rounded-b-2xl">
         <div class="flex items-center gap-2">
-            <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                <i class="fas fa-brain text-white text-lg"></i>
+            <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <i class="fas fa-brain text-white text-sm"></i>
             </div>
-            <span class="font-orbitron text-lg font-bold tracking-tighter text-indigo-600 dark:text-indigo-400">Aptitude<span class="text-slate-900 dark:text-white">PRO</span></span>
+            <span class="font-extrabold text-lg tracking-tight text-indigo-600 dark:text-indigo-400">Aptitude<span class="text-slate-900 dark:text-white">PRO</span></span>
         </div>
-        <div class="flex items-center gap-4">
-            <button id="theme-toggle" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
+        <div class="flex items-center gap-3">
+            <button id="theme-toggle" class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
                 <i class="fas fa-moon"></i>
             </button>
-            <div class="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/40 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                <i class="fas fa-user text-sm"></i>
+            <div class="w-10 h-10 rounded-full border-2 border-indigo-500/20 p-0.5" id="nav-profile-trigger">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" class="w-full h-full rounded-full bg-indigo-100 dark:bg-indigo-900">
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="pt-24 pb-32 px-6 max-w-[430px] mx-auto space-y-10">
+    <!-- Main Content for Mobile -->
+    <main class="mobile-container pt-20 pb-28 px-4 space-y-8 flex flex-col items-center">
         
-        <div id="dashboard-alert" class="hidden fixed top-24 left-6 right-6 z-[110] px-4 py-3 rounded-2xl font-bold text-sm shadow-xl flex items-center gap-3"></div>
+        <div id="dashboard-alert" class="hidden fixed top-20 left-4 right-4 z-[110] px-6 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-2xl border backdrop-blur-md"></div>
 
-        <!-- HERO SECTION -->
-        <section id="hero-section" class="flex flex-col items-center text-center space-y-6 pt-6">
+        <!-- HERO SECTION (CENTERED) -->
+        <section id="hero-section" class="flex flex-col items-center text-center space-y-6 pt-4 w-full">
             <div class="pill-badge">THE FUTURE OF APTITUDE PRACTICE</div>
-            <h1 class="text-3xl font-black font-orbitron text-slate-900 dark:text-white leading-[1.1]">
+            <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white leading-[1.15]">
                 Master Your <br/> <span class="text-gradient">Aptitude Skills</span>
             </h1>
-            <p class="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed max-w-[280px]">
+            <p class="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed max-w-[300px]">
                 Practice Quantitative Aptitude, Logical Reasoning, Verbal Ability, and Placement-level questions.
             </p>
-            <button class="btn-gradient w-full py-5 rounded-[20px] text-white font-black text-sm tracking-wide flex items-center justify-center gap-2" onclick="document.querySelector('[data-target=\'practice\']').click()">
-                START PRACTICE <i class="fas fa-arrow-right text-xs"></i>
+            <button class="btn-gradient w-full py-4.5 rounded-full text-white font-bold text-base flex items-center justify-center gap-2 mt-2" onclick="document.querySelector('[data-target=\'practice\']').click()">
+                Start Practice <i class="fas fa-arrow-right text-xs"></i>
             </button>
         </section>
 
         <!-- DASHBOARD SECTION (PRACTICE) -->
-        <section id="practice" class="dashboard-section space-y-6">
-            <div class="flex items-center justify-between">
-                <h3 class="text-xl font-black font-orbitron text-slate-900 dark:text-white">Aptitude Topics</h3>
-                <span class="text-[10px] font-black uppercase text-indigo-600 tracking-widest">View All</span>
+        <section id="practice" class="dashboard-section w-full space-y-6">
+            <div class="flex items-center justify-between px-2">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Aptitude Topics</h3>
+                <span class="text-[10px] font-bold uppercase text-indigo-600 tracking-wider">All Categories</span>
             </div>
             
-            <div id="quiz-category-grid" class="space-y-5">
-                <!-- Stacked Mobile Cards will be injected here by JS -->
-                <div class="flex flex-col items-center justify-center py-20 opacity-50">
-                    <div class="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            <div id="quiz-category-grid" class="flex flex-col gap-4 w-full">
+                <!-- Stacked Mobile Cards are injected here -->
+                <!-- Example of final card structure for reference (JS will override) -->
+                <div class="glass-morphism p-5 flex flex-col gap-4 category-card">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-xl flex items-center justify-center text-xl shadow-inner">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <div class="flex-1 space-y-0.5">
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white">Logical Reasoning</h3>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium line-clamp-2">Patterns, sequences, and analytical puzzles.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-black/5 dark:border-white/5">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">120+ Questions</span>
+                        <button class="px-5 py-2 bg-indigo-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-indigo-600/20">
+                            Start Quiz
+                        </button>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- LEADERBOARD SECTION -->
-        <section id="leaderboard-section" class="dashboard-section hidden space-y-6">
-            <h3 class="text-xl font-black font-orbitron text-slate-900 dark:text-white text-center">Top Achievers</h3>
-            <div class="glass-morphism rounded-[32px] overflow-hidden">
+        <section id="leaderboard-section" class="dashboard-section hidden w-full space-y-6">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white text-center">Elite Achievers</h3>
+            <div class="glass-morphism rounded-3xl overflow-hidden shadow-xl">
+                <div class="p-4 bg-indigo-600/5 dark:bg-indigo-500/5 text-center border-b border-black/5 dark:border-white/5">
+                    <p class="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Global Ranking</p>
+                </div>
                 <table class="w-full text-left">
                     <tbody id="student-leaderboard-tbody" class="divide-y divide-black/5 dark:divide-white/5"></tbody>
                 </table>
@@ -218,60 +269,59 @@
         </section>
 
         <!-- HISTORY SECTION -->
-        <section id="history" class="dashboard-section hidden space-y-6">
-            <h3 class="text-xl font-black font-orbitron text-slate-900 dark:text-white text-center">Past Missions</h3>
-            <div id="student-history-list" class="space-y-4">
-                <tbody id="student-history-tbody"></tbody>
+        <section id="history" class="dashboard-section hidden w-full space-y-6">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white text-center">Past Missions</h3>
+            <div class="space-y-4" id="student-history-list">
+                <div id="student-history-tbody"></div>
             </div>
         </section>
 
         <!-- PROFILE SECTION -->
-        <section id="stats" class="dashboard-section hidden space-y-8">
-            <div class="flex flex-col items-center space-y-6">
-                <div class="w-24 h-24 bg-indigo-600 rounded-[32px] flex items-center justify-center text-white text-3xl shadow-2xl shadow-indigo-600/30">
+        <section id="stats" class="dashboard-section hidden w-full space-y-8">
+            <div class="bg-indigo-600/5 dark:bg-indigo-500/5 rounded-3xl p-8 flex flex-col items-center space-y-4">
+                <div class="w-24 h-24 bg-indigo-600 rounded-3xl flex items-center justify-center text-white text-3xl shadow-2xl shadow-indigo-600/40 relative">
                     <i class="fas fa-user-astronaut"></i>
+                    <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-emerald-500 rounded-full border-4 border-white dark:border-slate-900 flex items-center justify-center">
+                        <i class="fas fa-check text-[10px]"></i>
+                    </div>
                 </div>
                 <div class="text-center">
-                    <h2 class="text-2xl font-black" id="welcome-text">Student Name</h2>
-                    <p class="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Elite Rank Explorer</p>
+                    <h2 class="text-2xl font-bold text-slate-900 dark:text-white" id="welcome-text">Student</h2>
+                    <p class="text-indigo-500 font-bold text-[10px] uppercase tracking-widest mt-1">Aptitude PRO Scholar</p>
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-                <div class="glass-morphism p-6 rounded-[28px] text-center space-y-1 border-none shadow-sm">
-                    <div class="text-3xl font-black text-indigo-600" id="big-attempted">0</div>
-                    <div class="text-[9px] text-slate-400 font-black uppercase tracking-widest">Attempts</div>
+                <div class="glass-morphism p-6 rounded-3xl text-center space-y-1">
+                    <div class="text-2xl font-black text-indigo-600" id="big-attempted">0</div>
+                    <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Attempts</div>
                 </div>
-                <div class="glass-morphism p-6 rounded-[28px] text-center space-y-1 border-none shadow-sm">
-                    <div class="text-3xl font-black text-green-500" id="big-correct">0</div>
-                    <div class="text-[9px] text-slate-400 font-black uppercase tracking-widest">Correct</div>
+                <div class="glass-morphism p-6 rounded-3xl text-center space-y-1">
+                    <div class="text-2xl font-black text-emerald-500" id="big-correct">0</div>
+                    <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Accuracy</div>
                 </div>
-                <div class="glass-morphism p-8 col-span-2 rounded-[32px] text-center border-none shadow-sm">
+                <div class="glass-morphism p-8 col-span-2 rounded-[32px] text-center bg-gradient-to-br from-indigo-600/5 to-blue-600/5 border-none">
                     <div class="text-5xl font-black text-indigo-600 mb-2"><span id="big-average">0</span>%</div>
-                    <div class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Standard Accuracy</div>
+                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Standard Performance</div>
                 </div>
             </div>
 
-            <button id="logout-btn" class="w-full py-5 bg-red-50 dark:bg-red-900/10 text-red-600 rounded-2xl font-black text-xs uppercase tracking-widest">
+            <button id="logout-btn" class="w-full py-4.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-2xl font-bold text-sm tracking-wide transition-all active:scale-95">
                 Logout Terminal
             </button>
         </section>
 
-        <!-- DOUBTS SECTION -->
-        <section id="student-messages" class="dashboard-section hidden space-y-8 text-center">
-            <h3 class="text-xl font-black font-orbitron text-slate-900 dark:text-white">Doubt Resolver</h3>
-            <div class="glass-morphism p-8 rounded-[32px] space-y-6 text-left">
-                <form id="student-send-msg-form" class="space-y-6">
-                    <textarea id="s-msg-content" placeholder="Type your doubt..." rows="4" class="w-full p-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-600 text-sm font-medium text-slate-900 dark:text-white"></textarea>
-                    <button type="submit" class="w-full py-4 btn-gradient text-white rounded-xl font-black text-xs uppercase tracking-widest">Send Transmission</button>
-                </form>
+        <!-- COMPANY TESTS (Dynamic from data-category) -->
+        <section id="company-tests" class="dashboard-section hidden w-full space-y-6">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white text-center">Placement Drive</h3>
+            <div id="company-tests-grid" class="flex flex-col gap-4 w-full">
+                <!-- Similar cards but filtered for company focus -->
             </div>
-            <div class="space-y-4" id="student-messages-list"></div>
         </section>
 
     </main>
 
-    <!-- Bottom Navigation -->
+    <!-- Fixed Bottom Navigation -->
     <nav class="bottom-nav glass-morphism">
         <div class="nav-icon-link active" data-target="hero-section">
             <i class="fas fa-home"></i>
@@ -282,7 +332,7 @@
             <span>Practice</span>
         </div>
         <div class="nav-icon-link" data-target="practice" data-category="Placement / Company Focused">
-            <i class="fas fa-laptop-code"></i>
+            <i class="fas fa-briefcase"></i>
             <span>Exams</span>
         </div>
         <div class="nav-icon-link" data-target="leaderboard-section">
@@ -295,7 +345,14 @@
         </div>
     </nav>
 
-    <script src="{{ url_for('static', filename='js/three-background.js') }}"></script>
+    <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/student.js') }}"></script>
+    <script>
+        // Smooth scroll for nav clicks handled by student.js
+        // We add some extra polish here if needed
+        document.getElementById('nav-profile-trigger').addEventListener('click', () => {
+            document.querySelector('[data-target="stats"]').click();
+        });
+    </script>
 </body>
 </html>

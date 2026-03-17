@@ -43,30 +43,25 @@ document.addEventListener('DOMContentLoaded', () => {
             
             navItems.forEach(i => i.classList.remove('active'));
             sections.forEach(s => s.classList.add('hidden'));
-            if(heroSection) heroSection.classList.add('hidden');
+            
+            if (heroSection) {
+                if (target === 'hero-section') heroSection.classList.remove('hidden');
+                else heroSection.classList.add('hidden');
+            }
             
             item.classList.add('active');
             
-            if (target === 'hero-section') {
-                heroSection.classList.remove('hidden');
-            } else {
-                const targetSection = document.getElementById(target);
-                if (targetSection) targetSection.classList.remove('hidden');
-            }
+            const targetSection = document.getElementById(target);
+            if (targetSection) targetSection.classList.remove('hidden');
 
             if (target === 'practice') {
-                if (category) {
-                    showQuestionsInCategory(category);
-                } else {
-                    fetchStudentQuestions();
-                }
+                renderCategories(category); 
             }
-            if(target === 'history') fetchHistory();
-            if(target === 'stats') loadStats();
-            if(target === 'student-messages') fetchMessages();
             if(target === 'leaderboard-section') fetchLeaderboard();
+            if(target === 'stats') loadStats();
+            if(target === 'history') fetchHistory();
+            if(target === 'student-messages') fetchMessages();
             
-            // Scroll to top on navigation
             window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     });
@@ -116,11 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
             desc: 'Patterns, sequences, and analytical puzzles.',
             color: 'indigo'
         },
-        'Placement / Company Focused': { 
-            icon: '<i class="fas fa-laptop-code"></i>', 
-            desc: 'Mixed aptitude for top tech companies.',
-            color: 'purple'
-        },
         'Quantitative Aptitude': { 
             icon: '<i class="fas fa-calculator"></i>', 
             desc: 'Arithmetic and numeric problem solving.',
@@ -130,6 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
             icon: '<i class="fas fa-comment-dots"></i>', 
             desc: 'English grammar and verbal reasoning.',
             color: 'green'
+        },
+        'Placement / Company Tests': { 
+            icon: '<i class="fas fa-laptop-code"></i>', 
+            desc: 'Company-specific aptitude and logical puzzles.',
+            color: 'orange'
         }
     };
 
@@ -148,36 +143,41 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) { console.error(err); }
     }
 
-    function renderCategories() {
+    function renderCategories(filterCategory = null) {
         const grid = document.getElementById('quiz-category-grid');
         if (!grid) return;
         grid.innerHTML = '';
         
         Object.keys(categoryMeta).forEach(catName => {
+            if (filterCategory && catName !== filterCategory) return;
+
             const meta = categoryMeta[catName];
             const catQuestions = allQuestions.filter(q => q.topic === catName && !solvedQuestionsList.includes(q.id));
             const count = catQuestions.length;
 
             const card = document.createElement('div');
-            card.className = 'glass-morphism p-6 flex flex-col gap-6 mobile-card shadow-sm border-none';
+            card.className = 'glass-morphism p-5 flex flex-col gap-4 category-card border-none';
             
             card.innerHTML = `
-                <div class="flex items-start gap-5">
-                    <div class="w-14 h-14 bg-${meta.color}-100 dark:bg-${meta.color}-900/20 text-${meta.color}-600 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
+                <div class="flex items-start gap-4" onclick="showQuestionsInCategory('${catName}')">
+                    <div class="w-12 h-12 bg-slate-100 dark:bg-white/10 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center text-xl shadow-inner">
                         ${meta.icon}
                     </div>
-                    <div class="space-y-1">
-                        <h3 class="text-lg font-black text-slate-900 dark:text-white leading-tight">${catName}</h3>
-                        <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">${meta.desc}</p>
+                    <div class="flex-1 space-y-0.5">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white leading-tight">${catName}</h3>
+                            <i class="fas fa-chevron-right text-[10px] text-slate-300"></i>
+                        </div>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight line-clamp-2">${meta.desc}</p>
                     </div>
                 </div>
-                <div class="flex items-center justify-between pt-4 border-t border-black/5 dark:border-white/5">
+                <div class="flex items-center justify-between pt-3 border-t border-black/5 dark:border-white/5">
                     <div class="flex items-center gap-2">
                         <div class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
-                        <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">${count} Nodes Available</span>
+                        <span class="text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">${count} Questions Available</span>
                     </div>
-                    <button class="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20" onclick="showQuestionsInCategory('${catName}')">
-                        Start Quiz
+                    <button class="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95 transition-all" onclick="showQuestionsInCategory('${catName}')">
+                        START QUIZ
                     </button>
                 </div>
             `;
@@ -199,25 +199,28 @@ document.addEventListener('DOMContentLoaded', () => {
             tbody.innerHTML = '';
             
             if (data.history.length === 0) {
-                tbody.innerHTML = '<tr><td class="px-6 py-10 text-center text-slate-400 font-black text-xs uppercase tracking-widest">No Logs Found</td></tr>';
+                tbody.innerHTML = '<div class="glass-morphism p-10 mt-4 rounded-3xl text-center text-slate-400 font-bold text-xs uppercase tracking-widest border-none">No mission logs found</div>';
                 return;
             }
 
             data.history.forEach(sub => {
-                const tr = document.createElement('tr');
-                tr.className = 'flex flex-col p-6 space-y-3';
-                tr.innerHTML = `
+                const card = document.createElement('div');
+                card.className = 'glass-morphism p-5 rounded-2xl mb-4 space-y-3 border-none shadow-sm';
+                card.innerHTML = `
                     <div class="flex items-center justify-between">
-                        <span class="text-[10px] font-black uppercase tracking-widest text-indigo-500">${sub.topic}</span>
-                        <span class="text-[9px] font-bold text-slate-400">${sub.timestamp.split(' ')[0]}</span>
+                        <span class="text-[10px] font-bold uppercase tracking-widest text-indigo-500">${sub.topic}</span>
+                        <span class="text-[9px] font-medium text-slate-400">${sub.timestamp.split(' ')[0]}</span>
                     </div>
-                    <div class="font-bold text-slate-900 dark:text-white text-sm line-clamp-1">${sub.question_title}</div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-2 h-2 rounded-full ${sub.is_correct ? 'bg-green-500' : 'bg-red-500'}"></div>
-                        <span class="text-[9px] font-black uppercase tracking-widest ${sub.is_correct ? 'text-green-600' : 'text-red-500'}">${sub.is_correct ? 'Completed' : 'Failed'}</span>
+                    <div class="font-bold text-slate-900 dark:text-white text-sm leading-snug">${sub.question_title}</div>
+                    <div class="flex items-center justify-between pt-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full ${sub.is_correct ? 'bg-emerald-500' : 'bg-rose-500'}"></div>
+                            <span class="text-[9px] font-bold uppercase tracking-widest ${sub.is_correct ? 'text-emerald-600' : 'text-rose-500'}">${sub.is_correct ? 'Success' : 'Failed'}</span>
+                        </div>
+                        <span class="text-[9px] font-bold text-slate-400 uppercase">View Details</span>
                     </div>
                 `;
-                tbody.appendChild(tr);
+                tbody.appendChild(card);
             });
         } catch (err) { console.error(err); }
     }
@@ -303,22 +306,27 @@ document.addEventListener('DOMContentLoaded', () => {
             
             data.leaderboard.forEach((std, index) => {
                 const tr = document.createElement('tr');
-                tr.className = `flex items-center gap-4 px-6 py-5 ${std.is_me ? 'bg-indigo-600/5' : ''}`;
+                tr.className = `flex items-center gap-4 px-5 py-4 ${std.is_me ? 'bg-indigo-600/5' : ''}`;
+                const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
+                
                 tr.innerHTML = `
-                    <div class="w-7 h-7 rounded-lg ${index < 3 ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'} flex items-center justify-center font-black text-[10px]">
-                        ${index + 1}
+                    <div class="w-8 h-8 rounded-xl ${index < 3 ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600' : 'bg-slate-50 dark:bg-slate-800 text-slate-400'} flex items-center justify-center font-bold text-xs shadow-sm">
+                        ${rankIcon ? rankIcon : index + 1}
                     </div>
                     <div class="flex-1 flex items-center gap-3">
-                        <div class="w-9 h-9 bg-slate-900 dark:bg-white rounded-xl flex items-center justify-center text-white dark:text-slate-900 font-bold text-[10px] uppercase">
-                            ${std.username.charAt(0)}
+                        <div class="w-10 h-10 rounded-full border-2 border-indigo-500/10 p-0.5">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${std.username}" class="w-full h-full rounded-full bg-slate-100 dark:bg-slate-800">
                         </div>
                         <div>
-                            <div class="text-xs font-black text-slate-900 dark:text-white">${std.username} ${std.is_me ? '<span class="ml-1 text-[7px] px-1.5 py-0.5 bg-indigo-600 text-white rounded-full uppercase">You</span>' : ''}</div>
-                            <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">Novice Explorer</div>
+                            <div class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                ${std.username} 
+                                ${std.is_me ? '<span class="text-[8px] px-2 py-0.5 bg-indigo-600 text-white rounded-full font-bold uppercase tracking-tighter">You</span>' : ''}
+                            </div>
+                            <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none mt-0.5">Aptitude Scholar</div>
                         </div>
                     </div>
                     <div class="text-right">
-                        <div class="text-sm font-black text-indigo-600 font-orbitron">${std.average}%</div>
+                        <div class="text-sm font-bold text-indigo-600">${std.average}%</div>
                     </div>
                 `;
                 tbody.appendChild(tr);
