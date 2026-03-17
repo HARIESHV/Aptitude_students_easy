@@ -23,9 +23,8 @@ const topicsMap = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    /* ── Desktop-only guard ── */
-    if (window.innerWidth < 1024) return;
-
+    /* Mobile guard removed */
+    
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
     const username = localStorage.getItem('username');
@@ -36,19 +35,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initialize Theme
+    const themeToggle = document.getElementById('theme-toggle') || document.getElementById('theme-toggle-top');
     const currentTheme = localStorage.getItem('theme') || 'light';
+    
     if (currentTheme === 'dark') {
         document.body.classList.add('dark-mode', 'dark');
-        document.getElementById('theme-toggle').innerHTML = '<i class="fas fa-sun"></i>';
+        if (themeToggle) themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
     }
 
-    document.getElementById('theme-toggle').addEventListener('click', () => {
-        document.body.classList.toggle('dark-mode');
-        document.body.classList.toggle('dark');
-        const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
-        localStorage.setItem('theme', theme);
-        document.getElementById('theme-toggle').innerHTML = theme === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
-    });
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            document.body.classList.toggle('dark');
+            const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+            localStorage.setItem('theme', theme);
+            themeToggle.innerHTML = theme === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        });
+    }
 
     if (document.getElementById('welcome-text')) {
         document.getElementById('welcome-text').innerText = `${username}`;

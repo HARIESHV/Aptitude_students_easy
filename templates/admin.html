@@ -110,7 +110,7 @@
     <div id="desktop-layout" class="flex min-h-screen">
         
         <!-- Sidebar -->
-        <aside class="fixed left-0 top-0 w-72 h-screen glass-sidebar z-50 flex flex-col">
+        <aside class="fixed left-0 top-0 w-72 h-screen glass-sidebar z-50 hidden lg:flex flex-col">
             <div class="px-8 py-10 flex items-center gap-3">
                 <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
                     <i class="fas fa-shield-alt text-white text-xl"></i>
@@ -147,23 +147,29 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 ml-72 flex flex-col">
+        <main class="flex-1 ml-0 lg:ml-72 flex flex-col w-full overflow-x-hidden">
             
             <!-- Top Nav -->
-            <header class="h-24 px-12 flex items-center justify-between sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-                <h1 id="page-title" class="text-2xl font-bold font-orbitron tracking-tight text-slate-900 dark:text-white">Management console</h1>
+            <header class="h-20 lg:h-24 px-6 lg:px-12 flex items-center justify-between sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-4">
+                    <!-- Mobile Logo -->
+                    <div class="lg:hidden w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                        <i class="fas fa-shield-alt text-white text-sm"></i>
+                    </div>
+                    <h1 id="page-title" class="text-lg lg:text-2xl font-bold font-orbitron tracking-tight text-slate-900 dark:text-white truncate">Admin</h1>
+                </div>
 
-                <div class="flex items-center gap-6">
-                    <button id="theme-toggle" class="w-12 h-12 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                <div class="flex items-center gap-4 lg:gap-6">
+                    <button id="theme-toggle-top" class="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
                         <i class="fas fa-moon"></i>
                     </button>
-                    <div class="h-12 flex items-center gap-4 pl-4 border-l border-slate-200 dark:border-slate-800">
-                        <div class="text-right">
-                            <div class="text-sm font-bold text-slate-900 dark:text-white" id="welcome-text">Admin</div>
-                            <div class="text-[10px] text-slate-400 uppercase font-black tracking-widest leading-none">Super Administrator</div>
+                    <div class="h-10 lg:h-12 flex items-center gap-3 lg:gap-4 pl-3 lg:pl-4 border-l border-slate-200 dark:border-slate-800">
+                        <div class="text-right hidden sm:block">
+                            <div class="text-xs lg:text-sm font-bold text-slate-900 dark:text-white" id="welcome-text">Admin</div>
+                            <div class="text-[8px] lg:text-[10px] text-slate-400 uppercase font-black tracking-widest leading-none">Super Admin</div>
                         </div>
-                        <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold">
-                            <i class="fas fa-user-shield"></i>
+                        <div class="w-10 h-10 lg:w-12 lg:h-12 bg-indigo-600 rounded-xl lg:rounded-2xl flex items-center justify-center text-white font-bold">
+                            <i class="fas fa-user-shield text-sm lg:text-base"></i>
                         </div>
                     </div>
                 </div>
@@ -174,19 +180,19 @@
                 <div id="dashboard-alert" class="hidden px-6 py-4 rounded-2xl font-bold"></div>
 
                 <!-- STATS SUMMARY -->
-                <div class="grid grid-cols-2 gap-8">
-                    <div class="content-card flex items-center gap-8">
-                        <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 text-blue-600 rounded-2xl flex items-center justify-center text-2xl"><i class="fas fa-users"></i></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+                    <div class="content-card flex items-center gap-6 lg:gap-8 p-6 lg:p-10">
+                        <div class="w-14 h-14 lg:w-16 lg:h-16 bg-blue-100 dark:bg-blue-900/20 text-blue-600 rounded-2xl flex items-center justify-center text-xl lg:text-2xl"><i class="fas fa-users"></i></div>
                         <div>
-                            <div class="text-4xl font-black mb-1 text-slate-900 dark:text-white" id="global-stat-students">-</div>
-                            <div class="text-xs text-slate-400 font-bold uppercase tracking-widest">Total Students</div>
+                            <div class="text-3xl lg:text-4xl font-black mb-1 text-slate-900 dark:text-white" id="global-stat-students">-</div>
+                            <div class="text-[10px] lg:text-xs text-slate-400 font-bold uppercase tracking-widest">Total Students</div>
                         </div>
                     </div>
-                    <div class="content-card flex items-center gap-8">
-                        <div class="w-16 h-16 bg-purple-100 dark:bg-purple-900/20 text-purple-600 rounded-2xl flex items-center justify-center text-2xl"><i class="fas fa-chart-bar"></i></div>
+                    <div class="content-card flex items-center gap-6 lg:gap-8 p-6 lg:p-10">
+                        <div class="w-14 h-14 lg:w-16 lg:h-16 bg-purple-100 dark:bg-purple-900/20 text-purple-600 rounded-2xl flex items-center justify-center text-xl lg:text-2xl"><i class="fas fa-chart-bar"></i></div>
                         <div>
-                            <div class="text-4xl font-black mb-1 text-slate-900 dark:text-white" id="global-stat-average">-</div>
-                            <div class="text-xs text-slate-400 font-bold uppercase tracking-widest">Global Proficiency</div>
+                            <div class="text-3xl lg:text-4xl font-black mb-1 text-slate-900 dark:text-white" id="global-stat-average">-</div>
+                            <div class="text-[10px] lg:text-xs text-slate-400 font-bold uppercase tracking-widest">Global Proficiency</div>
                         </div>
                     </div>
                 </div>
@@ -196,7 +202,7 @@
                     <div class="content-card space-y-8">
                         <h3 class="text-2xl font-bold">Create New Assessment</h3>
                         <form id="add-question-form" class="space-y-6">
-                            <div class="grid grid-cols-2 gap-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div class="space-y-2">
                                     <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Category</label>
                                     <select id="q-topic" required class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-all font-medium text-slate-900 dark:text-white">
@@ -209,7 +215,7 @@
                                 </div>
                                 <div class="space-y-2">
                                     <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Subtopic</label>
-                                    <select id="q-subtopic" required class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-all font-medium text-slate-900 dark:text-white">
+                                    <select id="q-subtopic" required class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-all font-medium text-slate-900 dark:text-white text-sm md:text-base">
                                         <option value="" disabled selected>First select category</option>
                                     </select>
                                 </div>
@@ -225,7 +231,7 @@
                                 <textarea id="q-desc" placeholder="Provide context or elaborate on the question..." rows="3" class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-all font-medium text-slate-900 dark:text-white"></textarea>
                             </div>
 
-                            <div class="grid grid-cols-2 gap-6 items-end">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                                 <div class="space-y-2">
                                     <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Answer Format</label>
                                     <select id="q-type" required onchange="toggleQuestionType('add')" class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-all font-medium text-slate-900 dark:text-white">
@@ -234,15 +240,15 @@
                                     </select>
                                 </div>
                                 <div class="grid grid-cols-4 gap-2">
-                                    <input type="number" id="q-days" placeholder="DD" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-white">
-                                    <input type="number" id="q-hours" placeholder="HH" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-white">
-                                    <input type="number" id="q-mins" placeholder="MM" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-white">
-                                    <input type="number" id="q-secs" placeholder="SS" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-white">
+                                    <input type="number" id="q-days" placeholder="DD" class="p-3 lg:p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-white text-center text-xs lg:text-sm">
+                                    <input type="number" id="q-hours" placeholder="HH" class="p-3 lg:p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-white text-center text-xs lg:text-sm">
+                                    <input type="number" id="q-mins" placeholder="MM" class="p-3 lg:p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-white text-center text-xs lg:text-sm">
+                                    <input type="number" id="q-secs" placeholder="SS" class="p-3 lg:p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-white text-center text-xs lg:text-sm">
                                 </div>
                             </div>
 
                             <div id="add-mcq-fields" class="space-y-6">
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <input type="text" id="q-opt-a" placeholder="Option A" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
                                     <input type="text" id="q-opt-b" placeholder="Option B" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
                                     <input type="text" id="q-opt-c" placeholder="Option C" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
