@@ -3,38 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aptitude Master — Sharpen Your Mind, Ace Every Test</title>
-    <meta name="description" content="The ultimate aptitude training platform. Master quantitative, logical, and verbal skills with AI-powered practice and real-time performance tracking.">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>AptitudeLab — Next-Gen Training</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* ─── RESET & BASE ─────────────────────────────── */
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body.hero-page {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(-45deg, #050a1a, #0f172a, #1e1b4b, #312e81);
-            background-size: 400% 400%;
-            animation: bgMovement 15s ease infinite;
-            color: #fff;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        @keyframes bgMovement {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        /* ─── PARTICLES.JS ─────────────────────────── */
-        #particles-js {
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; margin: 0; background: #050a1a; color: #fff; }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        
+        #three-bg-container {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            z-index: 0;
-            pointer-events: none;
+            z-index: -1;
         }
 
         /* ─── MOVING GRID ─────────────────────────────── */
@@ -50,14 +32,13 @@
         }
 
         .grid-bg {
-            display: none;
             position: fixed;
             bottom: 0; left: -200px;
             width: calc(100% + 400px);
             height: 55vh;
             background-image:
-                linear-gradient(rgba(99,102,241,0.25) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(99,102,241,0.25) 1px, transparent 1px);
+                linear-gradient(rgba(99,102,241,0.2) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99,102,241,0.2) 1px, transparent 1px);
             background-size: 60px 60px;
             transform-origin: bottom center;
             animation: gridMove 15s linear infinite, gridWave 8s ease-in-out infinite;
@@ -79,17 +60,30 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            width: 100%;
+        }
+
+        .hero-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
         }
 
         /* ─── TOP NAV ──────────────────────────────────── */
         .top-nav {
             width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 2rem 3rem 0;
             max-width: 1200px;
-            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2.5rem 3rem;
         }
         .brand-logo {
             font-family: 'Orbitron', monospace;
@@ -111,7 +105,6 @@
             justify-content: center;
         }
 
-        /* Glow pulse effect for Brain */
         @keyframes glowPulse {
           0%{ box-shadow: 0 0 20px #8b5cf6; }
           50%{ box-shadow: 0 0 60px #8b5cf6; }
@@ -126,7 +119,6 @@
             animation: glowPulse 3s ease-in-out infinite;
         }
 
-        /* Brain / Core icon */
         @keyframes floatBrain {
           0% { transform: translateY(0px) scale(1); }
           50% { transform: translateY(-20px) scale(1.05); }
@@ -145,7 +137,6 @@
             animation: floatBrain 6s ease-in-out infinite;
         }
 
-        /* Orbiting rings */
         @keyframes rotateOrbit {
           from { transform: rotateX(65deg) rotateZ(0deg); }
           to { transform: rotateX(65deg) rotateZ(360deg); }
@@ -159,15 +150,6 @@
             border-color: rgba(99,102,241,0.7);
             box-shadow: 0 0 15px rgba(99,102,241,0.6), inset 0 0 15px rgba(99,102,241,0.3);
             animation: rotateOrbit 18s linear infinite;
-        }
-
-        /* Floating data dots on rings */
-        .ring-dot {
-            position: absolute;
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: #a855f7;
-            box-shadow: 0 0 10px #a855f7, 0 0 20px #a855f7;
         }
 
         /* ─── HERO TEXT ───────────────────────────────── */
@@ -192,7 +174,7 @@
 
         .hero-headline {
             font-family: 'Orbitron', monospace;
-            font-size: clamp(2rem, 5vw, 3.4rem);
+            font-size: clamp(2.5rem, 6vw, 4rem);
             font-weight: 900;
             line-height: 1.1;
             text-transform: uppercase;
@@ -203,23 +185,21 @@
             background-clip: text;
             -webkit-text-fill-color: transparent;
             filter: drop-shadow(0 0 20px rgba(168,85,247,0.4));
-            animation: fadeUp 1.2s ease-out;
         }
 
         .hero-sub {
-            font-size: 1.05rem;
+            font-size: 1.1rem;
             color: #94a3b8;
-            max-width: 520px;
-            margin: 0 auto 2rem;
+            max-width: 580px;
+            margin: 0 auto 2.5rem;
             line-height: 1.7;
         }
 
         /* ─── CTA BUTTONS ─────────────────────────────── */
         .cta-group {
             display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 1rem;
+            gap: 1.5rem;
         }
 
         .btn-cta-primary {
@@ -230,19 +210,16 @@
             color: #fff;
             text-decoration: none;
             font-weight: 700;
-            font-size: 1rem;
-            padding: 0.9rem 2.8rem;
+            padding: 1rem 3rem;
             border-radius: 50px;
             letter-spacing: 1px;
             text-transform: uppercase;
-            border: 1px solid rgba(168,85,247,0.5);
-            box-shadow: 0 0 30px rgba(168,85,247,0.5), 0 0 60px rgba(168,85,247,0.2);
+            box-shadow: 0 0 30px rgba(168,85,247,0.4);
             transition: all 0.3s ease;
-            animation: fadeUp 1s ease-out 0.3s both;
         }
         .btn-cta-primary:hover {
-            transform: translateY(-3px) scale(1.03);
-            box-shadow: 0 0 50px rgba(168,85,247,0.8), 0 0 100px rgba(168,85,247,0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 0 50px rgba(168,85,247,0.6);
         }
 
         .btn-cta-secondary {
@@ -251,496 +228,166 @@
             font-size: 0.9rem;
             letter-spacing: 2px;
             text-transform: uppercase;
-            font-weight: 500;
+            font-weight: 600;
             transition: color 0.3s;
-            animation: fadeUp 1s ease-out 0.5s both;
         }
         .btn-cta-secondary:hover { color: #fff; }
 
         /* ─── FLOATING PANELS ─────────────────────────── */
         .panels-row {
-            position: relative;
             width: 100%;
-            max-width: 900px;
-            margin: 3rem auto 0;
+            max-width: 1000px;
+            margin: 4rem auto 0;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            padding: 0 1.5rem 3rem;
-            animation: fadeUp 1s ease-out 0.7s both;
+            gap: 2rem;
+            padding: 0 2rem 4rem;
         }
 
         .float-panel {
-            background: rgba(13, 17, 38, 0.85);
-            border: 1px solid rgba(168,85,247,0.25);
-            border-radius: 16px;
-            padding: 1.2rem 1.5rem;
+            background: rgba(13, 17, 38, 0.7);
+            border: 1px solid rgba(168,85,247,0.2);
+            border-radius: 20px;
+            padding: 1.5rem 2rem;
             backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(168,85,247,0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .float-panel:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 20px rgba(168,85,247,0.2);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
         }
 
-        /* Left Panel: Quiz Preview */
-        .panel-header {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            margin-bottom: 1rem;
-            padding-bottom: 0.7rem;
-            border-bottom: 1px solid rgba(255,255,255,0.07);
-        }
-        .panel-dot {
-            width: 10px; height: 10px;
-            border-radius: 50%;
-        }
-        .dot-red   { background: #f87171; }
-        .dot-yellow{ background: #fbbf24; }
-        .dot-green { background: #34d399; }
-
-        .panel-title-bar {
-            font-size: 0.7rem;
-            color: #64748b;
-            margin-left: auto;
-            font-family: monospace;
-            letter-spacing: 1px;
-        }
-
-        .quiz-q {
-            font-size: 0.82rem;
-            color: #c084fc;
-            font-weight: 600;
-            margin-bottom: 0.6rem;
-        }
-        .quiz-question-text {
-            font-size: 0.88rem;
-            color: #e2e8f0;
-            margin-bottom: 1rem;
-            line-height: 1.5;
-        }
-        .quiz-option {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            padding: 0.45rem 0.8rem;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            margin-bottom: 0.4rem;
-            color: #94a3b8;
-            border: 1px solid transparent;
-            transition: all 0.2s;
-        }
-        .quiz-option.selected {
-            background: rgba(168,85,247,0.15);
-            border-color: rgba(168,85,247,0.4);
-            color: #c084fc;
-        }
-        .quiz-option.correct {
-            background: rgba(52,211,153,0.1);
-            border-color: rgba(52,211,153,0.4);
-            color: #34d399;
-        }
-        .opt-circle {
-            width: 20px; height: 20px;
-            border-radius: 50%;
-            border: 1.5px solid currentColor;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.65rem; flex-shrink: 0;
-        }
-
-        /* Right Panel: Leaderboard & Stats */
-        .panel-right-title {
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #818cf8;
-            margin-bottom: 0.8rem;
-        }
-
-        .leaderboard-row {
-            display: flex;
-            align-items: center;
-            gap: 0.7rem;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        .lb-rank {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #a855f7;
-            width: 18px;
-        }
-        .lb-avatar {
-            width: 26px; height: 26px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #7c3aed, #a855f7);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.7rem; font-weight: 700;
-        }
-        .lb-name {
-            flex: 1;
-            font-size: 0.8rem;
-            color: #e2e8f0;
-        }
-        .lb-score {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #34d399;
-        }
-
-        .score-bar-wrap {
-            margin-top: 1rem;
-            padding-top: 0.8rem;
-            border-top: 1px solid rgba(255,255,255,0.06);
-        }
-        .score-bar-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.72rem;
-            color: #64748b;
-            margin-bottom: 0.4rem;
-        }
-        .score-bar-track {
-            height: 6px;
-            background: rgba(255,255,255,0.07);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 0.6rem;
-        }
-        .score-bar-fill {
-            height: 100%;
-            border-radius: 10px;
-            animation: barGrow 2s ease-out 1s both;
-        }
-        @keyframes barGrow {
-            from { width: 0; }
-        }
-        .bar-quant  { background: linear-gradient(90deg, #6366f1, #a855f7); width: 82%; }
-        .bar-logic  { background: linear-gradient(90deg, #0ea5e9, #38bdf8); width: 74%; }
-        .bar-verbal { background: linear-gradient(90deg, #10b981, #34d399); width: 68%; }
-
-        /* ─── FLOATING STAT BADGES ────────────────────── */
+        /* ─── STAT BADGES ────────────────────── */
         .stat-badges {
             display: flex;
             justify-content: center;
             gap: 2rem;
-            margin: 0 auto 0.5rem;
-            flex-wrap: wrap;
-            animation: fadeUp 1s ease-out 0.2s both;
+            margin-top: 3rem;
         }
         .stat-badge {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(168,85,247,0.2);
-            padding: 0.5rem 1.2rem;
+            gap: 0.6rem;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(168,85,247,0.1);
+            padding: 0.6rem 1.4rem;
             border-radius: 30px;
-            font-size: 0.82rem;
+            font-size: 0.85rem;
             color: #94a3b8;
         }
         .stat-badge-num {
             font-weight: 700;
             color: #c084fc;
-            font-size: 1rem;
-        }
-
-        /* ─── GLOWING LINES (decorative) ─────────────── */
-        .glow-line {
-            position: fixed;
-            pointer-events: none;
-            z-index: 2;
-        }
-        .glow-line-h {
-            width: 100%; height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(168,85,247,0.4), transparent);
-            animation: scanH 8s ease-in-out infinite;
-        }
-        @keyframes scanH {
-            0%   { top: 10%; opacity: 0; }
-            10%  { opacity: 1; }
-            90%  { opacity: 1; }
-            100% { top: 90%; opacity: 0; }
         }
 
         /* ─── RESPONSIVE ──────────────────────────────── */
-        @media (max-width: 640px) {
-            .panels-row { grid-template-columns: 1fr; }
-            .hero-headline { font-size: 1.8rem; }
-            .core-scene { width: 240px; height: 240px; }
-            .ring-1 { width: 160px; height: 160px; }
-            .ring-2 { width: 210px; height: 100px; }
-            .ring-3 { width: 230px; height: 80px; }
-        }
-        /* ─── LIGHT MODE SPECIFICS ────────────────────────── */
-        body.hero-page.light-mode {
-            background: #f8fafc;
-            color: #1e293b;
-        }
-
-        body.hero-page.light-mode .grid-bg::after {
-            background: linear-gradient(to top, #f8fafc 0%, transparent 60%);
-        }
-
-        body.hero-page.light-mode .grid-bg {
-            background-image:
-                linear-gradient(rgba(99,102,241,0.15) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(99,102,241,0.15) 1px, transparent 1px);
-        }
-
-        body.hero-page.light-mode .float-panel {
-            background: rgba(255, 255, 255, 0.8);
-            border-color: rgba(99,102,241,0.3);
-            box-shadow: 0 10px 30px rgba(99,102,241,0.1), 0 1px 3px rgba(0,0,0,0.05);
-        }
-
-        body.hero-page.light-mode .float-panel:hover {
-            box-shadow: 0 15px 35px rgba(99,102,241,0.15), 0 4px 6px rgba(0,0,0,0.05);
-        }
-
-        body.hero-page.light-mode .hero-headline {
-            background: linear-gradient(135deg, #051024 0%, #051024 40%, #7b61ff 70%, #9b84ff 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: none;
-        }
-
-        body.hero-page.light-mode .quiz-question-text, 
-        body.hero-page.light-mode .lb-name,
-        body.hero-page.light-mode .panel-right-title {
-            color: #0B162C; /* Very dark navy */
-        }
-
-        body.hero-page.light-mode .hero-sub, 
-        body.hero-page.light-mode .quiz-option {
-            color: #8b9cb6; /* Soft gray */
-        }
-
-        body.hero-page.light-mode .stat-badge {
-            background: rgba(255, 255, 255, 0.8);
-            border-color: rgba(99,102,241,0.2);
-            color: #475569;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-        }
-
-        body.hero-page.light-mode .btn-theme-toggle {
-            background: #fff;
-            border-color: #cbd5e1;
-            color: #475569;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        body.hero-page.light-mode .btn-cta-secondary { color: #475569; }
-        body.hero-page.light-mode .btn-cta-secondary:hover { color: #7c3aed; }
-        
-        body.hero-page.light-mode .leaderboard-row { border-bottom-color: rgba(0,0,0,0.05); }
-        body.hero-page.light-mode .score-bar-wrap { border-top-color: rgba(0,0,0,0.06); }
-        body.hero-page.light-mode .score-bar-track { background: rgba(0,0,0,0.05); }
-        body.hero-page.light-mode .panel-header { border-bottom-color: rgba(0,0,0,0.05); }
-        body.hero-page.light-mode .quiz-option { border-color: rgba(0,0,0,0.05); background: rgba(0,0,0,0.02); }
-        body.hero-page.light-mode .quiz-option.selected { border-color: rgba(168,85,247,0.4); background: rgba(168,85,247,0.1); }
-        body.hero-page.light-mode .quiz-option.correct { border-color: rgba(52,211,153,0.4); background: rgba(52,211,153,0.1); }
-
-        /* nav button styling */
-        .btn-theme-toggle {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: #fff;
-            width: 42px; height: 42px;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .btn-theme-toggle:hover {
-            transform: scale(1.1);
+        @media (max-width: 1023px) {
+            #mobile-block { display: flex; }
+            #desktop-content { display: none; }
         }
     </style>
 </head>
-<body class="hero-page">
+<body class="bg-[#050a1a]">
 
-    <!-- Particles.js Container -->
-    <div id="particles-js"></div>
+    <!-- Mobile Screen Blocker -->
+    <div id="mobile-block" class="fixed inset-0 z-[9999] hidden flex-col items-center justify-center bg-[#050a1a] text-white p-8 text-center lg:hidden">
+        <i class="fas fa-laptop text-6xl mb-6 text-indigo-400"></i>
+        <h1 class="text-2xl font-bold mb-2">Desktop Only</h1>
+        <p class="text-slate-400">Please open AptitudeLab on a laptop for the best experience.</p>
+    </div>
 
-    <!-- Moving Grid Background -->
+    <!-- Three.js Background -->
+    <div id="three-bg-container"></div>
     <div class="grid-bg"></div>
 
-    <!-- Horizontal scan line -->
-    <div class="glow-line glow-line-h"></div>
-
-    <div class="hero-wrapper">
-
-        <!-- ── Top Nav ── -->
+    <div id="desktop-content" class="hero-wrapper">
+        
+        <!-- Top Nav -->
         <nav class="top-nav">
-            <div style="width:42px;"></div> <!-- Spacer for perfect centering -->
-            <div class="brand-logo">APTITUDE <span>MASTER</span></div>
-            <button id="theme-toggle" class="btn-theme-toggle">
-                <i class="fas fa-sun"></i>
-            </button>
+            <div class="brand-logo">Aptitude<span>Lab</span></div>
+            <div class="flex items-center gap-10">
+                <a href="#" class="btn-cta-secondary">Features</a>
+                <a href="#" class="btn-cta-secondary">Topics</a>
+                <a href="#" class="btn-cta-secondary">Leaderboard</a>
+                <a href="/login" class="px-8 py-3 bg-white text-[#050a1a] rounded-full font-bold hover:scale-105 transition-all">Get Started</a>
+            </div>
         </nav>
 
-        <!-- ── Floating Core Scene ── -->
-        <div class="core-scene">
-            <div class="brain-glow"></div>
-            <div class="orbit-ring blue-ring" style="width: 250px; height: 250px; animation-duration: 15s; border-color: rgba(59, 130, 246, 0.4); box-shadow: 0 0 15px rgba(59, 130, 246, 0.2), inset 0 0 15px rgba(59, 130, 246, 0.2);">
-                <div class="ring-dot" style="top:-4px; left:50%; transform:translateX(-50%); background:#3b82f6; box-shadow:0 0 10px #3b82f6, 0 0 20px #3b82f6;"></div>
-            </div>
-            <div class="orbit-ring purple-ring" style="animation-direction: reverse; width: 330px; height: 330px;">
-                <div class="ring-dot" style="top:-4px; left:50%; transform:translateX(-50%); background:#a855f7; box-shadow:0 0 10px #a855f7, 0 0 20px #a855f7;"></div>
-            </div>
-            <i class="fas fa-brain brain-core"></i>
-
-            <div class="floating-symbol logic-3">{}</div>
-        </div>
-
-        <!-- ── Hero Text ── -->
-        <div class="hero-text">
-            <p class="hero-tagline">AI-Powered Aptitude Training</p>
-            <h1 class="hero-headline">MASTER YOUR LOGIC,<br>ACE EVERY TEST</h1>
-            <p class="hero-sub">
-                Sharpen your quantitative, logical & verbal skills with
-                real-time tracking, adaptive quizzes and placement-focused preparation.
-            </p>
-        </div>
-
-        <!-- ── CTAs ── -->
-        <div class="cta-group">
-            <a href="/login" class="btn-cta-primary" id="cta-start">
-                <i class="fas fa-rocket"></i> Start Practicing Now
-            </a>
-            <a href="/login" class="btn-cta-secondary">View Leaderboard ↓</a>
-        </div>
-
-        <!-- ── Stats row ── -->
-        <div class="stat-badges" style="margin-top:2rem;">
-            <div class="stat-badge"><span class="stat-badge-num">5,000+</span> Questions</div>
-            <div class="stat-badge"><span class="stat-badge-num">12</span> Topics</div>
-            <div class="stat-badge"><span class="stat-badge-num">Real-Time</span> Leaderboard</div>
-        </div>
-
-        <!-- ── Floating Panels ── -->
-        <div class="panels-row">
-
-            <!-- PANEL 1 : Quiz preview -->
-            <div class="float-panel">
-                <div class="panel-header">
-                    <div class="panel-dot dot-red"></div>
-                    <div class="panel-dot dot-yellow"></div>
-                    <div class="panel-dot dot-green"></div>
-                    <span class="panel-title-bar">APTITUDE_QUIZ.exe</span>
-                </div>
-                <div class="quiz-q">Q 12 · Quantitative Aptitude</div>
-                <div class="quiz-question-text">
-                    A train travels 360 km in 4 hours. How long will it take to cover 540 km at the same speed?
-                </div>
-                <div class="quiz-option correct">
-                    <span class="opt-circle"><i class="fas fa-check" style="font-size:0.55rem;"></i></span> 6 hours
-                </div>
-                <div class="quiz-option">
-                    <span class="opt-circle">B</span> 5 hours
-                </div>
-                <div class="quiz-option selected">
-                    <span class="opt-circle">C</span> 4.5 hours
-                </div>
-                <div class="quiz-option">
-                    <span class="opt-circle">D</span> 7 hours
+        <div class="hero-container">
+            
+            <div class="core-scene">
+                <div class="brain-glow"></div>
+                <div class="orbit-ring"></div>
+                <div class="brain-core">
+                    <i class="fas fa-brain"></i>
                 </div>
             </div>
 
-            <!-- PANEL 2 : Leaderboard & score bars -->
-            <div class="float-panel">
-                <div class="panel-header">
-                    <div class="panel-dot dot-red"></div>
-                    <div class="panel-dot dot-yellow"></div>
-                    <div class="panel-dot dot-green"></div>
-                    <span class="panel-title-bar">LEADERBOARD.live</span>
+            <div class="hero-text">
+                <div class="hero-tagline">Elite Placement Gateway</div>
+                <h1 class="hero-headline">Next-Gen Aptitude <br/> Training</h1>
+                <p class="hero-sub">
+                    Master complex logic, quantitative patterns, and verbal reasoning with our neural-grade training environment designed for future engineers.
+                </p>
+
+                <div class="cta-group">
+                    <a href="/login" class="btn-cta-primary">
+                        Begin Neural Sync <i class="fas fa-bolt"></i>
+                    </a>
+                    <a href="#features" class="btn-cta-secondary">Explore Architecture &darr;</a>
                 </div>
 
-                <div class="panel-right-title">🏆 Top Performers</div>
-                <div class="leaderboard-row">
-                    <span class="lb-rank">1</span>
-                    <div class="lb-avatar">A</div>
-                    <span class="lb-name">Aditya R.</span>
-                    <span class="lb-score">98.4%</span>
+                <div class="stat-badges">
+                    <div class="stat-badge"><span class="stat-badge-num">5000+</span> Questions</div>
+                    <div class="stat-badge"><span class="stat-badge-num">120+</span> Topics</div>
+                    <div class="stat-badge"><span class="stat-badge-num">Real-time</span> Tracking</div>
                 </div>
-                <div class="leaderboard-row">
-                    <span class="lb-rank">2</span>
-                    <div class="lb-avatar" style="background:linear-gradient(135deg,#0ea5e9,#38bdf8)">P</div>
-                    <span class="lb-name">Priya S.</span>
-                    <span class="lb-score">96.1%</span>
-                </div>
-                <div class="leaderboard-row">
-                    <span class="lb-rank">3</span>
-                    <div class="lb-avatar" style="background:linear-gradient(135deg,#10b981,#34d399)">R</div>
-                    <span class="lb-name">Rahul K.</span>
-                    <span class="lb-score">94.7%</span>
+            </div>
+
+            <div class="panels-row">
+                <!-- Left Panel: Preview -->
+                <div class="float-panel">
+                    <div class="flex items-center gap-2 mb-6 border-b border-white/5 pb-4">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <div class="ml-auto text-[10px] text-slate-500 font-mono uppercase">Quiz_Module.v2</div>
+                    </div>
+                    <div class="text-indigo-400 font-bold text-xs mb-2">PRACTICE CHALLENGE</div>
+                    <div class="text-white text-sm font-medium mb-6">A train 150m long is running at 68 km/hr. How long will it take to pass a man running at 8 km/hr?</div>
+                    <div class="space-y-3">
+                        <div class="p-3 bg-white/5 border border-white/5 rounded-xl text-xs text-slate-400 flex items-center gap-3">
+                            <span class="w-6 h-6 rounded-lg border border-white/10 flex items-center justify-center">A</span> 9 Seconds
+                        </div>
+                        <div class="p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-xs text-indigo-400 flex items-center gap-3">
+                            <span class="w-6 h-6 rounded-lg border border-indigo-500/30 flex items-center justify-center">B</span> 11.2 Seconds
+                        </div>
+                    </div>
                 </div>
 
-                <div class="score-bar-wrap">
-                    <div class="panel-right-title" style="margin-bottom:0.6rem;">📊 Skill Coverage</div>
-                    <div class="score-bar-label"><span>Quantitative</span><span>82%</span></div>
-                    <div class="score-bar-track"><div class="score-bar-fill bar-quant"></div></div>
-                    <div class="score-bar-label"><span>Logical</span><span>74%</span></div>
-                    <div class="score-bar-track"><div class="score-bar-fill bar-logic"></div></div>
-                    <div class="score-bar-label"><span>Verbal</span><span>68%</span></div>
-                    <div class="score-bar-track"><div class="score-bar-fill bar-verbal"></div></div>
+                <!-- Right Panel: Leaderboard -->
+                <div class="float-panel">
+                    <div class="text-[#818cf8] font-black text-[10px] uppercase tracking-widest mb-6">Live Standings</div>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-4 pb-3 border-b border-white/5">
+                            <div class="text-indigo-500 font-bold text-xs">01</div>
+                            <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-[10px] font-bold">AL</div>
+                            <div class="text-sm font-medium">Alex Lexington</div>
+                            <div class="ml-auto text-green-500 font-bold text-xs">98.4%</div>
+                        </div>
+                        <div class="flex items-center gap-4 pb-3 border-b border-white/5">
+                            <div class="text-indigo-500 font-bold text-xs">02</div>
+                            <div class="w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center text-white text-[10px] font-bold">JD</div>
+                            <div class="text-sm font-medium">Jane Doe</div>
+                            <div class="ml-auto text-green-500 font-bold text-xs">96.1%</div>
+                        </div>
+                        <div class="pt-2">
+                             <div class="flex justify-between text-[10px] text-slate-500 mb-2"><span>SYST_PROFICIENCY</span><span>82%</span></div>
+                             <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden"><div class="h-full bg-indigo-500 w-[82%]"></div></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
-    <script>
-    // ─── PARTICLES.JS ────────────────────────────────────────────────
-    particlesJS("particles-js", {
-        particles: {
-            number: { value: 80 },
-            size: { value: 2 },
-            move: { speed: 0.6 },
-            line_linked: { enable: false },
-            color: { value: "#8b5cf6" },
-            shape: { type: "circle" },
-            opacity: { value: 0.6, random: true }
-        }
-    });
-
-    // ─── SMOOTH CTA GLOW PULSE ─────────────────────────────────────────
-    const ctaBtn = document.getElementById('cta-start');
-    let glowing = true;
-    setInterval(() => {
-        glowing = !glowing;
-        ctaBtn.style.boxShadow = glowing
-            ? '0 0 50px rgba(168,85,247,0.9), 0 0 100px rgba(168,85,247,0.4)'
-            : '0 0 20px rgba(168,85,247,0.4), 0 0 50px rgba(168,85,247,0.15)';
-    }, 1500);
-    // ─── THEME TOGGLE ───────────────────────────────────────────────
-    const themeBtn = document.getElementById('theme-toggle');
-    const currentTheme = localStorage.getItem('theme') || 'light';
-    
-    // Set initial theme based on preference
-    // (Default is light-mode everywhere, but hero page is intrinsically dark, 
-    // so we apply light-mode class if preference is light)
-    if (currentTheme === 'light') {
-        document.body.classList.add('light-mode');
-        themeBtn.innerHTML = '<i class="fas fa-moon"></i>';
-    } else {
-        themeBtn.innerHTML = '<i class="fas fa-sun"></i>';
-    }
-
-    themeBtn.addEventListener('click', () => {
-        document.body.classList.toggle('light-mode');
-        const isLight = document.body.classList.contains('light-mode');
-        localStorage.setItem('theme', isLight ? 'light' : 'dark');
-        themeBtn.innerHTML = isLight ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
-    });
-    </script>
-    <script src="{{ url_for('static', filename='js/aptitude-effects.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/three-background.js') }}"></script>
 </body>
 </html>

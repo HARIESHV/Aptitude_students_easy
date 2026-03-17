@@ -3,379 +3,420 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Aptitude</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Admin Panel - AptitudeLab</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        
+        #three-bg-container {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            background: #f8fafc;
+        }
+        
+        .dark-mode #three-bg-container { background: #020617; }
+
+        .glass-sidebar {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .dark-mode .glass-sidebar {
+            background: rgba(15, 23, 42, 0.8);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-item.active {
+            background: rgba(99, 102, 241, 0.1);
+            color: #6366f1;
+            box-shadow: inset 4px 0 0 #6366f1;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 24px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 2.5rem;
+        }
+
+        .dark-mode .content-card {
+            background: #0f172a;
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .modal {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(12px);
+        }
+
+        .dark-mode .nav-item:not(.active) {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .nav-item:not(.active) {
+            color: rgba(15, 23, 42, 0.5);
+        }
+
+        @media (max-width: 1023px) {
+            #mobile-block { display: flex; }
+            #desktop-layout { display: none; }
+        }
+    </style>
 </head>
-<body class="dashboard-body">
-    <!-- Desktop animated background -->
-    <div id="particles-dashboard"></div>
-    <div class="grid-bg-anim"></div>
-    <div class="orb-scene">
-        <div class="orb-glow"></div>
-        <div class="orbit-ring-anim blue-ring">
-            <div class="ring-dot-anim" style="top:-3px; left:50%; transform:translateX(-50%); background:#3b82f6; box-shadow:0 0 10px #3b82f6, 0 0 20px #3b82f6;"></div>
-        </div>
-        <div class="orbit-ring-anim purple-ring inverse">
-            <div class="ring-dot-anim" style="top:50%; left:-3px; transform:translateY(-50%); background:#a855f7; box-shadow:0 0 10px #a855f7, 0 0 20px #a855f7;"></div>
-        </div>
-        <div class="center-orb">
-            <i class="fas fa-brain"></i>
-        </div>
-        <div class="floating-symbol logic-1"><i class="fas fa-calculator"></i></div>
-        <div class="floating-symbol math-1">∑</div>
-        <div class="floating-symbol logic-2"><i class="fas fa-cogs"></i></div>
-        <div class="floating-symbol math-2">π</div>
-        <div class="floating-symbol math-3">∫</div>
-        <div class="floating-symbol logic-3">{}</div>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+
+    <!-- Mobile Screen Blocker (Desktop Only) -->
+    <div id="mobile-block" class="fixed inset-0 z-[9999] hidden flex-col items-center justify-center bg-slate-900 text-white p-8 text-center">
+        <i class="fas fa-laptop text-6xl mb-6 text-indigo-400"></i>
+        <h1 class="text-2xl font-bold mb-2">Desktop Only Panel</h1>
+        <p class="text-slate-400">Please access the Admin Panel on a laptop or desktop for precision management.</p>
     </div>
 
-    <nav class="sidebar">
-        <div class="sidebar-header">
-            <i class="fas fa-shield-alt"></i>
-            <h2>Admin Panel</h2>
-        </div>
-        <ul class="nav-links">
-            <li class="active" data-target="questions"><i class="fas fa-question-circle"></i> Questions</li>
-            <li data-target="submissions"><i class="fas fa-check-square"></i> Submissions</li>
-            <li data-target="meetlinks"><i class="fas fa-video"></i> Meet Links</li>
-            <li data-target="messages"><i class="fas fa-envelope"></i> Messages</li>
-            <li data-target="registry"><i class="fas fa-users"></i> Student Registry</li>
-            <li data-target="leaderboard"><i class="fas fa-trophy"></i> Leaderboard</li>
-        </ul>
-        <button id="logout-btn" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</button>
-    </nav>
+    <!-- Three.js Background -->
+    <div id="three-bg-container"></div>
 
-    <main class="main-content">
-        <header class="topbar">
-            <h1 id="page-title">Manage Questions</h1>
-            <div style="display: flex; gap: 1rem; align-items: center;">
-                <button id="theme-toggle" class="btn-small" style="background:transparent; border:1px solid var(--border-color); color:var(--text-main); font-size:1.2rem; cursor:pointer;" title="Toggle Theme">
-                    <i class="fas fa-moon"></i>
+    <div id="desktop-layout" class="flex min-h-screen">
+        
+        <!-- Sidebar -->
+        <aside class="fixed left-0 top-0 w-72 h-screen glass-sidebar z-50 flex flex-col">
+            <div class="px-8 py-10 flex items-center gap-3">
+                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <i class="fas fa-shield-alt text-white text-xl"></i>
+                </div>
+                <span class="font-orbitron text-xl font-bold tracking-tighter text-indigo-600 dark:text-indigo-400">Admin<span class="text-slate-900 dark:text-white">Panel</span></span>
+            </div>
+
+            <nav class="flex-1 px-4 space-y-1 overflow-y-auto nav-links">
+                <li class="nav-item active flex items-center gap-4 px-6 py-4 rounded-xl cursor-pointer font-semibold" data-target="questions">
+                    <i class="fas fa-question-circle text-lg"></i> Questions
+                </li>
+                <li class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl cursor-pointer font-semibold" data-target="submissions">
+                    <i class="fas fa-check-double text-lg"></i> Submissions
+                </li>
+                <li class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl cursor-pointer font-semibold" data-target="meetlinks">
+                    <i class="fas fa-video text-lg"></i> Meet Links
+                </li>
+                <li class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl cursor-pointer font-semibold" data-target="messages">
+                    <i class="fas fa-envelope text-lg"></i> Messages
+                </li>
+                <li class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl cursor-pointer font-semibold" data-target="registry">
+                    <i class="fas fa-users text-lg"></i> Student Registry
+                </li>
+                <li class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl cursor-pointer font-semibold" data-target="leaderboard">
+                    <i class="fas fa-ranking-star text-lg"></i> Leaderboard
+                </li>
+            </nav>
+
+            <div class="p-6 border-t border-slate-100 dark:border-slate-800">
+                <button id="logout-btn" class="w-full flex items-center justify-center gap-3 px-4 py-4 bg-red-50 dark:bg-red-900/10 text-red-600 rounded-xl font-bold hover:bg-red-600 hover:text-white transition-all">
+                    <i class="fas fa-sign-out-alt"></i> Logout
                 </button>
-                <div class="user-info">
-                    <span id="welcome-text">Welcome, Admin</span>
-                </div>
             </div>
-        </header>
+        </aside>
 
-        <div class="content-sections container">
-            <!-- Global Dashboard Stats -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
-                <div class="card glass-panel" style="text-align: center; padding: 1.5rem; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                    <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(99,102,241,0.1); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1rem;">
-                        <i class="fas fa-users-cog"></i>
+        <!-- Main Content -->
+        <main class="flex-1 ml-72 flex flex-col">
+            
+            <!-- Top Nav -->
+            <header class="h-24 px-12 flex items-center justify-between sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                <h1 id="page-title" class="text-2xl font-bold font-orbitron tracking-tight text-slate-900 dark:text-white">Management console</h1>
+
+                <div class="flex items-center gap-6">
+                    <button id="theme-toggle" class="w-12 h-12 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <div class="h-12 flex items-center gap-4 pl-4 border-l border-slate-200 dark:border-slate-800">
+                        <div class="text-right">
+                            <div class="text-sm font-bold text-slate-900 dark:text-white" id="welcome-text">Admin</div>
+                            <div class="text-[10px] text-slate-400 uppercase font-black tracking-widest leading-none">Super Administrator</div>
+                        </div>
+                        <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
                     </div>
-                    <h4 style="color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Total Registered Students</h4>
-                    <h2 id="global-stat-students" style="color: var(--text-main); font-size: 2.5rem; margin: 0; font-weight: 700;">-</h2>
                 </div>
-                <div class="card glass-panel" style="text-align: center; padding: 1.5rem; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                    <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(16,185,129,0.1); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1rem;">
-                        <i class="fas fa-chart-line"></i>
+            </header>
+
+            <!-- Dashboard Content -->
+            <div class="p-12 space-y-12 content-sections">
+                <div id="dashboard-alert" class="hidden px-6 py-4 rounded-2xl font-bold"></div>
+
+                <!-- STATS SUMMARY -->
+                <div class="grid grid-cols-2 gap-8">
+                    <div class="content-card flex items-center gap-8">
+                        <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 text-blue-600 rounded-2xl flex items-center justify-center text-2xl"><i class="fas fa-users"></i></div>
+                        <div>
+                            <div class="text-4xl font-black mb-1 text-slate-900 dark:text-white" id="global-stat-students">-</div>
+                            <div class="text-xs text-slate-400 font-bold uppercase tracking-widest">Total Students</div>
+                        </div>
                     </div>
-                    <h4 style="color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Overall Student Average</h4>
-                    <h2 id="global-stat-average" style="color: var(--text-main); font-size: 2.5rem; margin: 0; font-weight: 700;">-</h2>
+                    <div class="content-card flex items-center gap-8">
+                        <div class="w-16 h-16 bg-purple-100 dark:bg-purple-900/20 text-purple-600 rounded-2xl flex items-center justify-center text-2xl"><i class="fas fa-chart-bar"></i></div>
+                        <div>
+                            <div class="text-4xl font-black mb-1 text-slate-900 dark:text-white" id="global-stat-average">-</div>
+                            <div class="text-xs text-slate-400 font-bold uppercase tracking-widest">Global Proficiency</div>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Alert Box -->
-            <div id="dashboard-alert" class="alert hidden"></div>
-
-            <!-- Questions Section -->
-            <section id="questions" class="active-section dashboard-section">
-                <div class="card glass-panel mb-4">
-                    <h3>Add New Question</h3>
-                    <form id="add-question-form" class="custom-form">
-                        <div class="options-grid">
-                            <select id="q-topic" required>
-                                <option value="" disabled selected>Select Category</option>
-                                <option value="Quantitative Aptitude">Quantitative Aptitude</option>
-                                <option value="Logical Reasoning">Logical Reasoning</option>
-                                <option value="Verbal Ability">Verbal Ability</option>
-                                <option value="Placement / Company Focused">Placement / Company Focused</option>
-                            </select>
-                            <select id="q-subtopic" required>
-                                <option value="" disabled selected>Select Topic</option>
-                            </select>
-                        </div>
-                        <input type="text" id="q-title" placeholder="Question Title" required>
-                        <textarea id="q-desc" placeholder="Question Description (Optional)" rows="2"></textarea>
-                        
-                        <h4 class="mt-3" style="font-size: 0.9rem; color: var(--text-muted);">Question Format</h4>
-                        <div class="options-grid">
-                            <select id="q-type" required onchange="toggleQuestionType('add')">
-                                <option value="mcq" selected>Multiple Choice (MCQ)</option>
-                                <option value="text">Text Based / Fill in the Blanks</option>
-                            </select>
-                        </div>
-                        
-                        <h4 class="mt-3" style="font-size: 0.9rem; color: var(--text-muted);">Time Limit per Question</h4>
-                        <div class="options-grid" style="grid-template-columns: repeat(4, 1fr);">
-                            <input type="number" id="q-days" placeholder="Days" min="0" value="0" required>
-                            <input type="number" id="q-hours" placeholder="Hours" min="0" value="0" required>
-                            <input type="number" id="q-mins" placeholder="Mins" min="0" value="1" required>
-                            <input type="number" id="q-secs" placeholder="Secs" min="0" value="0" required>
-                        </div>
-                        
-                        <h4 class="mt-3" style="font-size: 0.9rem; color: var(--text-muted);">Options / Answer</h4>
-                        <div id="add-mcq-fields">
-                            <div class="options-grid">
-                                <input type="text" id="q-opt-a" placeholder="Option A" required>
-                                <input type="text" id="q-opt-b" placeholder="Option B" required>
-                                <input type="text" id="q-opt-c" placeholder="Option C" required>
-                                <input type="text" id="q-opt-d" placeholder="Option D" required>
+                <!-- QUESTIONS SECTION -->
+                <section id="questions" class="active-section dashboard-section space-y-10">
+                    <div class="content-card space-y-8">
+                        <h3 class="text-2xl font-bold">Create New Assessment</h3>
+                        <form id="add-question-form" class="space-y-6">
+                            <div class="grid grid-cols-2 gap-6">
+                                <div class="space-y-2">
+                                    <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Category</label>
+                                    <select id="q-topic" required class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-all font-medium">
+                                        <option value="" disabled selected>Select Category</option>
+                                        <option value="Quantitative Aptitude">Quantitative Aptitude</option>
+                                        <option value="Logical Reasoning">Logical Reasoning</option>
+                                        <option value="Verbal Ability">Verbal Ability</option>
+                                        <option value="Placement / Company Focused">Placement / Company Focused</option>
+                                    </select>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Subtopic</label>
+                                    <select id="q-subtopic" required class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-all font-medium">
+                                        <option value="" disabled selected>First select category</option>
+                                    </select>
+                                </div>
                             </div>
-                            <select id="q-correct" required>
-                                <option value="" disabled selected>Select Correct Option</option>
-                                <option value="A">Option A</option>
-                                <option value="B">Option B</option>
-                                <option value="C">Option C</option>
-                                <option value="D">Option D</option>
-                            </select>
-                        </div>
-                        <div id="add-text-fields" style="display: none;">
-                            <input type="text" id="q-text-answer" placeholder="Correct Text Answer">
-                            <p style="font-size: 0.8rem; color: var(--text-muted); padding-left: 0.8rem;">Students must type this exact text (case-insensitive) to be marked correct.</p>
-                        </div>
-                        
-                        <textarea id="q-ans-desc" placeholder="Answer Description / Explanation (Optional)" rows="2" class="mt-3"></textarea>
 
-                        <button type="submit" class="btn-primary mt-3">Post Question</button>
-                    </form>
-                </div>
-                <div class="card glass-panel">
-                    <h3>Posted Questions</h3>
-                    <div id="admin-questions-list" class="items-list"></div>
-                </div>
-            </section>
+                            <div class="space-y-2">
+                                <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Question Headline</label>
+                                <input type="text" id="q-title" placeholder="e.g. Logic Puzzle - Train Speed" required class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-all font-medium">
+                            </div>
 
-            <!-- Submissions Section -->
-            <section id="submissions" class="dashboard-section" style="display: none;">
-                <div class="card glass-panel">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                        <h3>Recent Submissions</h3>
-                        <button id="export-submissions-btn" class="btn-primary" style="background-color: #10b981; padding: 0.5rem 1rem; border-radius: 6px;"><i class="fas fa-file-excel"></i> Export Excel</button>
+                            <div class="space-y-2">
+                                <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Question Details</label>
+                                <textarea id="q-desc" placeholder="Provide context or elaborate on the question..." rows="3" class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-all font-medium"></textarea>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-6 items-end">
+                                <div class="space-y-2">
+                                    <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Answer Format</label>
+                                    <select id="q-type" required onchange="toggleQuestionType('add')" class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-all font-medium">
+                                        <option value="mcq" selected>Multiple Choice (MCQ)</option>
+                                        <option value="text">Direct Text Entry</option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-4 gap-2">
+                                    <input type="number" id="q-days" placeholder="DD" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none">
+                                    <input type="number" id="q-hours" placeholder="HH" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none">
+                                    <input type="number" id="q-mins" placeholder="MM" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none">
+                                    <input type="number" id="q-secs" placeholder="SS" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none">
+                                </div>
+                            </div>
+
+                            <div id="add-mcq-fields" class="space-y-6">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <input type="text" id="q-opt-a" placeholder="Option A" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                                    <input type="text" id="q-opt-b" placeholder="Option B" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                                    <input type="text" id="q-opt-c" placeholder="Option C" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                                    <input type="text" id="q-opt-d" placeholder="Option D" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                                </div>
+                                <select id="q-correct" class="w-full p-4 bg-indigo-50 dark:bg-indigo-900/10 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 rounded-xl font-bold">
+                                    <option value="" disabled selected>Set Correct Answer</option>
+                                    <option value="A">Option A</option><option value="B">Option B</option><option value="C">Option C</option><option value="D">Option D</option>
+                                </select>
+                            </div>
+
+                            <div id="add-text-fields" class="hidden">
+                                <input type="text" id="q-text-answer" placeholder="Exact Correct Word/Entry" class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                            </div>
+
+                            <button type="submit" class="w-full py-5 bg-indigo-600 text-white rounded-2xl font-bold shadow-xl shadow-indigo-600/20 hover:scale-[1.01] active:scale-95 transition-all">
+                                Deploy Question to Cloud &rarr;
+                            </button>
+                        </form>
                     </div>
-                    <div class="table-responsive">
-                        <table class="data-table">
-                            <thead>
+
+                    <div class="content-card space-y-6">
+                        <h3 class="text-2xl font-bold">Existing Assessments</h3>
+                        <div id="admin-questions-list" class="space-y-4"></div>
+                    </div>
+                </section>
+
+                <!-- MORE SECTIONS (Submissions, registry, etc. follow same clean table pattern) -->
+                 <section id="submissions" class="dashboard-section hidden">
+                    <div class="content-card overflow-hidden !p-0">
+                        <div class="p-10 border-b flex items-center justify-between">
+                            <h3 class="text-2xl font-bold">Student Submissions</h3>
+                            <button id="export-submissions-btn" class="px-6 py-3 bg-green-600 text-white rounded-xl font-bold text-sm">Export Excel</button>
+                        </div>
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 dark:bg-slate-950 font-black text-[10px] uppercase tracking-widest text-slate-400">
                                 <tr>
-                                    <th>Student</th>
-                                    <th>Question</th>
-                                    <th>Topic</th>
-                                    <th>Option</th>
-                                    <th>Result</th>
-                                    <th>File</th>
-                                    <th>Time (IST)</th>
-                                    <th>Action</th>
+                                    <th class="px-10 py-5">Student</th><th class="px-10 py-5">Question</th><th class="px-10 py-5">Result</th><th class="px-10 py-5 text-right">Time</th>
                                 </tr>
                             </thead>
-                            <tbody id="submissions-tbody"></tbody>
+                            <tbody id="submissions-tbody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
                         </table>
                     </div>
-                </div>
-            </section>
+                 </section>
 
-            <!-- Meet Links Section -->
-            <section id="meetlinks" class="dashboard-section" style="display: none;">
-                <div class="card glass-panel mb-4">
-                    <h3>Post Meet Link</h3>
-                    <form id="add-meetlink-form" class="custom-form">
-                        <input type="text" id="m-title" placeholder="Session Title" required>
-                        <input type="url" id="m-url" placeholder="Google Meet URL" required>
-                        <button type="submit" class="btn-primary mt-3">Post Link</button>
-                    </form>
-                </div>
-                <div class="card glass-panel">
-                    <h3>Active Meet Links</h3>
-                    <div id="meetlinks-list" class="items-list"></div>
-                </div>
-            </section>
-
-            <!-- Messages Section -->
-            <section id="messages" class="dashboard-section" style="display: none;">
-                <div class="card glass-panel mb-4">
-                    <h3>Send Broadcast or Direct Message</h3>
-                    <form id="send-msg-form" class="custom-form">
-                        <select id="msg-receiver" required>
-                            <option value="all" selected>All Students (Broadcast)</option>
-                        </select>
-                        <textarea id="msg-content" placeholder="Type your message here..." rows="3" required></textarea>
-                        <label class="text-muted" style="font-size:0.85rem;"><i class="fas fa-paperclip"></i> Attach File (Optional):</label>
-                        <input type="file" id="msg-file" class="mt-1" accept=".pdf,.doc,.docx,.jpg,.png,.jpeg,.zip" style="width: 100%; border:none;">
-                        <button type="submit" class="btn-primary mt-3">Send Message</button>
-                    </form>
-                </div>
-                <div class="card glass-panel">
-                    <h3>Message History</h3>
-                    <div id="messages-list" class="items-list chat-list"></div>
-                </div>
-            </section>
-
-            <!-- Student Registry Section -->
-            <section id="registry" class="dashboard-section" style="display: none;">
-                <div class="card glass-panel">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                        <h3><i class="fas fa-users" style="color:var(--accent);"></i> Student Registry</h3>
-                        <button id="export-registry-btn" class="btn-primary" style="background-color: #10b981; padding: 0.5rem 1rem; border-radius: 6px;"><i class="fas fa-file-excel"></i> Export Excel</button>
+                 <section id="meetlinks" class="dashboard-section hidden space-y-10">
+                    <div class="content-card space-y-6">
+                        <h3 class="text-2xl font-bold">Broadcast Live Session</h3>
+                        <form id="add-meetlink-form" class="grid grid-cols-2 gap-6">
+                            <input type="text" id="m-title" placeholder="Session Name (e.g. Sunday Logic Masterclass)" required class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                            <input type="url" id="m-url" placeholder="Google Meet Link" required class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                            <button type="submit" class="col-span-2 py-4 bg-indigo-600 text-white rounded-xl font-bold">Broadcast Link &rarr;</button>
+                        </form>
                     </div>
-                    <div class="table-responsive">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Username</th>
-                                    <th>Questions Attempted</th>
-                                    <th>Average Score (%)</th>
-                                    <th>Actions</th>
-                                </tr>
+                    <div id="meetlinks-list" class="grid grid-cols-2 gap-6"></div>
+                 </section>
+
+                 <section id="messages" class="dashboard-section hidden space-y-8">
+                    <div class="content-card space-y-8">
+                        <h3 class="text-2xl font-bold">Internal Messaging</h3>
+                        <form id="send-msg-form" class="space-y-4">
+                            <select id="msg-receiver" class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                                <option value="all">Broadcast to All Students</option>
+                            </select>
+                            <textarea id="msg-content" placeholder="Type message..." rows="4" class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border"></textarea>
+                            <input type="file" id="msg-file" class="text-sm">
+                            <button type="submit" class="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold">Send Announcement</button>
+                        </form>
+                    </div>
+                    <div id="messages-list" class="space-y-4"></div>
+                 </section>
+
+                 <section id="registry" class="dashboard-section hidden">
+                    <div class="content-card !p-0 overflow-hidden">
+                        <div class="p-10 border-b flex justify-between items-center">
+                            <h3 class="text-2xl font-bold">Registered Users</h3>
+                            <button id="export-registry-btn" class="px-6 py-3 bg-green-600 text-white rounded-xl font-bold">Download DB</button>
+                        </div>
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 dark:bg-slate-950 text-[10px] font-black uppercase text-slate-400">
+                                <tr><th class="px-10 py-5">Rank</th><th class="px-10 py-5">Full Name</th><th class="px-10 py-5">Submissions</th><th class="px-10 py-5 text-right">Actions</th></tr>
                             </thead>
                             <tbody id="students-tbody"></tbody>
                         </table>
                     </div>
-                </div>
-            </section>
+                 </section>
 
-            <!-- Leaderboard Section -->
-            <section id="leaderboard" class="dashboard-section" style="display: none;">
-                <div class="card glass-panel">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-                        <div style="display:flex; align-items:center; gap:0.75rem;">
-                            <i class="fas fa-trophy" style="font-size:1.8rem; color:#f59e0b;"></i>
-                            <div>
-                                <h3 style="margin:0;">Leaderboard</h3>
-                                <p style="margin:0; font-size:0.85rem; color:var(--text-muted);">Top students ranked by average score</p>
-                            </div>
+                 <section id="leaderboard" class="dashboard-section hidden">
+                    <div class="content-card !p-0 overflow-hidden text-left">
+                        <div class="p-10 border-b flex justify-between items-center">
+                            <h3 class="text-2xl font-bold">Live Standings</h3>
                         </div>
-                        <button id="export-leaderboard-btn" class="btn-primary" style="background-color: #10b981; padding: 0.5rem 1rem; border-radius: 6px;"><i class="fas fa-file-excel"></i> Export Excel</button>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Rank</th>
-                                    <th>Student</th>
-                                    <th>Questions Attempted</th>
-                                    <th>Correct Answers</th>
-                                    <th>Average Score</th>
-                                </tr>
+                        <table class="w-full">
+                            <thead class="bg-slate-50 dark:bg-slate-950 text-[10px] uppercase font-black text-slate-400">
+                                <tr><th class="px-10 py-5">Rank</th><th class="px-10 py-5 text-left">Student</th><th class="px-10 py-5 text-right">Score</th></tr>
                             </thead>
                             <tbody id="leaderboard-tbody"></tbody>
                         </table>
                     </div>
-                </div>
-            </section>
-
-        </div>
-    </main>
-
-    <!-- Edit Question Modal -->
-    <div id="edit-question-modal" class="modal hidden">
-        <div class="modal-content glass-panel" style="max-width: 800px; width: 90%; margin: 2rem auto;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-                <h3>Edit Question</h3>
-                <button class="btn-small" onclick="closeEditModal()" style="background:transparent; border:none; color:var(--text-muted); font-size:1.5rem; cursor:pointer;">&times;</button>
+                 </section>
             </div>
-            <form id="edit-question-form" class="custom-form">
-                <input type="hidden" id="edit-q-id">
-                <div class="options-grid">
-                    <select id="edit-q-topic" required>
-                        <option value="Quantitative Aptitude">Quantitative Aptitude</option>
-                        <option value="Logical Reasoning">Logical Reasoning</option>
-                        <option value="Verbal Ability">Verbal Ability</option>
-                        <option value="Placement / Company Focused">Placement / Company Focused</option>
-                    </select>
-                    <select id="edit-q-subtopic" required></select>
-                </div>
-                <input type="text" id="edit-q-title" placeholder="Question Title" required>
-                <textarea id="edit-q-desc" placeholder="Question Description (Optional)" rows="2"></textarea>
-                
-                <h4 class="mt-3" style="font-size: 0.9rem; color: var(--text-muted);">Question Format</h4>
-                <div class="options-grid">
-                    <select id="edit-q-type" required onchange="toggleQuestionType('edit')">
-                        <option value="mcq" selected>Multiple Choice (MCQ)</option>
-                        <option value="text">Text Based / Fill in the Blanks</option>
-                    </select>
-                </div>
-                
-                <h4 class="mt-3" style="font-size: 0.9rem; color: var(--text-muted);">Time Limit per Question</h4>
-                <div class="options-grid" style="grid-template-columns: repeat(4, 1fr);">
-                    <input type="number" id="edit-q-days" placeholder="Days" min="0">
-                    <input type="number" id="edit-q-hours" placeholder="Hours" min="0">
-                    <input type="number" id="edit-q-mins" placeholder="Mins" min="0">
-                    <input type="number" id="edit-q-secs" placeholder="Secs" min="0">
-                </div>
-                
-                <h4 class="mt-3" style="font-size: 0.9rem; color: var(--text-muted);">Options / Answer</h4>
-                <div id="edit-mcq-fields">
-                    <div class="options-grid">
-                        <input type="text" id="edit-q-opt-a" placeholder="Option A" required>
-                        <input type="text" id="edit-q-opt-b" placeholder="Option B" required>
-                        <input type="text" id="edit-q-opt-c" placeholder="Option C" required>
-                        <input type="text" id="edit-q-opt-d" placeholder="Option D" required>
-                    </div>
-                    <select id="edit-q-correct" required>
-                        <option value="A">Option A</option>
-                        <option value="B">Option B</option>
-                        <option value="C">Option C</option>
-                        <option value="D">Option D</option>
-                    </select>
-                </div>
-                <div id="edit-text-fields" style="display: none;">
-                    <input type="text" id="edit-q-text-answer" placeholder="Correct Text Answer">
-                    <p style="font-size: 0.8rem; color: var(--text-muted); padding-left: 0.8rem;">Students must type this exact text (case-insensitive) to be marked correct.</p>
-                </div>
-                
-                <textarea id="edit-q-ans-desc" placeholder="Answer Description / Explanation (Optional)" rows="2" class="mt-3"></textarea>
+        </main>
+    </div>
 
-                <div style="display:flex; gap:1rem; margin-top:1.5rem;">
-                    <button type="submit" class="btn-primary">Save Changes</button>
-                    <button type="button" class="btn-danger" onclick="closeEditModal()" style="width: auto;">Cancel</button>
+    <!-- Edit Modal -->
+    <div id="edit-question-modal" class="modal fixed inset-0 z-[100] hidden flex items-center justify-center p-12">
+        <div class="content-card w-full max-w-4xl max-h-[90vh] overflow-y-auto space-y-10 relative">
+            <button onclick="closeEditModal()" class="absolute right-8 top-8 w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-red-500 transition-all">
+                <i class="fas fa-times"></i>
+            </button>
+            <h3 class="text-3xl font-bold font-orbitron text-indigo-600">Refine Assessment</h3>
+            
+            <form id="edit-question-form" class="space-y-8">
+                <input type="hidden" id="edit-q-id">
+                
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Category</label>
+                        <select id="edit-q-topic" class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 transition-all font-medium">
+                            <option value="Quantitative Aptitude">Quantitative Aptitude</option>
+                            <option value="Logical Reasoning">Logical Reasoning</option>
+                            <option value="Verbal Ability">Verbal Ability</option>
+                            <option value="Placement / Company Focused">Placement / Company Focused</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Subtopic</label>
+                        <select id="edit-q-subtopic" class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 transition-all font-medium"></select>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Headline & Description</label>
+                    <input type="text" id="edit-q-title" class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 mb-4">
+                    <textarea id="edit-q-desc" rows="3" class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6 items-end">
+                    <div class="space-y-2">
+                        <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Answer Format</label>
+                        <select id="edit-q-type" onchange="toggleQuestionType('edit')" class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                            <option value="mcq">Multiple Choice (MCQ)</option>
+                            <option value="text">Direct Text Entry</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-4 gap-2">
+                        <input type="number" id="edit-q-days" placeholder="DD" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                        <input type="number" id="edit-q-hours" placeholder="HH" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                        <input type="number" id="edit-q-mins" placeholder="MM" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                        <input type="number" id="edit-q-secs" placeholder="SS" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                    </div>
+                </div>
+
+                <div id="edit-mcq-fields" class="space-y-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <input type="text" id="edit-q-opt-a" placeholder="Option A" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                        <input type="text" id="edit-q-opt-b" placeholder="Option B" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                        <input type="text" id="edit-q-opt-c" placeholder="Option C" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                        <input type="text" id="edit-q-opt-d" placeholder="Option D" class="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                    </div>
+                    <select id="edit-q-correct" class="w-full p-4 bg-indigo-50 dark:bg-indigo-900/10 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 rounded-xl font-bold">
+                        <option value="A">Option A</option><option value="B">Option B</option><option value="C">Option C</option><option value="D">Option D</option>
+                    </select>
+                </div>
+
+                <div id="edit-text-fields" class="hidden">
+                    <input type="text" id="edit-q-text-answer" placeholder="Exact Correct Word/Entry" class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Answer Explanation</label>
+                    <textarea id="edit-q-ans-desc" rows="3" class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border"></textarea>
+                </div>
+
+                <div class="flex gap-4 pt-6">
+                    <button type="submit" class="flex-1 py-5 bg-indigo-600 text-white rounded-2xl font-bold shadow-xl shadow-indigo-600/20 hover:scale-[1.01] transition-all">Submit Updates</button>
+                    <button type="button" onclick="closeEditModal()" class="px-10 py-5 bg-slate-100 dark:bg-slate-900 text-slate-500 rounded-2xl font-bold">Discard</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
-    <script>
-    if (typeof particlesJS !== 'undefined') {
-        particlesJS("particles-dashboard", {
-            particles: {
-                number: { value: 60 },
-                size: { value: 1.5 },
-                move: { speed: 0.4 },
-                line_linked: { enable: false },
-                color: { value: "#a855f7" },
-                shape: { type: "circle" },
-                opacity: { value: 0.5, random: true }
-            }
-        });
-    }
-    </script>
-    <script>
-    function toggleQuestionType(mode) {
-        const typeSelect = document.getElementById(mode === 'add' ? 'q-type' : 'edit-q-type');
-        const mcqFields = document.getElementById(mode === 'add' ? 'add-mcq-fields' : 'edit-mcq-fields');
-        const textFields = document.getElementById(mode === 'add' ? 'add-text-fields' : 'edit-text-fields');
-        
-        const mcqInputs = mcqFields.querySelectorAll('input, select');
-        const textInputs = textFields.querySelectorAll('input');
-
-        if (typeSelect.value === 'text') {
-            mcqFields.style.display = 'none';
-            textFields.style.display = 'block';
-            mcqInputs.forEach(el => el.removeAttribute('required'));
-            textInputs.forEach(el => el.setAttribute('required', 'required'));
-        } else {
-            mcqFields.style.display = 'block';
-            textFields.style.display = 'none';
-            mcqInputs.forEach(el => el.setAttribute('required', 'required'));
-            textInputs.forEach(el => el.removeAttribute('required'));
-        }
-    }
-    </script>
+    <script src="{{ url_for('static', filename='js/three-background.js') }}"></script>
     <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/aptitude-effects.js') }}"></script>
+    <script>
+        function toggleQuestionType(mode) {
+             const type = document.getElementById(mode === 'add' ? 'q-type' : 'edit-q-type').value;
+             document.getElementById(mode === 'add' ? 'add-mcq-fields' : 'edit-mcq-fields').style.display = type === 'mcq' ? 'block' : 'none';
+             document.getElementById(mode === 'add' ? 'add-text-fields' : 'edit-text-fields').style.display = type === 'text' ? 'block' : 'none';
+        }
+    </script>
 </body>
 </html>

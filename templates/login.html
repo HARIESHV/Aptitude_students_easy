@@ -3,137 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Aptitude Master</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Login - AptitudeLab</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
     <style>
-        .login-page-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            position: relative;
-            padding: 2rem;
-        }
-        /* Ensure auth box has modern frosted glass look */
-        .back-home {
+        body { font-family: 'Inter', sans-serif; overflow: hidden; }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        
+        #three-bg-container {
             position: fixed;
-            top: 2rem;
-            left: 2rem;
-            z-index: 100;
-            color: var(--text-main);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        .back-home:hover {
-            color: var(--primary-col);
-            transform: translateX(-5px);
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            background: #f8fafc;
         }
         
-        /* Remove static image logic and rely on animated body */
-        .login-page-container.login-landing {
-            background: transparent !important;
+        .dark-mode #three-bg-container { background: #020617; }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark-mode .glass-card {
+            background: rgba(15, 23, 42, 0.7);
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .role-btn.active {
+            background: #6366f1;
+            color: white;
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .input-group i {
+            transition: color 0.3s;
+        }
+        .input-group:focus-within i {
+            color: #6366f1;
+        }
+
+        @media (max-width: 1023px) {
+            #mobile-block { display: flex; }
+            #login-container { display: none; }
         }
     </style>
 </head>
-<body class="dashboard-body">
-    <!-- Desktop animated background -->
-    <div id="particles-dashboard"></div>
-    <div class="grid-bg-anim"></div>
-    <div class="orb-scene" style="left: 50% !important;">
-        <div class="orb-glow"></div>
-        <div class="orbit-ring-anim blue-ring">
-            <div class="ring-dot-anim" style="top:-3px; left:50%; transform:translateX(-50%); background:#3b82f6; box-shadow:0 0 10px #3b82f6, 0 0 20px #3b82f6;"></div>
-        </div>
-        <div class="orbit-ring-anim purple-ring inverse">
-            <div class="ring-dot-anim" style="top:50%; left:-3px; transform:translateY(-50%); background:#a855f7; box-shadow:0 0 10px #a855f7, 0 0 20px #a855f7;"></div>
-        </div>
-        <div class="center-orb">
-            <i class="fas fa-brain"></i>
-        </div>
-        <div class="floating-symbol logic-1"><i class="fas fa-calculator"></i></div>
-        <div class="floating-symbol math-1">∑</div>
-        <div class="floating-symbol logic-2"><i class="fas fa-cogs"></i></div>
-        <div class="floating-symbol math-2">π</div>
-        <div class="floating-symbol math-3">∫</div>
-        <div class="floating-symbol logic-3">{}</div>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center min-h-screen">
+
+    <!-- Mobile Screen Blocker -->
+    <div id="mobile-block" class="fixed inset-0 z-[9999] hidden flex-col items-center justify-center bg-slate-900 text-white p-8 text-center">
+        <i class="fas fa-laptop text-6xl mb-6 text-indigo-400"></i>
+        <h1 class="text-2xl font-bold mb-2">Desktop Only</h1>
+        <p class="text-slate-400">Please access AptitudeLab on a laptop or desktop.</p>
     </div>
-    <a href="/" class="back-home"><i class="fas fa-arrow-left"></i> Back to Home</a>
-    
-    <button id="theme-toggle" class="btn-small" style="position:fixed; top:1.5rem; right:1.5rem; z-index:100; background:var(--glass-bg); border:1px solid var(--glass-border); color:var(--text-main); font-size:1.2rem; cursor:pointer; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
-        <i class="fas fa-moon"></i>
-    </button>
 
-    <div class="login-page-container login-landing">
+    <!-- Three.js BG -->
+    <div id="three-bg-container"></div>
+
+    <div id="login-container" class="relative z-10 w-full max-w-lg px-6">
+        
+        <!-- Back to Home -->
+        <a href="/" class="absolute -top-16 left-0 flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-all font-bold group">
+            <i class="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i> Back to Home
+        </a>
+
         <!-- Auth Card -->
-        <div class="glass-panel text-center auth-box" style="animation: fadeInSlideUp 0.6s ease-out forwards; position: relative; z-index: 10;">
-            <div class="logo-box" style="margin-bottom: 2rem;">
-                <i class="fas fa-brain"></i>
-                <h1 style="color: var(--heading-col); font-size: 1.8rem; margin-top: 0.5rem;">Aptitude Master</h1>
+        <div class="glass-card rounded-[2.5rem] p-12 space-y-8">
+            <div class="text-center space-y-4">
+                <div class="w-16 h-16 bg-indigo-600 rounded-2xl mx-auto flex items-center justify-center shadow-xl shadow-indigo-600/30">
+                    <i class="fas fa-brain text-white text-3xl"></i>
+                </div>
+                <h1 class="font-orbitron text-3xl font-black tracking-tighter text-indigo-600 dark:text-indigo-400">Aptitude<span class="text-slate-900 dark:text-white">Lab</span></h1>
+                <p class="text-slate-500 font-medium">Elevate your logical precision.</p>
             </div>
 
-            <div class="role-selector">
-                <button id="btn-show-student" class="btn-role active">Student</button>
-                <button id="btn-show-admin" class="btn-role">Admin</button>
+            <div class="flex p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-2xl border border-black/5 dark:border-white/5">
+                <button id="btn-show-student" class="role-btn active flex-1 py-3.5 rounded-xl font-bold text-sm transition-all">Student</button>
+                <button id="btn-show-admin" class="role-btn flex-1 py-3.5 rounded-xl font-bold text-sm transition-all text-slate-500">Administrator</button>
             </div>
 
-            <div class="auth-forms">
+            <div id="auth-forms">
                 <!-- Login Form -->
-                <form id="login-form" class="active-form">
-                    <h2 style="color: var(--heading-col);">Welcome Back</h2>
-                    <div class="input-group">
-                        <i class="fas fa-user"></i>
-                        <input type="text" id="login-username" placeholder="Username" required>
+                <form id="login-form" class="space-y-6">
+                    <div class="space-y-4">
+                        <div class="input-group relative">
+                            <i class="fas fa-user absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="login-username" placeholder="Username" required class="w-full pl-14 pr-6 py-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium">
+                        </div>
+                        <div class="input-group relative">
+                            <i class="fas fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="password" id="login-password" placeholder="Password" required class="w-full pl-14 pr-6 py-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium">
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" id="login-password" placeholder="Password" required>
-                    </div>
-                    <button type="submit" class="btn-primary">Login <span id="login-role-text">as Student</span></button>
-                    <p class="toggle-text" style="color: #94a3b8; margin-top: 1.5rem;">Don't have an account? <span class="action-link" id="to-register">Register here</span></p>
+                    
+                    <button type="submit" class="w-full py-5 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-bold shadow-2xl shadow-indigo-600/20 hover:scale-[1.02] active:scale-95 transition-all">
+                        Login As <span id="login-role-text">Student</span>
+                    </button>
+                    
+                    <p class="text-center text-sm text-slate-500 font-medium">
+                        Don't have an account? <span class="text-indigo-600 cursor-pointer font-bold hover:underline" id="to-register">Create one now</span>
+                    </p>
                 </form>
 
                 <!-- Register Form -->
-                <form id="register-form" style="display: none;">
-                    <h2 style="color: var(--heading-col);">Create Account</h2>
-                    <div class="input-group">
-                        <i class="fas fa-user"></i>
-                        <input type="text" id="reg-username" placeholder="Username" required>
+                <form id="register-form" class="hidden space-y-6">
+                    <div class="space-y-4">
+                        <div class="input-group relative">
+                            <i class="fas fa-user absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="reg-username" placeholder="Choose Username" required class="w-full pl-14 pr-6 py-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium">
+                        </div>
+                        <div class="input-group relative">
+                            <i class="fas fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="password" id="reg-password" placeholder="Create Password" required class="w-full pl-14 pr-6 py-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium">
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" id="reg-password" placeholder="Password" required>
-                    </div>
-                    <button type="submit" class="btn-primary">Register <span id="reg-role-text">as Student</span></button>
-                    <p class="toggle-text" style="color: #94a3b8; margin-top: 1.5rem;">Already have an account? <span class="action-link" id="to-login">Login here</span></p>
+                    <button type="submit" class="w-full py-5 bg-indigo-600 text-white rounded-2xl font-bold shadow-2xl shadow-indigo-600/20 hover:scale-[1.02] active:scale-95 transition-all">
+                        Register Account
+                    </button>
+                    <p class="text-center text-sm text-slate-500 font-medium">
+                        Already a member? <span class="text-indigo-600 cursor-pointer font-bold hover:underline" id="to-login">Login here</span>
+                    </p>
                 </form>
             </div>
-            <div id="auth-alert" class="alert hidden"></div>
+
+            <div id="auth-alert" class="hidden px-6 py-4 rounded-2xl text-sm font-bold text-center"></div>
         </div>
     </div>
-    
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
-    <script>
-    if (typeof particlesJS !== 'undefined') {
-        particlesJS("particles-dashboard", {
-            particles: {
-                number: { value: 60 },
-                size: { value: 1.5 },
-                move: { speed: 0.4 },
-                line_linked: { enable: false },
-                color: { value: "#a855f7" },
-                shape: { type: "circle" },
-                opacity: { value: 0.5, random: true }
-            }
-        });
-    }
-    </script>
+
+    <!-- Theme Toggle -->
+    <button id="theme-toggle" class="fixed top-8 right-8 w-12 h-12 rounded-2xl glass-card flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all z-50">
+        <i class="fas fa-moon"></i>
+    </button>
+
+    <script src="{{ url_for('static', filename='js/three-background.js') }}"></script>
     <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/aptitude-effects.js') }}"></script>
+    <script>
+        // Custom role toggle logic for tailwind
+        const studentBtn = document.getElementById('btn-show-student');
+        const adminBtn = document.getElementById('btn-show-admin');
+        const roleText = document.getElementById('login-role-text');
+
+        studentBtn.addEventListener('click', () => {
+            studentBtn.classList.add('active');
+            studentBtn.classList.remove('text-slate-500');
+            adminBtn.classList.remove('active');
+            adminBtn.classList.add('text-slate-500');
+            roleText.innerText = 'Student';
+        });
+
+        adminBtn.addEventListener('click', () => {
+            adminBtn.classList.add('active');
+            adminBtn.classList.remove('text-slate-500');
+            studentBtn.classList.remove('active');
+            studentBtn.classList.add('text-slate-500');
+            roleText.innerText = 'Administrator';
+        });
+    </script>
 </body>
 </html>

@@ -1,10 +1,8 @@
 const API_BASE = '/api';
 
 document.addEventListener('DOMContentLoaded', () => {
-    /* ── Desktop-only guard: skip on mobile screens ── */
-    if (window.innerWidth <= 768) return;
-    const desktopEl = document.getElementById('desktop-layout');
-    if (!desktopEl) return;
+    /* ── Desktop-only guard ── */
+    if (window.innerWidth < 1024) return;
 
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
@@ -18,57 +16,48 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize Theme
     const currentTheme = localStorage.getItem('theme') || 'light';
     if (currentTheme === 'dark') {
-        document.body.classList.add('dark-mode');
+        document.body.classList.add('dark-mode', 'dark');
         document.getElementById('theme-toggle').innerHTML = '<i class="fas fa-sun"></i>';
     }
 
     document.getElementById('theme-toggle').addEventListener('click', () => {
         document.body.classList.toggle('dark-mode');
+        document.body.classList.toggle('dark');
         const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
         localStorage.setItem('theme', theme);
         document.getElementById('theme-toggle').innerHTML = theme === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
     });
 
-    document.getElementById('welcome-text').innerText = `Welcome, ${username}`;
-    document.getElementById('user-display-name').innerText = username;
-
-    // --- Cinematic Reveal Animations (GSAP) ---
-    if (typeof gsap !== 'undefined') {
-        gsap.to('.animate-reveal', {
-            opacity: 1,
-            y: 0,
-            duration: 1,
-            stagger: 0.2,
-            ease: "power4.out"
-        });
-
-        // Floating Card Animation for Daily Challenge
-        gsap.to('.daily-challenge-card', {
-            y: -10,
-            duration: 3,
-            repeat: -1,
-            yoyo: true,
-            ease: "sine.inOut"
-        });
+    if (document.getElementById('welcome-text')) {
+        document.getElementById('welcome-text').innerText = `${username}`;
+    }
+    if (document.getElementById('user-display-name')) {
+        document.getElementById('user-display-name').innerText = username;
     }
 
-    const navLinks = document.querySelectorAll('.nav-links li');
+    // --- Navigation ---
+    const navItems = document.querySelectorAll('.nav-links .nav-item');
     const sections = document.querySelectorAll('.dashboard-section');
     const pageTitle = document.getElementById('page-title');
 
-    navLinks.forEach(link => {
-        link.addEventListener('click', () => {
-            const target = link.getAttribute('data-target');
-            const category = link.getAttribute('data-category');
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const target = item.getAttribute('data-target');
+            const category = item.getAttribute('data-category');
             
-            navLinks.forEach(l => l.classList.remove('active'));
-            sections.forEach(s => s.style.display = 'none');
+            navItems.forEach(i => i.classList.remove('active'));
+            sections.forEach(s => s.classList.add('hidden'));
             
-            link.classList.add('active');
+            item.classList.add('active');
             const targetSection = document.getElementById(target);
-            if (targetSection) targetSection.style.display = 'block';
+            if (targetSection) targetSection.classList.remove('hidden');
             
-            if (pageTitle) pageTitle.innerText = link.innerText.trim();
+            if (pageTitle) {
+                // Get text without icon
+                const textOnly = item.cloneNode(true);
+                textOnly.querySelector('i').remove();
+                pageTitle.innerText = textOnly.innerText.trim();
+            }
 
             if (target === 'practice') {
                 if (category) {
@@ -78,8 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             if(target === 'history') fetchHistory();
-            if(target === 'stats') loadStatsChart();
-            if(target === 'student-meetlinks') fetchMeetLinks();
+            if(target === 'stats') loadStats();
             if(target === 'student-messages') fetchMessages();
             if(target === 'leaderboard-section') fetchLeaderboard();
         });
@@ -87,8 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const alertBox = document.getElementById('dashboard-alert');
     function showAlert(msg, isError = false) {
+        if (!alertBox) return;
         alertBox.textContent = msg;
-        alertBox.className = `alert ${isError ? 'alert-error' : 'alert-success'}`;
+        alertBox.className = `px-6 py-4 rounded-2xl font-bold flex items-center gap-3 ${isError ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`;
         alertBox.classList.remove('hidden');
         setTimeout(() => alertBox.classList.add('hidden'), 3000);
     }
@@ -105,7 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     let solvedQuestionsList = []; 
-    let activeTimers = {};
 
     // --- Load Stats ---
     async function loadStats() {
@@ -113,65 +101,38 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(`${API_BASE}/student/stats`, { headers: getHeaders() });
             const data = await res.json();
             
-            document.getElementById('stat-attempted').innerText = data.total_attempted;
-            document.getElementById('stat-average').innerText = `${data.average}%`;
+            if (document.getElementById('stat-attempted')) document.getElementById('stat-attempted').innerText = data.total_attempted;
+            if (document.getElementById('stat-average')) document.getElementById('stat-average').innerText = `${data.average}%`;
             
-            document.getElementById('big-attempted').innerText = data.total_attempted;
-            document.getElementById('big-average').innerText = data.average;
-            document.getElementById('big-correct').innerText = data.correct_answers;
+            if (document.getElementById('big-attempted')) document.getElementById('big-attempted').innerText = data.total_attempted;
+            if (document.getElementById('big-average')) document.getElementById('big-average').innerText = data.average;
+            if (document.getElementById('big-correct')) document.getElementById('big-correct').innerText = data.correct_answers;
 
             solvedQuestionsList = data.solved_questions || [];
         } catch (err) { console.error(err); }
     }
 
-    function loadStatsChart() { loadStats(); }
-
-    // --- Answer Submission Engine ---
-    async function submitAnswer(qId, selectedOpt, formEl, qCard) {
-        if(activeTimers[qId]) {
-            clearInterval(activeTimers[qId]);
-            delete activeTimers[qId];
-        }
-        
-        try {
-            const subRes = await fetch(`${API_BASE}/submissions`, {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify({ question_id: qId, selected_option: selectedOpt })
-            });
-            const subData = await subRes.json();
-            
-            const msgBox = document.getElementById(`result-msg-${qId}`);
-            if(msgBox) msgBox.classList.remove('hidden');
-            
-            if (subRes.ok) {
-                if (subData.is_correct) {
-                    if(msgBox) msgBox.innerHTML = `<span class="badge correct"><i class="fas fa-check"></i> Correct! Well done.</span>`;
-                } else {
-                    if(msgBox) msgBox.innerHTML = `<span class="badge incorrect"><i class="fas fa-times"></i> Incorrect. The right answer was Option ${subData.correct_option}</span>`;
-                }
-                
-                if (formEl) {
-                    formEl.querySelectorAll('input, button').forEach(el => el.disabled = true);
-                }
-                setTimeout(() => {
-                    if(qCard) qCard.style.opacity = '0.5';
-                    fetchStudentQuestions(); 
-                }, 2000);
-            } else {
-                if(msgBox) {
-                    msgBox.innerText = subData.message;
-                    msgBox.className = 'mt-3 badge incorrect';
-                }
-            }
-        } catch (err) { console.error(err); }
-    }
-
     const categoryMeta = {
-        'Logical Reasoning': { icon: '🧠', desc: 'Patterns, sequences, puzzles, and analytical thinking' },
-        'Placement / Company Focused': { icon: '💻', desc: 'Mixed aptitude, logical puzzles, and placement-style problems' },
-        'Quantitative Aptitude': { icon: '🔢', desc: 'Numbers, algebra, arithmetic, and mathematical problem solving' },
-        'Verbal Ability': { icon: '🗣️', desc: 'Grammar, vocabulary, comprehension, and verbal reasoning' }
+        'Logical Reasoning': { 
+            icon: '<i class="fas fa-brain"></i>', 
+            desc: 'Patterns, sequences, and analytical puzzles.',
+            color: 'indigo'
+        },
+        'Placement / Company Focused': { 
+            icon: '<i class="fas fa-laptop-code"></i>', 
+            desc: 'Mixed aptitude for top tech companies.',
+            color: 'purple'
+        },
+        'Quantitative Aptitude': { 
+            icon: '<i class="fas fa-calculator"></i>', 
+            desc: 'Arithmetic and numeric problem solving.',
+            color: 'blue'
+        },
+        'Verbal Ability': { 
+            icon: '<i class="fas fa-comment-dots"></i>', 
+            desc: 'English grammar and verbal reasoning.',
+            color: 'green'
+        }
     };
 
     let allQuestions = [];
@@ -191,58 +152,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderCategories() {
         const grid = document.getElementById('quiz-category-grid');
+        if (!grid) return;
         grid.innerHTML = '';
         
-        // Ensure all categories from meta are shown, even if 0 questions
         Object.keys(categoryMeta).forEach(catName => {
             const meta = categoryMeta[catName];
             const catQuestions = allQuestions.filter(q => q.topic === catName && !solvedQuestionsList.includes(q.id));
             const count = catQuestions.length;
 
             const card = document.createElement('div');
-            card.className = 'category-card';
+            card.className = 'content-card p-10 space-y-8 flex flex-col justify-between group cursor-pointer hover:border-indigo-500 transition-all';
+            card.onclick = () => showQuestionsInCategory(catName);
+            
             card.innerHTML = `
-                <div>
-                    <div class="category-icon">${meta.icon}</div>
-                    <h3>${catName}</h3>
-                    <p>${meta.desc}</p>
-                    <div class="category-stats">
-                        <span class="cat-badge questions"><i class="fas fa-question-circle"></i> ${count} Questions</span>
-                        <span class="cat-badge timer"><i class="fas fa-infinity"></i> No Timer</span>
-                        <span class="cat-badge duration">lifetime</span>
+                <div class="space-y-6">
+                    <div class="w-16 h-16 bg-${meta.color}-100 dark:bg-${meta.color}-900/20 text-${meta.color}-600 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                        ${meta.icon}
+                    </div>
+                    <div class="space-y-2">
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-white">${catName}</h3>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm font-medium line-clamp-2">${meta.desc}</p>
                     </div>
                 </div>
-                <button class="btn-start-quiz" onclick="showQuestionsInCategory('${catName}')">Start Quiz &rarr;</button>
+                <div class="flex items-center justify-between pt-6 border-t border-slate-50 dark:border-slate-800">
+                    <div class="flex items-center gap-2">
+                        <div class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">${count} Challenges</span>
+                    </div>
+                    <i class="fas fa-arrow-right text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all"></i>
+                </div>
             `;
             grid.appendChild(card);
         });
-
-        document.getElementById('quiz-categories-view').classList.remove('hidden');
-        document.getElementById('category-questions-view').classList.add('hidden');
     }
 
     window.showQuestionsInCategory = (category) => {
         window.location.href = `/quiz?category=${encodeURIComponent(category)}`;
     };
-
-    window.showCategories = () => {
-        // Redundant on dashboard as it's separate now
-    };
-
-    function formatTime(totalSeconds) {
-        const d = Math.floor(totalSeconds / 86400);
-        const h = Math.floor((totalSeconds % 86400) / 3600);
-        const m = Math.floor((totalSeconds % 3600) / 60);
-        const s = totalSeconds % 60;
-        
-        let parts = [];
-        if(d > 0) parts.push(`${d}d`);
-        if(h > 0 || d > 0) parts.push(`${h.toString().padStart(2, '0')}h`);
-        parts.push(`${m.toString().padStart(2, '0')}m`);
-        parts.push(`${s.toString().padStart(2, '0')}s`);
-        
-        return parts.join(':');
-    }
 
     // --- Answered History Section ---
     async function fetchHistory() {
@@ -250,148 +196,122 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(`${API_BASE}/student/history`, { headers: getHeaders() });
             const data = await res.json();
             const tbody = document.getElementById('student-history-tbody');
+            if (!tbody) return;
             tbody.innerHTML = '';
             
             if (data.history.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No questions answered yet.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" class="px-10 py-20 text-center text-slate-400 font-bold font-orbitron">No History Found</td></tr>';
                 return;
             }
 
             data.history.forEach(sub => {
                 const tr = document.createElement('tr');
+                tr.className = 'group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
                 tr.innerHTML = `
-                    <td><strong>${sub.question_title}</strong></td>
-                    <td><small>${sub.topic} &gt; ${sub.subtopic}</small></td>
-                    <td><strong>${['A','B','C','D'].includes(sub.selected_option) ? 'Opt ' + sub.selected_option : sub.selected_option}</strong></td>
-                    <td>${['A','B','C','D'].includes(sub.correct_option) ? 'Opt ' + sub.correct_option : sub.correct_option}</td>
-                    <td><span class="badge ${sub.is_correct ? 'correct' : 'incorrect'}">${sub.is_correct ? 'Correct' : 'Incorrect'}</span></td>
-                    <td><small>${sub.timestamp}</small></td>
+                    <td class="px-10 py-6">
+                        <div class="font-bold text-slate-900 dark:text-white">${sub.question_title}</div>
+                        <div class="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">${sub.subtopic}</div>
+                    </td>
+                    <td class="px-10 py-6">
+                        <span class="px-3 py-1 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest">${sub.topic}</span>
+                    </td>
+                    <td class="px-10 py-6">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full ${sub.is_correct ? 'bg-green-500' : 'bg-red-500'}"></div>
+                            <span class="font-bold text-xs ${sub.is_correct ? 'text-green-600' : 'text-red-500'} uppercase tracking-widest">${sub.is_correct ? 'Correct' : 'Incorrect'}</span>
+                        </div>
+                    </td>
+                    <td class="px-10 py-6 text-right">
+                        <div class="text-xs font-bold text-slate-500">${sub.timestamp}</div>
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });
         } catch (err) { console.error(err); }
     }
 
-    // --- Meet Links UI ---
-    async function fetchMeetLinks() {
-        try {
-            const res = await fetch(`${API_BASE}/meetlinks`, { headers: getHeaders() });
-            const data = await res.json();
-            const list = document.getElementById('student-meetlinks-list');
-            list.innerHTML = '';
-            
-            if (data.meetlinks.length === 0) {
-                list.innerHTML = '<p class="text-muted">No active classes right now.</p>';
-            }
-
-            data.meetlinks.forEach(l => {
-                const item = document.createElement('div');
-                item.className = 'item-card';
-                item.innerHTML = `
-                    <div class="item-content">
-                        <h4>${l.title}</h4>
-                        <p class="text-muted mb-2"><small>Posted: ${l.created_at}</small></p>
-                        <p class="mt-2"><a href="${l.url}" target="_blank" class="btn-primary btn-small" style="text-decoration:none;"><i class="fas fa-video"></i> Join Class</a></p>
-                    </div>
-                `;
-                list.appendChild(item);
-            });
-        } catch (err) { console.error(err); }
-    }
-
     // --- Messaging UI ---
-    document.getElementById('student-send-msg-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const formObj = new FormData();
-        formObj.append('content', document.getElementById('s-msg-content').value);
-        // FORCE: Students only message the admin.
-        formObj.append('receiver_id', '1'); 
-        
-        const fileInput = document.getElementById('s-msg-file');
-        if(fileInput.files.length > 0) {
-            formObj.append('file', fileInput.files[0]);
-        }
-        
-        try {
-            const res = await fetch(`${API_BASE}/messages`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }, // Fetch handles multipart boundary internally
-                body: formObj
-            });
-            if (res.ok) {
-                showAlert('Message sent to Admin!');
-                document.getElementById('student-send-msg-form').reset();
-                fetchMessages();
-            } else {
-                showAlert('Error sending message', true);
+    const msgForm = document.getElementById('student-send-msg-form');
+    if (msgForm) {
+        msgForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = msgForm.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Dispatching...';
+            btn.disabled = true;
+
+            const formObj = new FormData();
+            formObj.append('content', document.getElementById('s-msg-content').value);
+            formObj.append('receiver_id', '1'); 
+            
+            const fileInput = document.getElementById('s-msg-file');
+            if(fileInput && fileInput.files.length > 0) {
+                formObj.append('file', fileInput.files[0]);
             }
-        } catch (error) { showAlert('Error', true); }
-    });
+            
+            try {
+                const res = await fetch(`${API_BASE}/messages`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formObj
+                });
+                if (res.ok) {
+                    showAlert('Message dispatched to control center!');
+                    msgForm.reset();
+                    fetchMessages();
+                } else {
+                    showAlert('Failed to dispatch message', true);
+                }
+            } catch (error) { showAlert('Critical Error', true); }
+            finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+    }
 
     async function fetchMessages() {
         try {
             const res = await fetch(`${API_BASE}/messages`, { headers: getHeaders() });
             const data = await res.json();
             const list = document.getElementById('student-messages-list');
+            if (!list) return;
             list.innerHTML = '';
             
             if (data.messages.length === 0) {
-                 list.innerHTML = '<p class="text-muted">No messages found.</p>';
+                 list.innerHTML = '<div class="content-card p-10 text-center text-slate-400 font-bold font-orbitron">No active logs found</div>';
                  return;
             }
             
             data.messages.forEach(m => {
                 const item = document.createElement('div');
-                item.className = 'item-card';
+                item.className = 'content-card p-8 space-y-4';
                 
-                let label = '';
-                let badgeClass = '';
-                let receiverInfo = '';
+                const isAdmin = m.sender_role === 'admin' || m.receiver_id === null;
                 
-                if (m.receiver_id === null) {
-                    label = 'Announcement';
-                    badgeClass = 'correct'; // green for official announcements
-                    receiverInfo = 'All Students';
-                } else {
-                    label = m.sender_role === 'admin' ? 'Admin' : 'Me';
-                    badgeClass = m.sender_role === 'admin' ? 'correct' : 'bg-secondary';
-                    receiverInfo = m.sender_role === 'admin' ? '' : 'To: Admin';
-                }
-
                 item.innerHTML = `
-                    <div class="item-content w-100">
-                        <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem;">
-                            <strong>${label} <span class="badge ${badgeClass}">${m.sender_role}</span></strong>
-                            <small class="text-muted">${m.timestamp}</small>
-                        </div>
-                        ${receiverInfo ? `<p style="margin-bottom:0.3rem;"><small><strong>${receiverInfo}</strong></small></p>` : ''}
-                        <p style="color:var(--text-main); margin-bottom: 0.5rem;">${m.content}</p>
-                        <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                            ${m.file_path ? `<a href="${m.file_path}" target="_blank" class="action-link" style="font-size:0.9rem;"><i class="fas fa-paperclip"></i> View Attached File</a>` : '<span></span>'}
-                            ${label === 'Me' ? `<button class="btn-danger btn-small" onclick="deleteMessage(${m.id})" title="Delete My Message"><i class="fas fa-trash"></i></button>` : ''}
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg ${isAdmin ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600'} flex items-center justify-center text-xs">
+                                <i class="fas fa-${isAdmin ? 'shield-alt' : 'user'}"></i>
+                            </div>
+                            <div>
+                                <div class="text-[10px] font-black uppercase tracking-widest text-slate-400">${isAdmin ? 'Admin Console' : 'Sent by Me'}</div>
+                                <div class="text-xs font-bold text-slate-500">${m.timestamp}</div>
+                            </div>
                         </div>
                     </div>
+                    <p class="text-slate-600 dark:text-slate-300 font-medium">${m.content}</p>
+                    ${m.file_path ? `
+                        <a href="${m.file_path}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50 transition-all">
+                            <i class="fas fa-file-alt"></i> View Attachment
+                        </a>
+                    ` : ''}
                 `;
                 list.appendChild(item);
             });
         } catch (err) { console.error(err); }
     }
-    
-    window.deleteMessage = async (id) => {
-        if(!confirm('Delete this message permanently?')) return;
-        try {
-            const res = await fetch(`${API_BASE}/messages/${id}`, { 
-                method: 'DELETE', 
-                headers: getHeaders() 
-            });
-            if(res.ok) {
-                showAlert('Message deleted');
-                fetchMessages();
-            }
-        } catch (err) { console.error(err); }
-    };
-
 
     // --- Leaderboard Section ---
     async function fetchLeaderboard() {
@@ -399,16 +319,35 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(`${API_BASE}/leaderboard`, { headers: getHeaders() });
             const data = await res.json();
             const tbody = document.getElementById('student-leaderboard-tbody');
+            if (!tbody) return;
             tbody.innerHTML = '';
             
             data.leaderboard.forEach((std, index) => {
                 const tr = document.createElement('tr');
-                if (std.is_me) tr.style.background = 'rgba(99, 102, 241, 0.1)';
+                tr.className = std.is_me ? 'bg-indigo-600/5' : 'hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
                 tr.innerHTML = `
-                    <td><strong>#${index + 1}</strong></td>
-                    <td>${std.username} ${std.is_me ? '<span class="badge correct">You</span>' : ''}</td>
-                    <td>${std.total_submissions}</td>
-                    <td><span class="highlight-text">${std.average}%</span></td>
+                    <td class="px-10 py-6">
+                        <div class="w-8 h-8 rounded-lg ${index < 3 ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'} flex items-center justify-center font-black text-xs">
+                            #${index + 1}
+                        </div>
+                    </td>
+                    <td class="px-10 py-6">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-slate-900 dark:bg-white rounded-xl flex items-center justify-center text-white dark:text-slate-900 font-bold text-xs uppercase">
+                                ${std.username.charAt(0)}
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-900 dark:text-white">${std.username} ${std.is_me ? '<span class="ml-2 text-[8px] px-2 py-0.5 bg-indigo-600 text-white rounded-full uppercase">You</span>' : ''}</div>
+                                <div class="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none">Novice Learner</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-10 py-6">
+                        <span class="text-sm font-bold text-slate-500">${std.total_submissions}</span>
+                    </td>
+                    <td class="px-10 py-6 text-right">
+                        <span class="text-xl font-black text-indigo-600 font-orbitron">${std.average}%</span>
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });

@@ -12,13 +12,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize Theme
     const currentTheme = localStorage.getItem('theme') || 'light';
     if (currentTheme === 'dark') {
-        document.body.classList.add('dark-mode');
+        document.body.classList.add('dark-mode', 'dark');
         const toggle = document.getElementById('quiz-theme-toggle');
         if(toggle) toggle.innerHTML = '<i class="fas fa-sun"></i> Theme';
     }
 
     document.getElementById('quiz-theme-toggle').addEventListener('click', () => {
         document.body.classList.toggle('dark-mode');
+        document.body.classList.toggle('dark');
         const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
         localStorage.setItem('theme', theme);
         document.getElementById('quiz-theme-toggle').innerHTML = theme === 'dark' ? '<i class="fas fa-sun"></i> Theme' : '<i class="fas fa-moon"></i> Theme';
@@ -89,10 +90,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const solvedInCat = allQuestions.filter(q => q.topic === categoryName && solvedQuestionsList.includes(q.id));
 
         if (filteredQuestions.length === 0) {
-            list.innerHTML = `<div class="glass-panel text-center py-5">
-                <i class="fas fa-check-circle text-success" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                <p class="text-main" style="font-size: 1.2rem;">Awesome! You have completed all available questions in this category.</p>
-                <button onclick="window.location.href='/student_dashboard'" class="btn-primary mt-4" style="width:auto;">Go to Dashboard</button>
+            list.innerHTML = `<div class="glass-panel rounded-3xl p-12 text-center space-y-6">
+                <div class="w-24 h-24 bg-green-100 dark:bg-green-900/20 text-green-600 rounded-full flex items-center justify-center text-5xl mx-auto shadow-xl shadow-green-500/20">
+                    <i class="fas fa-check-double"></i>
+                </div>
+                <h1 class="text-3xl font-bold font-orbitron">Category Conquered!</h1>
+                <p class="text-slate-500 font-medium text-lg">You have completed all available questions in <br/><span class="text-indigo-600 font-bold">${categoryName}</span>.</p>
+                <button onclick="window.location.href='/student_dashboard'" class="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all">Return to Dashboard</button>
             </div>`;
             return;
         }
@@ -100,83 +104,115 @@ document.addEventListener('DOMContentLoaded', () => {
         const meta = categoryMeta[categoryName] || { icon: '❓' };
         
         const header = document.createElement('div');
-        header.className = 'text-center mb-4';
+        header.className = 'flex items-end justify-between mb-8';
         header.innerHTML = `
-            <div class="category-icon" style="font-size: 3.5rem;">${meta.icon}</div>
-            <h1 style="font-size: 2rem; filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.4)); margin-bottom: 0.5rem;">${categoryName}</h1>
-            <p class="text-muted">Question ${currentQuestionIndex + 1} of ${filteredQuestions.length}</p>
+            <div class="space-y-2">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-xl">${meta.icon}</div>
+                    <h1 class="text-2xl font-bold font-orbitron tracking-tight">${categoryName}</h1>
+                </div>
+                <p class="text-slate-400 font-bold uppercase tracking-widest text-xs">Question ${currentQuestionIndex + 1} of ${filteredQuestions.length}</p>
+            </div>
+            <div class="nav-dots flex gap-2">
+                ${filteredQuestions.map((_, i) => `<span class="dot ${i === currentQuestionIndex ? 'active' : ''}"></span>`).join('')}
+            </div>
         `;
         list.appendChild(header);
 
-        const questionsContainer = document.createElement('div');
-        questionsContainer.className = 'centered-view';
-        list.appendChild(questionsContainer);
-        
         const q = filteredQuestions[currentQuestionIndex];
         const qCard = document.createElement('div');
-        qCard.className = 'question-solve-card active-question-card';
+        qCard.className = 'glass-panel rounded-[2.5rem] p-12 space-y-10 relative overflow-hidden active-question-card animate-reveal';
         qCard.id = `q-card-${q.id}`;
         qCard.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 1.5rem;">
-                <h3 style="margin: 0; color: var(--text-main);">${q.title}</h3>
-                <span class="badge" id="timer-badge-${q.id}" style="background:var(--surface-bg); color:var(--text-main); border:1px solid var(--border-color);">
-                    <i class="fas fa-clock"></i> 
+            <div class="flex justify-between items-start">
+                <div class="space-y-1">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-indigo-500">${q.subtopic}</span>
+                    <h3 class="text-3xl font-bold leading-tight">${q.title}</h3>
+                </div>
+                <div id="timer-badge-${q.id}" class="px-6 py-3 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-black/5 dark:border-white/5 flex items-center gap-3 font-bold">
+                    <i class="fas fa-clock text-slate-400"></i> 
                     <span id="timer-${q.id}">${q.time_limit > 0 ? formatTime(q.time_limit) : '∞'}</span>
-                </span>
+                </div>
             </div>
-            <div style="margin-bottom: 1.5rem;">
-                <small class="badge" style="background:rgba(99, 102, 241, 0.2); color:var(--primary-col); border:1px solid rgba(99, 102, 241, 0.3);">${q.topic} &gt; ${q.subtopic}</small>
-            </div>
-            
-            <div id="q-content-${q.id}">
-                <p class="text-main mb-4" style="font-size: 1.2rem; line-height: 1.8;">${q.description}</p>
-                <form id="solve-form-${q.id}">
+
+            <div id="q-content-${q.id}" class="space-y-10">
+                <p class="text-xl text-slate-600 dark:text-slate-300 font-medium leading-relaxed">${q.description}</p>
+                
+                <form id="solve-form-${q.id}" class="space-y-8">
                     ${q.question_type === 'text' ? `
-                    <div class="q-text-answer mt-3 mb-4">
-                        <input type="text" name="text_answer_${q.id}" id="text_answer_${q.id}" class="form-control" placeholder="Type your answer here..." required style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--surface-bg); color: var(--text-main); font-size: 1.1rem;">
+                    <div class="relative group">
+                        <i class="fas fa-pen-nib absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition-colors"></i>
+                        <input type="text" name="text_answer_${q.id}" id="text_answer_${q.id}" placeholder="Type your numeric or word answer here..." required 
+                        class="w-full pl-14 pr-8 py-5 bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-100 dark:border-slate-800 focus:outline-none focus:border-indigo-600 transition-all font-bold text-lg">
                     </div>
                     ` : `
-                    <div class="q-options-list">
-                        <label class="q-option-label"><input type="radio" name="option_${q.id}" value="A" required> A) ${q.option_a}</label>
-                        <label class="q-option-label"><input type="radio" name="option_${q.id}" value="B"> B) ${q.option_b}</label>
-                        <label class="q-option-label"><input type="radio" name="option_${q.id}" value="C"> C) ${q.option_c}</label>
-                        <label class="q-option-label"><input type="radio" name="option_${q.id}" value="D"> D) ${q.option_d}</label>
+                    <div class="grid grid-cols-2 gap-4 q-options-list">
+                        <div class="q-option-card glass-panel !bg-white/40 dark:!bg-slate-900/40 p-6 rounded-3xl flex items-center gap-5" data-option="A">
+                            <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 opt-letter">A</div>
+                            <span class="font-bold text-lg opt-text">${q.option_a}</span>
+                            <input type="radio" name="option_${q.id}" value="A" required class="hidden">
+                        </div>
+                        <div class="q-option-card glass-panel !bg-white/40 dark:!bg-slate-900/40 p-6 rounded-3xl flex items-center gap-5" data-option="B">
+                            <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 opt-letter">B</div>
+                            <span class="font-bold text-lg opt-text">${q.option_b}</span>
+                            <input type="radio" name="option_${q.id}" value="B" class="hidden">
+                        </div>
+                        <div class="q-option-card glass-panel !bg-white/40 dark:!bg-slate-900/40 p-6 rounded-3xl flex items-center gap-5" data-option="C">
+                            <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 opt-letter">C</div>
+                            <span class="font-bold text-lg opt-text">${q.option_c}</span>
+                            <input type="radio" name="option_${q.id}" value="C" class="hidden">
+                        </div>
+                        <div class="q-option-card glass-panel !bg-white/40 dark:!bg-slate-900/40 p-6 rounded-3xl flex items-center gap-5" data-option="D">
+                            <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 opt-letter">D</div>
+                            <span class="font-bold text-lg opt-text">${q.option_d}</span>
+                            <input type="radio" name="option_${q.id}" value="D" class="hidden">
+                        </div>
                     </div>
                     `}
                     
-                    <div class="file-upload-section mt-3">
-                        <label class="text-muted mb-2" style="display:block; font-size:0.9rem;">
-                            <i class="fas fa-paperclip"></i> Attach supporting file (Optional: PDF, Image, DOCX)
-                        </label>
-                        <input type="file" id="file-${q.id}" class="file-input" accept=".pdf,.doc,.docx,image/*">
-                    </div>
+                    <div class="flex items-center justify-between pt-6 border-t border-black/5 dark:border-white/5">
+                        <div class="flex items-center gap-4">
+                            <label class="cursor-pointer group flex items-center gap-3 px-5 py-3 bg-slate-50 dark:bg-slate-900 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition-all">
+                                <i class="fas fa-paperclip text-slate-400 group-hover:text-indigo-600"></i>
+                                <span class="text-xs font-bold text-slate-500 group-hover:text-indigo-600 uppercase tracking-widest">Attach Proof</span>
+                                <input type="file" id="file-${q.id}" class="hidden" accept=".pdf,.doc,.docx,image/*">
+                            </label>
+                            <div id="file-status-${q.id}" class="text-[10px] font-black uppercase text-indigo-600 tracking-widest hidden">File Ready</div>
+                        </div>
 
-                    <button type="submit" class="btn-start-quiz mt-4" style="width: auto; padding: 1rem 2rem;" id="btn-submit-${q.id}">
-                        <i class="fas fa-paper-plane"></i> Submit Answer
-                    </button>
+                        <div class="flex gap-4">
+                            <button type="button" id="prev-btn" class="px-6 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl font-bold ${currentQuestionIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-200'} transition-all">Prev</button>
+                            <button type="submit" id="btn-submit-${q.id}" class="px-10 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-xl shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all">Submit Answer &rarr;</button>
+                            <button type="button" id="next-btn" class="px-6 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl font-bold ${currentQuestionIndex === filteredQuestions.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-200'} transition-all">Next</button>
+                        </div>
+                    </div>
                 </form>
             </div>
-            <div id="result-msg-${q.id}" class="mt-4 hidden" style="font-weight: 500;"></div>
+            <div id="result-msg-${q.id}" class="mt-8 hidden p-8 rounded-3xl font-bold text-center text-xl animate-reveal"></div>
         `;
-        questionsContainer.appendChild(qCard);
+        list.appendChild(qCard);
 
-        // Navigation Footer
-        const navFooter = document.createElement('div');
-        navFooter.className = 'quiz-navigation mt-5';
-        navFooter.innerHTML = `
-            <button id="prev-btn" class="btn-nav ${currentQuestionIndex === 0 ? 'disabled' : ''}" ${currentQuestionIndex === 0 ? 'disabled' : ''}>
-                <i class="fas fa-chevron-left"></i> Previous
-            </button>
-            <div class="nav-dots">
-                ${filteredQuestions.map((_, i) => `<span class="dot ${i === currentQuestionIndex ? 'active' : ''}"></span>`).join('')}
-            </div>
-            <button id="next-btn" class="btn-nav ${currentQuestionIndex === filteredQuestions.length - 1 ? 'disabled' : ''}" ${currentQuestionIndex === filteredQuestions.length - 1 ? 'disabled' : ''}>
-                Next <i class="fas fa-chevron-right"></i>
-            </button>
-        `;
-        questionsContainer.appendChild(navFooter);
+        // File feedback
+        const fileInput = document.getElementById(`file-${q.id}`);
+        const fileStatus = document.getElementById(`file-status-${q.id}`);
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) fileStatus.classList.remove('hidden');
+        });
 
-        // Event Listeners
+        // Card Selection Logic
+        if (q.question_type !== 'text') {
+            const cards = qCard.querySelectorAll('.q-option-card');
+            cards.forEach(card => {
+                card.addEventListener('click', () => {
+                    if (card.classList.contains('correct') || card.classList.contains('incorrect')) return;
+                    cards.forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    card.querySelector('input').checked = true;
+                });
+            });
+        }
+
+        // Navigation
         document.getElementById('prev-btn').addEventListener('click', () => {
             if (currentQuestionIndex > 0) {
                 currentQuestionIndex--;
@@ -202,20 +238,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const selectedInput = document.querySelector(`input[name="option_${q.id}"]:checked`);
                 selected = selectedInput ? selectedInput.value : 'None';
             }
-            const fileInput = document.getElementById(`file-${q.id}`);
             const file = fileInput && fileInput.files[0] ? fileInput.files[0] : null;
             submitAnswer(q.id, selected, file, formEl, qCard);
         });
 
-        // Auto-start timer
         startTimer(q.id, q.time_limit);
-
-        if(solvedInCat.length > 0) {
-            const solvedMsg = document.createElement('div');
-            solvedMsg.className = 'text-center text-muted mt-5';
-            solvedMsg.innerHTML = `<hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin: 2rem 0;"><p><i class="fas fa-history"></i> You have already solved ${solvedInCat.length} question(s) in this topic.</p>`;
-            questionsContainer.appendChild(solvedMsg);
-        }
     }
 
     async function submitAnswer(qId, selectedOpt, file, formEl, qCard) {
@@ -225,6 +252,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         try {
+            const btn = document.getElementById(`btn-submit-${qId}`);
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Processing...';
+            btn.disabled = true;
+
             const formData = new FormData();
             formData.append('question_id', qId);
             formData.append('selected_option', selectedOpt);
@@ -232,35 +263,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const subRes = await fetch(`${API_BASE}/submissions`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }, // Form data handles its own boundary
+                headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
             });
             const subData = await subRes.json();
             
             const msgBox = document.getElementById(`result-msg-${qId}`);
-            if(msgBox) msgBox.classList.remove('hidden');
+            msgBox.classList.remove('hidden');
             
             if (subRes.ok) {
+                const selectedCard = qCard.querySelector('.q-option-card.selected');
+                const allOptionCards = qCard.querySelectorAll('.q-option-card');
+                
                 if (subData.is_correct) {
-                    if(msgBox) msgBox.innerHTML = `<span class="badge correct"><i class="fas fa-check"></i> Correct! Well done.</span>`;
+                    msgBox.className = 'mt-8 p-8 rounded-3xl font-bold text-center text-xl bg-green-500 text-white shadow-2xl shadow-green-500/30';
+                    msgBox.innerHTML = `<i class="fas fa-check-circle text-3xl mb-2 block"></i> Outstanding Intelligence!<br/><span class="text-sm opacity-80 uppercase tracking-widest">Answer Correct</span>`;
+                    if(selectedCard) selectedCard.classList.add('correct');
                 } else {
-                    if(msgBox) msgBox.innerHTML = `<span class="badge incorrect"><i class="fas fa-times"></i> Incorrect. The right answer was ${(subData.correct_option && ['A','B','C','D'].includes(subData.correct_option)) ? 'Option ' + subData.correct_option : subData.correct_option}</span>`;
+                    msgBox.className = 'mt-8 p-8 rounded-3xl font-bold text-center text-xl bg-red-500 text-white shadow-2xl shadow-red-500/30';
+                    msgBox.innerHTML = `<i class="fas fa-times-circle text-3xl mb-2 block"></i> Logical Discrepancy Found.<br/><span class="text-sm opacity-80 uppercase tracking-widest">Correct Answer: ${subData.correct_option}</span>`;
+                    if(selectedCard) {
+                        selectedCard.classList.remove('selected');
+                        selectedCard.classList.add('incorrect');
+                    }
+                    
+                    // Highlight actual correct
+                    const correctCard = qCard.querySelector(`.q-option-card[data-option="${subData.correct_option}"]`);
+                    if(correctCard) correctCard.classList.add('correct');
                 }
                 
-                if (formEl) {
-                    formEl.querySelectorAll('input, button').forEach(el => el.disabled = true);
-                }
+                formEl.querySelectorAll('input, button').forEach(el => el.disabled = true);
+                
                 setTimeout(() => {
-                    qCard.style.opacity = '0.5';
                     fetchQuestions(); 
-                }, 2000);
+                }, 4000);
             } else {
-                if(msgBox) {
-                    msgBox.innerText = subData.message;
-                    msgBox.className = 'mt-4 badge incorrect';
-                }
+                msgBox.innerText = subData.message;
+                msgBox.className = 'mt-8 p-6 bg-red-100 text-red-600 rounded-2xl font-bold';
             }
-        } catch (err) { console.error(err); }
+        } catch (err) { 
+            console.error(err);
+            btn.innerHTML = 'Retry Submission';
+            btn.disabled = false;
+        }
     }
 
     window.startTimer = (qId, timeLimit) => {

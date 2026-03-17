@@ -1,125 +1,99 @@
 const API_BASE = '/api';
 
 document.addEventListener('DOMContentLoaded', () => {
+    /* ── Desktop-only guard ── */
+    if (window.innerWidth < 1024) return;
+
     // Initialize Theme
+    const themeToggle = document.getElementById('theme-toggle');
     const currentTheme = localStorage.getItem('theme') || 'light';
+    
     if (currentTheme === 'dark') {
-        document.body.classList.add('dark-mode');
-        document.getElementById('theme-toggle').innerHTML = '<i class="fas fa-sun"></i>';
+        document.body.classList.add('dark-mode', 'dark');
+        if (themeToggle) themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
     }
 
-    document.getElementById('theme-toggle').addEventListener('click', () => {
-        document.body.classList.toggle('dark-mode');
-        const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
-        localStorage.setItem('theme', theme);
-        document.getElementById('theme-toggle').innerHTML = theme === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
-    });
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            document.body.classList.toggle('dark');
+            const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+            localStorage.setItem('theme', theme);
+            themeToggle.innerHTML = theme === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        });
+    }
 
     const btnStudent = document.getElementById('btn-show-student');
     const btnAdmin = document.getElementById('btn-show-admin');
-    
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
-    
     const loginRoleText = document.getElementById('login-role-text');
-    const regRoleText = document.getElementById('reg-role-text');
-    
     const toRegister = document.getElementById('to-register');
     const toLogin = document.getElementById('to-login');
-    
     const alertBox = document.getElementById('auth-alert');
 
     let currentRole = 'student';
 
-    // Toggle Roles
-    if (btnStudent && btnAdmin) {
-        btnStudent.addEventListener('click', () => {
-            currentRole = 'student';
-            btnStudent.classList.add('active');
-            btnAdmin.classList.remove('active');
-            if (loginRoleText) loginRoleText.innerText = 'as Student';
-            if (regRoleText) regRoleText.innerText = 'as Student';
-            const loginToggle = document.querySelector('#login-form .toggle-text');
-            if (loginToggle) loginToggle.style.display = 'block';
-            hideAlert();
-        });
+    // Role Selection Logic
+    const setRole = (role) => {
+        currentRole = role;
+        if (role === 'admin') {
+            btnAdmin.classList.add('active', 'bg-indigo-600', 'text-white');
+            btnAdmin.classList.remove('text-slate-500');
+            btnStudent.classList.remove('active', 'bg-indigo-600', 'text-white');
+            btnStudent.classList.add('text-slate-500');
+            if (loginRoleText) loginRoleText.innerText = 'Administrator';
+            // Hide registration option for admins (usually handled manually or fixed)
+            if (toRegister) toRegister.parentElement.style.display = 'none';
+        } else {
+            btnStudent.classList.add('active', 'bg-indigo-600', 'text-white');
+            btnStudent.classList.remove('text-slate-500');
+            btnAdmin.classList.remove('active', 'bg-indigo-600', 'text-white');
+            btnAdmin.classList.add('text-slate-500');
+            if (loginRoleText) loginRoleText.innerText = 'Student';
+            if (toRegister) toRegister.parentElement.style.display = 'block';
+        }
+        hideAlert();
+    };
 
-        btnAdmin.addEventListener('click', () => {
-            currentRole = 'admin';
-            btnAdmin.classList.add('active');
-            btnStudent.classList.remove('active');
-            if (loginRoleText) loginRoleText.innerText = 'as Admin';
-            if (regRoleText) regRoleText.innerText = 'as Admin';
-            
-            const loginToggle = document.querySelector('#login-form .toggle-text');
-            if (loginToggle) loginToggle.style.display = 'none';
-            if (toLogin) toLogin.click(); 
-            
-            hideAlert();
-        });
-    }
+    if (btnStudent) btnStudent.addEventListener('click', () => setRole('student'));
+    if (btnAdmin) btnAdmin.addEventListener('click', () => setRole('admin'));
 
-    // Toggle Forms
-    if (toRegister && toLogin && loginForm && registerForm) {
+    // Form Switching
+    if (toRegister) {
         toRegister.addEventListener('click', () => {
-            loginForm.style.display = 'none';
-            registerForm.style.display = 'block';
-            hideAlert();
-        });
-
-        toLogin.addEventListener('click', () => {
-            registerForm.style.display = 'none';
-            loginForm.style.display = 'block';
+            loginForm.classList.add('hidden');
+            registerForm.classList.remove('hidden');
             hideAlert();
         });
     }
 
-    // Helper: Show Alert
-    function showAlert(msg, isError = true) {
+    if (toLogin) {
+        toLogin.addEventListener('click', () => {
+            registerForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+            hideAlert();
+        });
+    }
+
+    // Alert Handlers
+    const showAlert = (msg, isError = true) => {
         if (!alertBox) return;
         alertBox.textContent = msg;
-        alertBox.className = `alert ${isError ? 'alert-error' : 'alert-success'}`;
+        alertBox.className = `px-6 py-4 rounded-2xl text-sm font-bold text-center ${isError ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`;
         alertBox.classList.remove('hidden');
-        setTimeout(() => alertBox.classList.add('hidden'), 3000);
-    }
-    function hideAlert() { if (alertBox) alertBox.classList.add('hidden'); }
+    };
+    const hideAlert = () => { if (alertBox) alertBox.classList.add('hidden'); };
 
-    // Register Handler
-    if (registerForm) {
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('reg-username').value;
-            const password = document.getElementById('reg-password').value;
-
-            try {
-                const res = await fetch(`${API_BASE}/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password, role: currentRole })
-                });
-                const data = await res.json();
-                
-                if (res.ok) {
-                    // Clear any stale session so the new user must log in fresh
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('username');
-                    localStorage.removeItem('role');
-                    showAlert('Registration successful! Please login.', false);
-                    if (toLogin) toLogin.click(); 
-                    registerForm.reset();
-                } else {
-                    showAlert(data.message || 'Registration failed');
-                }
-            } catch (error) {
-                showAlert('Server error occurred.');
-            }
-        });
-    }
-
-    // Login Handler
+    // Login Submission
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const submitBtn = loginForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Authenticating...';
+            submitBtn.disabled = true;
+
             const username = document.getElementById('login-username').value;
             const password = document.getElementById('login-password').value;
 
@@ -135,40 +109,63 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('token', data.token);
                     localStorage.setItem('username', data.username);
                     localStorage.setItem('role', data.role);
-                    
-                    if (data.role === 'admin') {
-                        window.location.href = '/admin_dashboard';
-                    } else {
-                        window.location.href = '/student_dashboard';
-                    }
+                    window.location.href = data.role === 'admin' ? '/admin_dashboard' : '/student_dashboard';
                 } else {
-                    showAlert(data.message || 'Login failed');
+                    showAlert(data.message || 'Authentication failed');
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
                 }
             } catch (error) {
-                showAlert('Server error occurred.');
+                showAlert('Neural link failed. Server unreachable.');
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
         });
     }
 
-    // Check if already logged in — validate token with /api/ping (no DB hit, instant)
+    // Register Submission
+    if (registerForm) {
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = registerForm.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+
+            const username = document.getElementById('reg-username').value;
+            const password = document.getElementById('reg-password').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, role: 'student' }) // Registration defaults to student
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showAlert('Success! Network access granted.', false);
+                    setTimeout(() => toLogin.click(), 1500);
+                } else {
+                    showAlert(data.message || 'Registry failed');
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                showAlert('Registry server error.');
+                submitBtn.disabled = false;
+            }
+        });
+    }
+
+    // Autologin check
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
     if (token) {
-        fetch(`${API_BASE}/ping`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        }).then(res => {
+        fetch(`${API_BASE}/ping`, { headers: { 'Authorization': `Bearer ${token}` }})
+        .then(res => {
             if (res.ok) {
-                // Token is valid — redirect to the right dashboard
-                if (role === 'admin') window.location.href = '/admin_dashboard';
-                else if (role === 'student') window.location.href = '/student_dashboard';
+                window.location.href = role === 'admin' ? '/admin_dashboard' : '/student_dashboard';
             } else {
-                // Token expired or invalid — clear it and stay on login page
-                localStorage.removeItem('token');
-                localStorage.removeItem('username');
-                localStorage.removeItem('role');
+                localStorage.clear();
             }
-        }).catch(() => {
-            // Network error — stay on login page
-        });
+        }).catch(() => {});
     }
 });
