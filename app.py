@@ -13,6 +13,8 @@ import jwt
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
+import sqlalchemy
+from sqlalchemy import func
 from models import db, User, Question, Submission, MeetLink, Message
 
 # Load environment variables from .env file
@@ -418,7 +420,7 @@ def get_students(current_user):
         output.append({
             'id': std.id,
             'username': std.username,
-            'average': round(average, 2),
+            'average': float("{:.2f}".format(average)),
             'total_submissions': total
         })
     return jsonify({'students': output})
@@ -435,13 +437,38 @@ def get_leaderboard(current_user):
         average = (correct / total * 100) if total > 0 else 0
         output.append({
             'username': std.username,
-            'average': round(average, 2),
+            'average': float("{:.2f}".format(average)),
             'total_submissions': total,
             'is_me': std.id == current_user.id
         })
     # Sort by average score descending
     output.sort(key=lambda x: x['average'], reverse=True)
     return jsonify({'leaderboard': output})
+
+@app.route('/api/admin/stats', methods=['GET'])
+@token_required
+@admin_required
+def get_admin_stats(current_user):
+    total_students = User.query.filter_by(role='student').count()
+    total_submissions = Submission.query.count()
+    
+    # Calculate global average as the average of each student's percentage
+    students = User.query.filter_by(role='student').all()
+    student_avgs = []
+    
+    for student in students:
+        student_subs = Submission.query.filter_by(student_id=student.id).all()
+        if student_subs:
+            correct = sum(1 for s in student_subs if s.is_correct)
+            student_avgs.append((correct / len(student_subs)) * 100)
+            
+    global_avg = sum(student_avgs) / len(student_avgs) if student_avgs else 0
+        
+    return jsonify({
+        'total_students': total_students,
+        'total_submissions': total_submissions,
+        'global_average': round(global_avg, 2)
+    })
 
 @app.route('/api/students/<int:id>', methods=['DELETE'])
 @token_required
@@ -601,6 +628,25 @@ def get_meetlinks(current_user):
             'created_at': link.created_at.strftime('%Y-%m-%d %I:%M %p')
         })
     return jsonify({'meetlinks': output})
+
+@app.route('/api/broadcast', methods=['POST'])
+@token_required
+@admin_required
+def api_broadcast(current_user):
+    data = request.get_json()
+    content = data.get('content')
+    if not content:
+        return jsonify({'message': 'Content missing!'}), 400
+    
+    new_message = Message(
+        sender_id=current_user.id,
+        sender_role=current_user.role,
+        receiver_id=None, # Broadcast
+        content=content
+    )
+    db.session.add(new_message)
+    db.session.commit()
+    return jsonify({'message': 'Broadcast sent successfully!'}), 201
 
 @app.route('/api/messages', methods=['POST'])
 @token_required

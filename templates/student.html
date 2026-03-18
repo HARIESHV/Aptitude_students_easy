@@ -142,17 +142,107 @@
             display: inline-block;
         }
 
-        /* Desktop specific tweaks to avoid conflicts */
-        .hidden.md\:block.desktop-layout {
-            display: none;
-        }
+        /* Desktop Specific (md+) */
         @media (min-width: 768px) {
             .hidden.md\:block.desktop-layout {
                 display: flex !important;
+                flex-direction: row;
+                height: 100vh;
+                overflow: hidden;
             }
-            body {
+            body { 
+                background: #f8fafc;
                 user-select: auto;
             }
+            .dark-mode body { background: #020617; }
+
+            #three-bg-container {
+                position: absolute;
+                top: 25%; left: 0;
+                width: 100%; height: 50vh;
+                z-index: -1;
+                background: rgba(255,255,255,0.05);
+                pointer-events: none;
+                overflow: hidden;
+            }
+            .dark-mode #three-bg-container {
+                background: rgba(15,23,42,0.1);
+            }
+        }
+
+        /* Modern Dashboard Card Styles */
+        .premium-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden;
+            position: relative;
+        }
+        .dark-mode .premium-card {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+        }
+        .premium-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.2);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .category-icon-orb {
+            width: 64px; height: 64px;
+            border-radius: 20px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.2);
+        }
+
+        .active-pill {
+            position: relative;
+        }
+        .active-pill::after {
+            content: '';
+            position: absolute;
+            left: 0; top: 50%; transform: translateY(-50%);
+            width: 4px; height: 60%;
+            background: #6366f1;
+            border-radius: 2px;
+        }
+
+        @keyframes sectionFadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .dashboard-section {
+            animation: sectionFadeIn 0.6s ease-out forwards;
+        }
+
+        /* Sidebar Glass Styling */
+        .sidebar {
+            background: rgba(255, 255, 255, 0.8) !important;
+            backdrop-filter: blur(25px) !important;
+            border-right: 1px solid rgba(0, 0, 0, 0.05) !important;
+        }
+        .dark-mode .sidebar {
+            background: rgba(2, 6, 23, 0.8) !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+        }
+
+        /* Topbar Transparency */
+        .topbar {
+            background: rgba(255, 255, 255, 0.6) !important;
+            backdrop-filter: blur(20px) !important;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+        }
+        .dark-mode .topbar {
+            background: rgba(15, 23, 42, 0.3) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
         }
     </style>
 </head>
@@ -165,18 +255,9 @@
         <!-- Fixed Top Header -->
         <header class="fixed top-0 left-0 right-0 z-[100] h-16 px-6 flex items-center justify-between glass-morphism rounded-b-2xl max-w-[430px] mx-auto">
             <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                    <i class="fas fa-brain text-white text-sm"></i>
-                </div>
                 <span class="font-extrabold text-lg tracking-tight text-indigo-600 dark:text-indigo-400">Aptitude<span class="text-slate-900 dark:text-white">PRO</span></span>
             </div>
-            <div class="flex items-center gap-3">
-                <button id="theme-toggle-mob" class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
-                    <i class="fas fa-moon"></i>
-                </button>
-                <div class="w-10 h-10 rounded-full border-2 border-indigo-500/20 p-0.5" onclick="document.querySelector('[data-target=\'stats\']').click()">
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" class="w-full h-full rounded-full bg-indigo-100 dark:bg-indigo-900">
-                </div>
+            <div class="flex items-center gap-2">
             </div>
         </header>
 
@@ -185,39 +266,19 @@
             
             <div id="dashboard-alert-mob" class="hidden fixed top-20 left-4 right-4 z-[110] px-6 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-2xl border backdrop-blur-md"></div>
 
-            <!-- HERO SECTION (CENTERED) -->
-            <section id="hero-section" class="flex flex-col items-center text-center space-y-6 pt-4 w-full">
-                <div class="pill-badge">THE FUTURE OF APTITUDE PRACTICE</div>
-                <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white leading-[1.15]">
-                    Master Your <br/> <span class="text-gradient">Aptitude Skills</span>
-                </h1>
-                <p class="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed max-w-[300px]">
-                    Practice Quantitative Aptitude, Logical Reasoning, Verbal Ability, and Placement-level questions.
-                </p>
-                <button class="btn-gradient w-full py-4 rounded-full text-white font-bold text-base flex items-center justify-center gap-2 mt-2" onclick="document.querySelector('[data-target=\'practice\']').click()">
-                    Start Practice <i class="fas fa-arrow-right text-xs"></i>
-                </button>
-            </section>
-
-            <!-- DASHBOARD SECTION (PRACTICE) -->
+            <!-- PRACTICE SECTION (MOBILE HOME) -->
             <section id="practice-mob" class="dashboard-section-mob w-full space-y-6">
-                <div class="flex items-center justify-between px-2">
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Aptitude Topics</h3>
-                    <span class="text-[10px] font-bold uppercase text-indigo-600 tracking-wider">All Categories</span>
-                </div>
-                
-                <div id="quiz-category-grid-mob" class="flex flex-col gap-4 w-full">
-                    <!-- Cards injected by JS -->
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white text-center">Practice Mission Control</h3>
+                <div id="quiz-category-grid-mob" class="grid grid-cols-1 gap-4">
+                    <!-- Categories injected by JS -->
                 </div>
             </section>
 
             <!-- LEADERBOARD SECTION -->
             <section id="leaderboard-section-mob" class="dashboard-section-mob hidden w-full space-y-6">
                 <h3 class="text-lg font-bold text-slate-900 dark:text-white text-center">Elite Achievers</h3>
-                <div class="glass-morphism rounded-3xl overflow-hidden shadow-xl">
-                    <table class="w-full text-left">
-                        <tbody id="student-leaderboard-tbody-mob" class="divide-y divide-black/5 dark:divide-white/5"></tbody>
-                    </table>
+                <div class="glass-morphism rounded-3xl overflow-hidden shadow-xl p-2">
+                    <div id="student-leaderboard-tbody-mob" class="flex flex-col"></div>
                 </div>
             </section>
 
@@ -258,11 +319,33 @@
                     Logout Terminal
                 </button>
             </section>
+            
+            <!-- MESSAGES SECTION (MOBILE) -->
+            <section id="messages-mob" class="dashboard-section-mob hidden w-full space-y-8">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white text-center">Doubts & Messages</h3>
+                
+                <div class="glass-morphism p-6 rounded-3xl space-y-4">
+                    <h4 class="text-sm font-bold text-indigo-600 uppercase tracking-widest">New Transmission</h4>
+                    <form id="student-send-msg-form-mob" class="space-y-4">
+                        <textarea id="s-msg-content-mob" placeholder="Type your doubt..." rows="3" required class="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"></textarea>
+                        <button type="submit" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">
+                            Send to Admin
+                        </button>
+                    </form>
+                </div>
+
+                <div class="space-y-4">
+                    <h4 class="text-sm font-bold text-slate-400 uppercase tracking-widest px-2">Conversation Log</h4>
+                    <div id="student-messages-list-mob" class="space-y-4">
+                        <!-- Messages injected by JS -->
+                    </div>
+                </div>
+            </section>
         </main>
 
         <!-- Fixed Bottom Navigation -->
         <nav class="bottom-nav glass-morphism max-w-[430px]">
-            <div class="nav-icon-link active" data-target="hero-section">
+            <div class="nav-icon-link active" data-target="practice-mob">
                 <i class="fas fa-home"></i>
                 <span>Home</span>
             </div>
@@ -270,13 +353,13 @@
                 <i class="fas fa-rocket"></i>
                 <span>Practice</span>
             </div>
-            <div class="nav-icon-link" data-target="practice-mob" data-category="Placement / Company Tests">
-                <i class="fas fa-briefcase"></i>
-                <span>Exams</span>
-            </div>
             <div class="nav-icon-link" data-target="leaderboard-section-mob">
                 <i class="fas fa-trophy"></i>
                 <span>Rank</span>
+            </div>
+            <div class="nav-icon-link" data-target="messages-mob">
+                 <i class="fas fa-envelope"></i>
+                 <span>Doubts</span>
             </div>
             <div class="nav-icon-link" data-target="stats-mob">
                 <i class="fas fa-user-circle"></i>
@@ -290,9 +373,7 @@
          ========================================== -->
     <div class="hidden md:block desktop-layout" id="desktop-layout">
         <!-- Background FX -->
-        <div id="particles-dashboard"></div>
-        <div class="polygon-bg-container"><canvas id="polygon-canvas"></canvas></div>
-        <div class="sphere-container" id="sphere-3d"></div>
+        <div id="three-bg-container" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1;"></div>
         <div class="holographic-overlay"></div>
         <div class="scanner-line"></div>
 
@@ -335,6 +416,7 @@
                     </button>
                 </div>
                 <div class="topbar-right">
+                    <button id="fullscreen-toggle" class="theme-btn-orb mr-2"><i class="fas fa-expand"></i></button>
                     <button id="theme-toggle" class="theme-btn-orb"><i class="fas fa-moon"></i></button>
                     <div class="user-info-badge"><span id="welcome-text">Welcome, Student</span></div>
                 </div>
@@ -444,8 +526,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
-    <script src="{{ url_for('static', filename='js/aptitude-effects.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/dashboard-3d.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/three-background.js') }}"></script>
     <script src="{{ url_for('static', filename='js/student.js') }}"></script>
 </body>
 </html>

@@ -14,10 +14,10 @@ function initThree() {
     scene = new THREE.Scene();
     
     // 2. Camera Setup
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 10;
-    camera.position.y = 5;
-    camera.rotation.x = -0.3;
+    camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 12;
+    camera.position.y = 4.5;
+    camera.rotation.x = -0.42;
 
     // 3. Renderer Setup
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });

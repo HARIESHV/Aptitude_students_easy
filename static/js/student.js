@@ -46,6 +46,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Fullscreen Utility ---
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.warn(`Error attempting to enable full-screen mode: ${err.message}`);
+            });
+            ['fullscreen-toggle', 'fullscreen-toggle-mob'].forEach(id => {
+                const b = document.getElementById(id);
+                if(b) b.innerHTML = '<i class="fas fa-compress"></i>';
+            });
+        } else {
+            document.exitFullscreen();
+            ['fullscreen-toggle', 'fullscreen-toggle-mob'].forEach(id => {
+                const b = document.getElementById(id);
+                if(b) b.innerHTML = '<i class="fas fa-expand"></i>';
+            });
+        }
+    };
+
+    ['fullscreen-toggle', 'fullscreen-toggle-mob'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.addEventListener('click', toggleFullscreen);
+    });
+
     if (document.getElementById('welcome-text')) document.getElementById('welcome-text').innerText = username;
     if (document.getElementById('welcome-text-mob')) document.getElementById('welcome-text-mob').innerText = username;
     if (document.getElementById('user-display-name')) document.getElementById('user-display-name').innerText = username;
@@ -60,19 +84,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const target = item.getAttribute('data-target');
             const category = item.getAttribute('data-category');
             
-            navItems.forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
+            navItems.forEach(i => i.classList.remove('active', 'active-pill'));
+            item.classList.add('active', 'active-pill');
 
-            sections.forEach(s => s.classList.add('hidden'));
-            if (heroSection) heroSection.classList.add('hidden');
+            // Hide everything first using classes only
+            sections.forEach(s => {
+                s.classList.add('hidden');
+                s.style.display = ''; // Clear any inline styles that might cause overlaps
+            });
+            if (heroSection) {
+                heroSection.classList.add('hidden');
+                heroSection.style.display = '';
+            }
             
             const targetSection = document.getElementById(target);
             if (targetSection) {
                 targetSection.classList.remove('hidden');
-                // Ensure desktop style display:block/flex is respected
-                if (window.getComputedStyle(targetSection).display === 'none') {
-                    targetSection.style.display = 'block';
-                }
+                // Use a consistent way to show sections without inline styles if possible
+                // If it was hidden by Tailwind, removing 'hidden' is enough.
             }
 
             if (target.includes('practice')) {
@@ -229,16 +258,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                     grid.appendChild(card);
                 } else {
-                    // Legacy/Desktop Grid Item (matching original style if possible, or keeping current clean style)
+                    // Modern Desktop Premium Card
                     const card = document.createElement('div');
-                    card.className = 'quiz-card glass-panel';
+                    card.className = 'premium-card p-8 flex flex-col justify-between group';
                     card.innerHTML = `
-                        <div class="card-icon">${meta.icon}</div>
-                        <h3>${catName}</h3>
-                        <p>${meta.desc}</p>
-                        <div class="card-footer">
-                            <span class="count">${count} Q's</span>
-                            <button class="btn-start" onclick="showQuestionsInCategory('${catName}')">Practice Now</button>
+                        <div>
+                            <div class="category-icon-orb group-hover:scale-110 transition-transform">
+                                ${meta.icon}
+                            </div>
+                            <h3 class="text-2xl font-black text-slate-800 dark:text-white mb-2">${catName}</h3>
+                            <p class="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed mb-6">${meta.desc}</p>
+                        </div>
+                        <div class="flex items-center justify-between pt-6 border-t border-slate-100 dark:border-white/5">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Available</span>
+                                <span class="text-lg font-black text-indigo-600">${count} Practice Sets</span>
+                            </div>
+                            <button onclick="showQuestionsInCategory('${catName}')" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-sm shadow-lg shadow-indigo-600/20 transition-all active:scale-95">
+                                Practice Now
+                            </button>
                         </div>
                     `;
                     grid.appendChild(card);
@@ -311,114 +349,143 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Messaging UI ---
     const msgForm = document.getElementById('student-send-msg-form');
-    if (msgForm) {
-        msgForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = msgForm.querySelector('button[type="submit"]');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Dispatching...';
-            btn.disabled = true;
+    const msgFormMob = document.getElementById('student-send-msg-form-mob');
+    
+    const handleMsgSubmit = async (e, contentId) => {
+        e.preventDefault();
+        const contentEl = document.getElementById(contentId);
+        const btn = e.target.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Sending...';
+        btn.disabled = true;
 
-            const formObj = new FormData();
-            formObj.append('content', document.getElementById('s-msg-content').value);
-            formObj.append('receiver_id', '1'); 
-            
-            try {
-                const res = await fetch(`${API_BASE}/messages`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formObj
-                });
-                if (res.ok) {
-                    showAlert('Message synced with control center!');
-                    msgForm.reset();
-                    fetchMessages();
-                } else {
-                    showAlert('Sync failed', true);
-                }
-            } catch (error) { showAlert('Critical Error', true); }
-            finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
+        const formObj = new FormData();
+        formObj.append('content', contentEl.value);
+        formObj.append('receiver_id', '1'); 
+        
+        try {
+            const res = await fetch(`${API_BASE}/messages`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formObj
+            });
+            if (res.ok) {
+                showAlert('Message sent!');
+                e.target.reset();
+                fetchMessages();
+            } else {
+                showAlert('Send failed', true);
             }
-        });
-    }
+        } catch (error) { showAlert('Connection Error', true); }
+        finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    };
+
+    if (msgForm) msgForm.addEventListener('submit', (e) => handleMsgSubmit(e, 's-msg-content'));
+    if (msgFormMob) msgFormMob.addEventListener('submit', (e) => handleMsgSubmit(e, 's-msg-content-mob'));
 
     async function fetchMessages() {
         try {
             const res = await fetch(`${API_BASE}/messages`, { headers: getHeaders() });
             const data = await res.json();
-            const list = document.getElementById('student-messages-list');
-            if (!list) return;
-            list.innerHTML = '';
             
-            if (data.messages.length === 0) {
-                 list.innerHTML = '<div class="glass-morphism p-10 text-center text-slate-400 font-bold text-xs uppercase tracking-widest">No Transmissions</div>';
-                 return;
-            }
-            
-            data.messages.forEach(m => {
-                const item = document.createElement('div');
-                item.className = 'glass-morphism p-6 space-y-3 text-left rounded-[24px] border-none shadow-sm';
-                const isAdmin = m.sender_role === 'admin' || m.receiver_id === null;
+            const containers = [
+                { id: 'student-messages-list', isMob: false },
+                { id: 'student-messages-list-mob', isMob: true }
+            ];
+
+            containers.forEach(cont => {
+                const list = document.getElementById(cont.id);
+                if (!list) return;
+                list.innerHTML = '';
                 
-                item.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg ${isAdmin ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600'} flex items-center justify-center text-[10px]">
-                            <i class="fas fa-${isAdmin ? 'shield-alt' : 'user'}"></i>
+                if (data.messages.length === 0) {
+                     list.innerHTML = `<div class="glass-morphism p-10 text-center text-slate-400 font-bold text-xs uppercase tracking-widest ${cont.isMob ? 'border-none' : ''}">No Transmissions</div>`;
+                     return;
+                }
+                
+                data.messages.forEach(m => {
+                    const item = document.createElement('div');
+                    item.className = cont.isMob 
+                        ? 'glass-morphism p-5 space-y-3 text-left rounded-[24px] border-none shadow-sm'
+                        : 'glass-morphism p-6 space-y-3 text-left rounded-[24px] border-none shadow-sm';
+                    
+                    const isAdmin = m.sender_role === 'admin' || m.receiver_id === null;
+                    
+                    item.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg ${isAdmin ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600'} flex items-center justify-center text-[10px]">
+                                <i class="fas fa-${isAdmin ? 'shield-alt' : 'user'}"></i>
+                            </div>
+                            <div>
+                                <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">${isAdmin ? 'Control Center' : 'Your Transmission'}</div>
+                                <div class="text-[9px] font-bold text-slate-500">${m.timestamp}</div>
+                            </div>
                         </div>
-                        <div>
-                            <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">${isAdmin ? 'Control Center' : 'Your Transmission'}</div>
-                            <div class="text-[9px] font-bold text-slate-500">${m.timestamp}</div>
-                        </div>
-                    </div>
-                    <p class="text-xs font-medium text-slate-600 dark:text-slate-300">${m.content}</p>
-                `;
-                list.appendChild(item);
+                        <p class="text-xs font-medium text-slate-600 dark:text-slate-300 leading-snug">${m.content}</p>
+                    `;
+                    list.appendChild(item);
+                });
             });
         } catch (err) { console.error(err); }
     }
 
     // --- Leaderboard Section ---
     async function fetchLeaderboard() {
+        const containers = [
+            { id: 'student-leaderboard-tbody', isMob: false },
+            { id: 'student-leaderboard-tbody-mob', isMob: true }
+        ];
+
+        containers.forEach(cont => {
+            const el = document.getElementById(cont.id);
+            if (el) el.innerHTML = cont.isMob 
+                ? '<div class="p-10 text-center text-slate-400 animate-pulse">Scanning rankings...</div>'
+                : '<tr><td colspan="4" style="text-align:center;">Loading rankings...</td></tr>';
+        });
+
         try {
             const res = await fetch(`${API_BASE}/leaderboard`, { headers: getHeaders() });
             const data = await res.json();
             
-            const containers = [
-                { id: 'student-leaderboard-tbody', isMob: false },
-                { id: 'student-leaderboard-tbody-mob', isMob: true }
-            ];
-
             containers.forEach(cont => {
                 const el = document.getElementById(cont.id);
                 if (!el) return;
                 el.innerHTML = '';
                 
+                if (!data.leaderboard || data.leaderboard.length === 0) {
+                    el.innerHTML = cont.isMob 
+                        ? '<div class="glass-morphism p-10 text-center text-slate-400 font-bold text-xs uppercase tracking-widest">No rankings found</div>'
+                        : '<tr><td colspan="4" style="text-align:center;">No leaderboard data available.</td></tr>';
+                    return;
+                }
+
                 data.leaderboard.forEach((std, index) => {
                     const rankStr = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
                     
                     if (cont.isMob) {
-                        const tr = document.createElement('tr');
-                        tr.className = `flex items-center gap-4 px-5 py-4 ${std.is_me ? 'bg-indigo-600/5' : ''}`;
+                        const tr = document.createElement('div');
+                        tr.className = `flex items-center gap-4 px-5 py-4 rounded-2xl mb-2 ${std.is_me ? 'bg-indigo-600/10 border border-indigo-500/20 shadow-lg' : 'bg-white/5 border border-transparent'}`;
                         tr.innerHTML = `
                             <div class="w-8 h-8 rounded-xl ${index < 3 ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600' : 'bg-slate-50 dark:bg-slate-800 text-slate-400'} flex items-center justify-center font-bold text-xs shadow-sm">
                                 ${rankStr}
                             </div>
-                            <div class="flex-1 flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full border-2 border-indigo-500/10 p-0.5">
+                            <div class="flex-1 flex items-center gap-3 overflow-hidden">
+                                <div class="w-10 h-10 rounded-full border-2 border-indigo-500/10 p-0.5 shrink-0">
                                     <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${std.username}" class="w-full h-full rounded-full bg-slate-100 dark:bg-slate-800">
                                 </div>
-                                <div>
-                                    <div class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                <div class="overflow-hidden">
+                                    <div class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
                                         ${std.username} 
                                         ${std.is_me ? '<span class="text-[8px] px-2 py-0.5 bg-indigo-600 text-white rounded-full font-bold uppercase tracking-tighter">You</span>' : ''}
                                     </div>
-                                    <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none mt-0.5">Aptitude Scholar</div>
+                                    <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none mt-0.5">${std.total_submissions || 0} Submissions</div>
                                 </div>
                             </div>
-                            <div class="text-right">
-                                <div class="text-sm font-bold text-indigo-600">${std.average}%</div>
+                            <div class="text-right shrink-0">
+                                <div class="text-xs font-bold text-indigo-600">${std.average}%</div>
                             </div>
                         `;
                         el.appendChild(tr);
@@ -435,7 +502,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
             });
-        } catch (err) { console.error(err); }
+        } catch (err) { 
+            console.error(err);
+            containers.forEach(cont => {
+                const el = document.getElementById(cont.id);
+                if (el) el.innerHTML = '<div class="p-10 text-center text-red-400">Error loading data.</div>';
+            });
+        }
     }
 
     // Initialize

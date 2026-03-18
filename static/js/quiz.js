@@ -172,12 +172,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 pt-6 border-t border-black/5 dark:border-white/5">
                         <div class="flex items-center gap-4">
-                            <label class="cursor-pointer group flex items-center gap-3 px-4 md:px-5 py-2.5 md:py-3 bg-slate-50 dark:bg-slate-900 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition-all">
-                                <i class="fas fa-paperclip text-slate-400 group-hover:text-indigo-600"></i>
-                                <span class="text-[10px] md:text-xs font-bold text-slate-500 group-hover:text-indigo-600 uppercase tracking-widest">Attach Proof</span>
+                            <label id="attach-label-${q.id}" class="cursor-pointer group flex items-center gap-3 px-4 md:px-5 py-2.5 md:py-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/50 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/20 transition-all">
+                                <span class="relative flex h-2 w-2">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                </span>
+                                <i class="fas fa-paperclip text-red-400 group-hover:text-red-600"></i>
+                                <span class="text-[10px] md:text-xs font-bold text-red-500 group-hover:text-red-600 uppercase tracking-widest">Attach Proof <span class="text-red-500">*Required</span></span>
                                 <input type="file" id="file-${q.id}" class="hidden" accept=".pdf,.doc,.docx,image/*">
                             </label>
-                            <div id="file-status-${q.id}" class="text-[9px] md:text-[10px] font-black uppercase text-indigo-600 tracking-widest hidden">File Ready</div>
+                            <div id="file-status-${q.id}" class="text-[9px] md:text-[10px] font-black uppercase text-emerald-600 tracking-widest hidden flex items-center gap-1.5">
+                                <i class="fas fa-check-circle"></i> File Ready
+                            </div>
                         </div>
 
                         <div class="flex gap-3 md:gap-4">
@@ -192,11 +198,20 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         list.appendChild(qCard);
 
-        // File feedback
+        // File feedback — update attach button when file is selected
         const fileInput = document.getElementById(`file-${q.id}`);
         const fileStatus = document.getElementById(`file-status-${q.id}`);
+        const attachLabel = document.getElementById(`attach-label-${q.id}`);
         fileInput.addEventListener('change', () => {
-            if (fileInput.files.length > 0) fileStatus.classList.remove('hidden');
+            if (fileInput.files.length > 0) {
+                fileStatus.classList.remove('hidden');
+                fileStatus.innerHTML = `<i class="fas fa-check-circle"></i> ${fileInput.files[0].name.length > 20 ? fileInput.files[0].name.substring(0, 20) + '...' : fileInput.files[0].name}`;
+                // Switch the label to green "proof attached" style
+                attachLabel.className = 'cursor-pointer group flex items-center gap-3 px-4 md:px-5 py-2.5 md:py-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/50 rounded-xl transition-all';
+                attachLabel.querySelector('i').className = 'fas fa-paperclip text-emerald-500';
+                attachLabel.querySelector('span').innerHTML = 'Proof Attached <i class="fas fa-check"></i>';
+                attachLabel.querySelector('span').className = 'text-[10px] md:text-xs font-bold text-emerald-600 uppercase tracking-widest';
+            }
         });
 
         // Card Selection Logic
@@ -230,6 +245,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const formEl = document.getElementById(`solve-form-${q.id}`);
         formEl.addEventListener('submit', (e) => {
             e.preventDefault();
+            
+            // ── Mandatory Attach Proof Validation ──
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                // Shake the attach label and show error
+                attachLabel.style.animation = 'none';
+                attachLabel.offsetHeight; // Reflow
+                attachLabel.style.animation = 'shake 0.4s ease-in-out';
+                attachLabel.className = attachLabel.className.replace('bg-red-50', 'bg-red-100');
+                
+                // Inject shake CSS if not present
+                if (!document.getElementById('shake-style')) {
+                    const style = document.createElement('style');
+                    style.id = 'shake-style';
+                    style.textContent = `@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }`;
+                    document.head.appendChild(style);
+                }
+                
+                showAlert('⚠️ Proof attachment is required! Please attach your working/solution file before submitting.', true);
+                // Scroll to the attach area
+                attachLabel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return; // Block submission
+            }
+
             let selected = 'None';
             if (q.question_type === 'text') {
                 const textInput = document.getElementById(`text_answer_${q.id}`);

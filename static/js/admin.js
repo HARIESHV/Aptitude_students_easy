@@ -35,48 +35,72 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initialize Theme
-    const themeToggle = document.getElementById('theme-toggle') || document.getElementById('theme-toggle-top');
+    const getThemeToggle = () => document.getElementById('theme-toggle-top-desktop') || document.getElementById('theme-toggle-mobile');
     const currentTheme = localStorage.getItem('theme') || 'light';
     
     if (currentTheme === 'dark') {
         document.body.classList.add('dark-mode', 'dark');
-        if (themeToggle) themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+        const toggles = [document.getElementById('theme-toggle-top-desktop'), document.getElementById('theme-toggle-mobile')];
+        toggles.forEach(t => { if(t) t.innerHTML = '<i class="fas fa-sun"></i>'; });
     }
 
-    if (themeToggle) {
-        themeToggle.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            document.body.classList.toggle('dark');
-            const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
-            localStorage.setItem('theme', theme);
-            themeToggle.innerHTML = theme === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
-        });
-    }
+    const toggles = [document.getElementById('theme-toggle-top-desktop'), document.getElementById('theme-toggle-mobile')];
+    toggles.forEach(toggle => {
+        if (toggle) {
+            toggle.addEventListener('click', () => {
+                document.body.classList.toggle('dark-mode');
+                document.body.classList.toggle('dark');
+                const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+                localStorage.setItem('theme', theme);
+                const icon = theme === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+                document.getElementById('theme-toggle-top-desktop').innerHTML = icon;
+                document.getElementById('theme-toggle-mobile').innerHTML = icon;
+            });
+        }
+    });
 
-    if (document.getElementById('welcome-text')) {
-        document.getElementById('welcome-text').innerText = `${username}`;
-    }
+    const usernames = document.querySelectorAll('.welcome-username');
+    usernames.forEach(el => el.innerText = username);
 
-    // --- Navigation ---
+    // --- Navigation & Shared Container Logic ---
     const navItems = document.querySelectorAll('.nav-links .nav-item');
     const sections = document.querySelectorAll('.dashboard-section');
-    const pageTitle = document.getElementById('page-title');
+    const desktopTitle = document.getElementById('page-title-desktop');
+
+    // Move sections to appropriate container on load and resize
+    const sectionsRoot = document.getElementById('shared-sections'); 
+    // Actually, I'll just move the dashboard-section elements themselves
+    const desktopSectionsRoot = document.getElementById('desktop-sections-root');
+    const mobileSectionsRoot = document.getElementById('mobile-content-area');
+
+    function relocateSections() {
+        const isDesktop = window.innerWidth >= 1024;
+        const targetRoot = isDesktop ? desktopSectionsRoot : mobileSectionsRoot;
+        if (!targetRoot) return;
+        
+        sections.forEach(s => targetRoot.appendChild(s));
+    }
+
+    window.addEventListener('resize', relocateSections);
+    relocateSections();
 
     navItems.forEach(item => {
         item.addEventListener('click', () => {
             const target = item.getAttribute('data-target');
             
             navItems.forEach(i => i.classList.remove('active'));
-            sections.forEach(s => s.classList.add('hidden'));
+            // Activate all nav items that point to the same target (desktop + mobile)
+            document.querySelectorAll(`.nav-links .nav-item[data-target="${target}"]`).forEach(i => i.classList.add('active'));
             
-            item.classList.add('active');
+            sections.forEach(s => s.classList.add('hidden'));
             const targetSection = document.getElementById(target);
             if (targetSection) targetSection.classList.remove('hidden');
             
-            if (pageTitle) {
+            if (desktopTitle) {
                 const textOnly = item.cloneNode(true);
-                textOnly.querySelector('i').remove();
-                pageTitle.innerText = textOnly.innerText.trim();
+                const icon = textOnly.querySelector('i');
+                if(icon) icon.remove();
+                desktopTitle.innerText = textOnly.innerText.trim();
             }
 
             if(target === 'questions') fetchQuestions();
@@ -90,12 +114,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const alertBox = document.getElementById('dashboard-alert');
     function showAlert(msg, isError = false) {
-        if (!alertBox) return;
+        if (!alertBox) {
+            if (isError) console.error(msg);
+            else console.log(msg);
+            return;
+        }
         alertBox.textContent = msg;
         alertBox.className = `px-6 py-4 rounded-2xl font-bold flex items-center gap-3 border shadow-lg ${isError ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/50' : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/50'}`;
         alertBox.classList.remove('hidden');
         setTimeout(() => alertBox.classList.add('hidden'), 3000);
     }
+
+    const emptyState = (msg) => `<div class="text-center p-12 text-slate-400 font-bold col-span-full">${msg}</div>`;
 
     const getHeaders = () => ({
         'Content-Type': 'application/json',
@@ -103,10 +133,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Logout ---
-    document.getElementById('logout-btn').addEventListener('click', () => {
-        localStorage.clear();
-        window.location.href = '/';
-    });
+    const logoutBtn = document.getElementById('logout-btn-desktop');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = '/';
+        });
+    }
+    
+    const logoutBtnMob = document.getElementById('logout-btn-mobile');
+    if (logoutBtnMob) {
+        logoutBtnMob.addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = '/';
+        });
+    }
     
     // --- Topics Mapping ---
     const setupTopicHandler = (topicId, subtopicId) => {
@@ -156,6 +197,9 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
+            const btn = document.getElementById('deploy-btn');
+            if (btn) btn.disabled = true;
+            
             const res = await fetch(`${API_BASE}/questions`, {
                 method: 'POST',
                 headers: getHeaders(),
@@ -165,8 +209,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 showAlert('Intelligence Node deployed!');
                 document.getElementById('add-question-form').reset();
                 fetchQuestions();
-            } else showAlert('Deployment failed', true);
-        } catch (error) { showAlert('Error', true); }
+            } else {
+                const err = await res.json();
+                showAlert(err.message || 'Deployment failed', true);
+            }
+        } catch (error) { showAlert('Connection Error', true); }
+        finally {
+            const btn = document.getElementById('deploy-btn');
+            if (btn) btn.disabled = false;
+        }
     });
 
     document.getElementById('edit-question-form').addEventListener('submit', async (e) => {
@@ -208,43 +259,76 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { showAlert('Error', true); }
     });
 
-    async function fetchQuestions() {
+    window.fetchQuestions = async () => {
+        const list = document.getElementById('admin-questions-list');
+        if (!list) return;
+
+        list.innerHTML = '<div class="py-20 text-center"><div class="spinner mb-4 mx-auto"></div><div class="text-slate-400 font-bold">Syncing Question Bank...</div></div>';
+        list.classList.add('flex', 'flex-col', 'items-center', 'justify-center');
+        
         try {
             const res = await fetch(`${API_BASE}/questions`, { headers: getHeaders() });
             if (res.status === 401) { window.location.href = '/login'; return; }
+            if (!res.ok) throw new Error('Failed to fetch');
+            
             const data = await res.json();
-            const list = document.getElementById('admin-questions-list');
-            if (!list) return;
             list.innerHTML = '';
+            list.classList.remove('flex', 'flex-col', 'items-center', 'justify-center');
+            
+            // Update count badge
+            const badge = document.getElementById('questions-count-badge');
+            if (badge) badge.innerHTML = `<i class="fas fa-list-ol mr-1.5"></i> ${data.questions ? data.questions.length : 0} Questions`;
+            
+            if (!data.questions || data.questions.length === 0) {
+                list.classList.add('flex', 'flex-col', 'items-center', 'justify-center');
+                list.innerHTML = `<div class="py-20 text-center text-slate-400 font-bold">No assessments deployed yet.</div>`;
+                return;
+            }
             
             data.questions.forEach(q => {
                 const item = document.createElement('div');
-                item.className = 'content-card p-8 flex justify-between items-center group hover:border-indigo-500 transition-all';
+                item.className = 'p-6 md:p-8 space-y-4 group hover:bg-indigo-50/30 dark:hover:bg-indigo-900/5 transition-all';
+                const hasExplanation = q.answer_description && q.answer_description.trim();
                 item.innerHTML = `
-                    <div class="space-y-3">
-                        <div class="flex items-center gap-3">
-                            <span class="px-3 py-1 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest">${q.topic}</span>
-                            <span class="text-xs font-bold text-slate-400">#${q.id}</span>
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-2.5 flex-1 min-w-0 mr-4">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="px-3 py-1 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest">${q.topic}</span>
+                                <span class="text-xs font-bold text-slate-400">#${q.id}</span>
+                                ${hasExplanation 
+                                    ? `<span class="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1"><i class="fas fa-lightbulb"></i> Explanation</span>` 
+                                    : `<span class="px-2 py-0.5 bg-amber-50 dark:bg-amber-900/20 text-amber-500 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1"><i class="fas fa-exclamation-triangle"></i> No Explanation</span>`
+                                }
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-900 dark:text-white leading-snug">${q.title}</h4>
+                            <div class="flex items-center gap-4 text-xs font-medium text-slate-500 flex-wrap">
+                                 <span class="flex items-center gap-1"><i class="fas fa-clock"></i> ${q.time_limit > 0 ? formatTime(q.time_limit) : 'Unlimited'}</span>
+                                 <span class="flex items-center gap-1"><i class="fas fa-tag"></i> ${q.subtopic}</span>
+                                 <span class="flex items-center gap-1 font-bold text-indigo-600"><i class="fas fa-key"></i> ${q.question_type === 'text' ? q.correct_text_answer : 'Option ' + q.correct_option}</span>
+                            </div>
+                            ${hasExplanation ? `
+                            <div class="pt-1">
+                                <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-emerald-50/70 dark:bg-emerald-900/10 px-4 py-3 rounded-xl border border-emerald-100 dark:border-emerald-900/30 line-clamp-2">
+                                    <i class="fas fa-lightbulb text-emerald-500 mr-1.5"></i>${q.answer_description}
+                                </p>
+                            </div>` : ''}
                         </div>
-                        <h4 class="text-xl font-bold text-slate-900 dark:text-white">${q.title}</h4>
-                        <div class="flex items-center gap-4 text-xs font-medium text-slate-500">
-                             <span class="flex items-center gap-1"><i class="fas fa-clock"></i> ${q.time_limit > 0 ? formatTime(q.time_limit) : 'Unlimited'}</span>
-                             <span class="flex items-center gap-1"><i class="fas fa-tag"></i> ${q.subtopic}</span>
-                             <span class="flex items-center gap-1 font-bold text-indigo-600"><i class="fas fa-key"></i> ${q.question_type === 'text' ? q.correct_text_answer : 'Option ' + q.correct_option}</span>
+                        <div class="flex gap-2 shrink-0 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button class="w-9 h-9 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-lg flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all" onclick='editQuestion(${JSON.stringify(q).replace(/'/g, "&apos;")})'>
+                                <i class="fas fa-edit text-sm"></i>
+                            </button>
+                            <button class="w-9 h-9 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-lg flex items-center justify-center hover:bg-red-600 hover:text-white transition-all" onclick="deleteQuestion(${q.id})">
+                                <i class="fas fa-trash text-sm"></i>
+                            </button>
                         </div>
-                    </div>
-                    <div class="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button class="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all" onclick='editQuestion(${JSON.stringify(q).replace(/'/g, "&apos;")})'>
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="w-10 h-10 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all" onclick="deleteQuestion(${q.id})">
-                            <i class="fas fa-trash"></i>
-                        </button>
                     </div>
                 `;
                 list.appendChild(item);
             });
-        } catch (err) { console.error(err); }
+        } catch (err) { 
+            list.innerHTML = emptyState('Error linking with cloud database.');
+            console.error(err); 
+        }
     }
 
     function formatTime(totalSeconds) {
@@ -303,12 +387,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Submissions Section ---
     async function fetchSubmissions() {
+        const tbody = document.getElementById('submissions-tbody');
+        if (!tbody) return;
+
         try {
             const res = await fetch(`${API_BASE}/submissions`, { headers: getHeaders() });
             const data = await res.json();
-            const tbody = document.getElementById('submissions-tbody');
-            if (!tbody) return;
             tbody.innerHTML = '';
+            
+            if (!data.submissions || data.submissions.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-slate-400 font-bold">${emptyState('No submissions recorded yet.')}</td></tr>`;
+                return;
+            }
             
             data.submissions.forEach(sub => {
                 const tr = document.createElement('tr');
@@ -328,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </td>
                     <td class="px-10 py-6 text-right">
-                        <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="flex justify-end gap-2 lg:opacity-0 group-hover:opacity-100 transition-opacity">
                             ${sub.file_path ? `<a href="${sub.file_path}" target="_blank" class="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all"><i class="fas fa-eye"></i></a>` : ''}
                             <button class="w-8 h-8 bg-red-50 text-red-600 rounded-lg flex items-center justify-center hover:bg-red-600 hover:text-white transition-all" onclick="deleteSubmission(${sub.id})"><i class="fas fa-trash"></i></button>
                         </div>
@@ -336,7 +426,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 tbody.appendChild(tr);
             });
-        } catch (err) { console.error(err); }
+        } catch (err) { 
+            tbody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-red-500 font-bold">Failed to load submissions database.</td></tr>`;
+            console.error(err); 
+        }
     }
 
     window.deleteSubmission = async (id) => {
@@ -358,27 +451,37 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function fetchMeetLinks() {
+        const list = document.getElementById('meetlinks-list');
+        if (!list) return;
+
         try {
             const res = await fetch(`${API_BASE}/meetlinks`, { headers: getHeaders() });
             const data = await res.json();
-            const list = document.getElementById('meetlinks-list');
-            if (!list) return;
             list.innerHTML = '';
+            
+            if (!data.meetlinks || data.meetlinks.length === 0) {
+                list.innerHTML = emptyState('No active broadcast signals detected.');
+                return;
+            }
+            
             data.meetlinks.forEach(l => {
                 const item = document.createElement('div');
                 item.className = 'content-card p-6 flex justify-between items-center group';
                 item.innerHTML = `
                     <div class="space-y-1">
                         <h4 class="font-bold text-lg text-slate-900 dark:text-white">${l.title}</h4>
-                        <a href="${l.url}" target="_blank" class="text-xs text-indigo-500 font-medium hover:underline">${l.url}</a>
+                        <a href="${l.url}" target="_blank" class="text-xs text-indigo-500 font-medium hover:underline truncate block max-w-[200px]">${l.url}</a>
                     </div>
-                    <button class="w-10 h-10 bg-red-50 text-red-600 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 hover:text-white" onclick="deleteMeetLink(${l.id})">
+                    <button class="w-10 h-10 bg-red-50 text-red-600 rounded-xl flex items-center justify-center lg:opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 hover:text-white" onclick="deleteMeetLink(${l.id})">
                         <i class="fas fa-trash"></i>
                     </button>
                 `;
                 list.appendChild(item);
             });
-        } catch (err) { console.error(err); }
+        } catch (err) { 
+            list.innerHTML = emptyState('Loss of signal. Check uplink.');
+            console.error(err); 
+        }
     }
 
     window.deleteMeetLink = async (id) => {
@@ -401,12 +504,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function fetchMessages() {
+        const list = document.getElementById('messages-list');
+        if (!list) return;
+
         try {
             const res = await fetch(`${API_BASE}/messages`, { headers: getHeaders() });
             const data = await res.json();
-            const list = document.getElementById('messages-list');
-            if (!list) return;
             list.innerHTML = '';
+            
+            if (!data.messages || data.messages.length === 0) {
+                list.innerHTML = emptyState('No transmission history found.');
+                return;
+            }
+            
             data.messages.forEach(m => {
                 const item = document.createElement('div');
                 item.className = 'content-card p-8 space-y-4';
@@ -423,18 +533,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="text-slate-300 hover:text-red-500 transition-colors" onclick="deleteMessage(${m.id})"><i class="fas fa-trash"></i></button>
                     </div>
                     <p class="text-slate-600 dark:text-slate-300 font-medium">${m.content}</p>
-                    ${m.file_path ? `<a href="${m.file_path}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-600"><i class="fas fa-file-alt"></i> Attachment</a>` : ''}
+                    ${m.file_path ? `<a href="${m.file_path}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-600"><i class="fas fa-file-alt"></i> Attachment</a>` : ''}
                 `;
                 list.appendChild(item);
             });
-        } catch (err) { console.error(err); }
+        } catch (err) { 
+            list.innerHTML = emptyState('Failed to decrypt transmissions.');
+            console.error(err); 
+        }
     }
     
     async function fetchStudentsForMessages() {
+        const s = document.getElementById('msg-receiver');
+        if (!s) return;
+
         try {
             const res = await fetch(`${API_BASE}/students`, { headers: getHeaders() });
             const data = await res.json();
-            const s = document.getElementById('msg-receiver');
             s.innerHTML = '<option value="all" selected>All Intelligence Nodes (Broadcast)</option>';
             data.students.forEach(std => {
                 const o = document.createElement('option');
@@ -446,40 +561,59 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Leaderboard & Registry ---
     async function fetchLeaderboard() {
+        const tbody = document.getElementById('leaderboard-tbody');
+        if (!tbody) return;
+
         try {
-            const res = await fetch(`${API_BASE}/students`, { headers: getHeaders() });
-            if (!res.ok) return;
+            const res = await fetch(`${API_BASE}/leaderboard`, { headers: getHeaders() });
+            if (!res.ok) throw new Error('Failed to fetch');
+            
             const data = await res.json();
-            const tbody = document.getElementById('leaderboard-tbody');
-            if (!tbody) return;
             tbody.innerHTML = '';
-            const sorted = data.students.sort((a,b) => b.average - a.average);
-            sorted.forEach((std, i) => {
+            
+            if (!data.leaderboard || data.leaderboard.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-slate-400 font-bold">No rankings found.</td></tr>`;
+                return;
+            }
+            
+            data.leaderboard.forEach((std, i) => {
                 const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-50 transition-colors';
+                tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
                 tr.innerHTML = `
-                    <td class="px-10 py-6"><div class="w-8 h-8 rounded-lg ${i<3?'bg-amber-100 text-amber-600':'bg-slate-100 text-slate-500'} flex items-center justify-center font-black text-xs">#${i+1}</div></td>
+                    <td class="px-10 py-6"><div class="w-8 h-8 rounded-lg ${i<3?'bg-amber-100 text-amber-600':'bg-slate-100 dark:bg-slate-800 text-slate-500'} flex items-center justify-center font-black text-xs">#${i+1}</div></td>
                     <td class="px-10 py-6"><div class="font-bold text-slate-900 dark:text-white">${std.username}</div></td>
                     <td class="px-10 py-6 text-center text-sm font-bold text-slate-500">${std.total_submissions}</td>
                     <td class="px-10 py-6 text-right"><span class="text-xl font-black text-indigo-600 font-orbitron">${std.average}%</span></td>
                 `;
                 tbody.appendChild(tr);
             });
-        } catch (err) { console.error(err); }
+        } catch (err) { 
+            tbody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-red-500 font-bold">Error calculating standings.</td></tr>`;
+            console.error(err); 
+        }
     }
 
     async function fetchStudents() {
+        const tbody = document.getElementById('students-tbody');
+        if (!tbody) return;
+
         try {
             const res = await fetch(`${API_BASE}/students`, { headers: getHeaders() });
+            if (!res.ok) throw new Error('Failed to fetch');
+            
             const data = await res.json();
-            const tbody = document.getElementById('students-tbody');
-            if (!tbody) return;
             tbody.innerHTML = '';
+            
+            if (!data.students || data.students.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-slate-400 font-bold">No students registered yet.</td></tr>`;
+                return;
+            }
+            
             data.students.forEach((std, i) => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
                 tr.innerHTML = `
-                    <td class="px-10 py-6 text-xs text-slate-400 font-bold">${i+1}</td>
+                    <td class="px-10 py-6"><div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center font-black text-xs">#${i+1}</div></td>
                     <td class="px-10 py-6 font-bold text-slate-900 dark:text-white">${std.username}</td>
                     <td class="px-10 py-6 text-center font-bold text-slate-500">${std.total_submissions}</td>
                     <td class="px-10 py-6 text-center"><span class="px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-bold">${std.average}%</span></td>
@@ -489,7 +623,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 tbody.appendChild(tr);
             });
-        } catch (err) { console.error(err); }
+        } catch (err) { 
+            tbody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-red-500 font-bold">Registry link failed.</td></tr>`;
+            console.error(err); 
+        }
     }
     
     window.deleteStudent = async (id) => {
@@ -523,22 +660,48 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) { showAlert('Error', true); }
     }
 
-    document.getElementById('export-submissions-btn').addEventListener('click', () => downloadExcelBlob('export/submissions', 'Submissions.xlsx'));
-    document.getElementById('export-registry-btn').addEventListener('click', () => downloadExcelBlob('export/students', 'StudentsRegistry.xlsx'));
-    document.getElementById('export-leaderboard-btn').addEventListener('click', () => downloadExcelBlob('export/students', 'Leaderboard.xlsx'));
+    // --- Excel Export Safeguards ---
+    const subExport = document.getElementById('export-submissions-btn');
+    if (subExport) subExport.addEventListener('click', () => downloadExcelBlob('export/submissions', 'Submissions.xlsx'));
+    
+    const regExport = document.getElementById('export-registry-btn');
+    if (regExport) regExport.addEventListener('click', () => downloadExcelBlob('export/students', 'StudentsRegistry.xlsx'));
+    
+    const lbExport = document.getElementById('export-leaderboard-btn');
+    if (lbExport) lbExport.addEventListener('click', () => downloadExcelBlob('export/students', 'Leaderboard.xlsx'));
 
     async function fetchGlobalStats() {
         try {
-            const res = await fetch(`${API_BASE}/students`, { headers: getHeaders() });
+            const res = await fetch(`${API_BASE}/admin/stats`, { headers: getHeaders() });
             if (res.status === 401) return;
+            if (!res.ok) return;
             const data = await res.json();
-            const s = data.students;
-            const avg = s.length > 0 ? (s.reduce((a, b) => a + (parseFloat(b.average)||0), 0) / s.length).toFixed(2) : 0;
-            if (document.getElementById('global-stat-students')) document.getElementById('global-stat-students').innerText = s.length;
-            if (document.getElementById('global-stat-average')) document.getElementById('global-stat-average').innerText = `${avg}%`;
+            
+            const stats = {
+                'global-stat-students': data.total_students,
+                'stat-students-mobile': data.total_students,
+                'global-stat-average': `${data.global_average}%`,
+                'stat-avg-mobile': `${data.global_average}%`,
+                'global-stat-submissions': data.total_submissions,
+                'stat-submissions-mobile': data.total_submissions
+            };
+
+            for (const [id, val] of Object.entries(stats)) {
+                const el = document.getElementById(id);
+                if (el) el.innerText = val;
+            }
         } catch (err) { console.error(err); }
     }
 
+    window.handleLogout = () => {
+        localStorage.clear();
+        window.location.href = '/login';
+    };
+
+    const logoutBtnDesktop = document.getElementById('logout-btn-desktop');
+    if(logoutBtnDesktop) logoutBtnDesktop.addEventListener('click', handleLogout);
+
+    // Initial Load
     fetchQuestions();
     fetchGlobalStats();
 });
