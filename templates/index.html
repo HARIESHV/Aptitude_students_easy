@@ -441,10 +441,10 @@
     <!-- ==========================================
          MOBILE LAYOUT (block md:hidden)
          ========================================== -->
-    <div class="block md:hidden min-h-screen relative z-[100] bg-[#f8fafc] dark:bg-[#020617] text-slate-900 dark:text-white transition-colors duration-500 pb-20 overflow-x-hidden">
+    <div class="block md:hidden min-h-screen relative z-[100] text-slate-900 dark:text-white transition-colors duration-500 pb-20 overflow-x-hidden">
         
         <!-- Topbar -->
-        <header class="h-[56px] px-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800/50 bg-[#f8fafc] dark:bg-[#020617]">
+        <header class="h-[56px] px-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800/50 bg-white/70 dark:bg-[#050a1a]/70 backdrop-blur-md">
             <div class="font-extrabold text-[1.1rem] tracking-tight">APTITUDE<span class="text-indigo-600">LAB</span></div>
             <div class="flex items-center gap-3">
                  <div id="theme-toggle-index-mob" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 bg-slate-200/50 dark:bg-slate-800/50 cursor-pointer">
@@ -457,13 +457,19 @@
         <!-- Main Mobile Container -->
         <main class="w-full max-w-[430px] mx-auto px-4 pt-6 space-y-6">
             
-            <!-- Hero Section -->
-            <section class="space-y-4 text-left">
-                <div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 rounded-xl flex items-center justify-center text-xl mb-3">
-                    <i class="fas fa-brain"></i>
+            <!-- Hero Section with Laptop Animation -->
+            <section class="space-y-4 text-center">
+                <!-- Restored Laptop Animation -->
+                <div class="core-scene scale-75 -mt-6 -mb-4">
+                    <div class="brain-glow"></div>
+                    <div class="orbit-ring"></div>
+                    <div class="brain-core">
+                        <i class="fas fa-brain"></i>
+                    </div>
                 </div>
-                <h1 class="text-[1.7rem] font-bold leading-tight tracking-tight">Next-Gen Aptitude <br/> Training</h1>
-                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">Master complex logic, quantitative patterns, and verbal reasoning with elite-grade training.</p>
+
+                <h1 class="text-[1.7rem] font-bold leading-tight tracking-tight mt-2 text-left">Next-Gen Aptitude <br/> Training</h1>
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium text-left">Master complex logic, quantitative patterns, and verbal reasoning with elite-grade training.</p>
                 
                 <a href="/login" class="block w-full h-[48px] bg-indigo-600 active:bg-indigo-700 text-white rounded-xl font-bold flex items-center justify-center mt-2">
                     Begin Practice
