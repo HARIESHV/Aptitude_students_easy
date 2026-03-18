@@ -12,6 +12,61 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    async function fetchMeetLinks() {
+        try {
+            const listIds = ['student-meetlinks-list', 'student-meetlinks-mob'];
+            
+            const res = await fetch(`${API_BASE}/meetlinks`, { method: 'GET', headers: getHeaders() });
+            if (!res.ok) return;
+            const data = await res.json();
+            
+            const links = data.meetlinks;
+
+            listIds.forEach(id => {
+                const list = document.getElementById(id);
+                // If the section is the mobile section, we replace its inner div content. 
+                // Wait, finding the list container:
+                const container = id === 'student-meetlinks-mob' ? list.querySelector('div') : list;
+                if (!container) return;
+
+                if (links.length === 0) {
+                    container.innerHTML = `
+                        <div class="w-16 h-16 bg-indigo-500/10 text-indigo-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-2 shadow-inner">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <p class="text-sm font-bold text-slate-900 dark:text-white mt-4">No active classes scheduled right now.</p>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2">When your instructor schedules a live aptitude session, the meeting link will appear here.</p>
+                    `;
+                    return;
+                }
+
+                container.className = id === 'student-meetlinks-list' ? 'items-list space-y-4' : 'space-y-4 w-full';
+                container.innerHTML = links.map(m => `
+                    <div class="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm text-left relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div class="flex items-center gap-4 relative z-10">
+                            <div class="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 flex items-center justify-center text-xl shrink-0">
+                                <i class="fas fa-video"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-[10px] text-slate-500 font-bold mb-0.5 uppercase tracking-widest">${m.created_at}</div>
+                                <div class="font-bold text-lg text-slate-900 dark:text-white mb-2 leading-tight">${m.title}</div>
+                            </div>
+                        </div>
+                        <div class="mt-4 relative z-10">
+                            <a href="${m.url}" target="_blank" class="w-full inline-flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 active:scale-[0.98] transition-all">
+                                Join Session <i class="fas fa-external-link-alt text-xs opacity-70"></i>
+                            </a>
+                        </div>
+                    </div>
+                `).join('');
+            });
+            
+        } catch(err) {
+            console.error('Error fetching meet links:', err);
+        }
+    }
+
     // Initialize Themes for both Desktop and Mobile
     const currentTheme = localStorage.getItem('theme') || 'light';
     const applyTheme = (theme) => {
@@ -111,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(target.includes('stats')) loadStats();
             if(target.includes('history')) fetchHistory();
             if(target.includes('messages')) fetchMessages();
+            if(target.includes('meetlinks')) fetchMeetLinks();
             
             window.scrollTo({ top: 0, behavior: 'smooth' });
         });
@@ -513,4 +569,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize
     fetchStudentQuestions();
+    fetchMeetLinks();
 });

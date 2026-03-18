@@ -21,10 +21,49 @@
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            z-index: -1;
+            z-index: -2;
             background: #f8fafc;
         }
-        
+
+        /* ─── MOVING GRID ─────────────────────────────── */
+        @keyframes gridWave {
+          0%{ transform: perspective(600px) rotateX(60deg) translateY(0px); }
+          50%{ transform: perspective(600px) rotateX(60deg) translateY(-10px); }
+          100%{ transform: perspective(600px) rotateX(60deg) translateY(0px); }
+        }
+
+        @keyframes gridMove {
+            0%   { background-position: 0 0; }
+            100% { background-position: 0 -60px; }
+        }
+
+        .grid-bg {
+            position: fixed;
+            bottom: 0; left: -200px;
+            width: calc(100% + 400px);
+            height: 55vh;
+            background-image:
+                linear-gradient(rgba(99,102,241,0.2) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99,102,241,0.2) 1px, transparent 1px);
+            background-size: 60px 60px;
+            transform-origin: bottom center;
+            animation: gridMove 15s linear infinite, gridWave 8s ease-in-out infinite;
+            z-index: -1;
+            pointer-events: none;
+        }
+        .grid-bg::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, #020617 0%, transparent 60%);
+            transition: background 0.5s ease;
+        }
+        .dark-mode .grid-bg::after {
+            background: linear-gradient(to top, #020617 0%, transparent 60%);
+        }
+        body:not(.dark-mode) .grid-bg::after {
+            background: linear-gradient(to top, #f8fafc 0%, transparent 60%);
+        }
         .dark-mode #three-bg-container { background: #020617; }
 
         .glass-card {
@@ -74,12 +113,13 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center min-h-screen">
+<body class="text-slate-900 dark:text-slate-100 flex items-center justify-center min-h-screen">
 
     <!-- Login unblocked -->
 
     <!-- Three.js BG -->
     <div id="three-bg-container"></div>
+    <div class="grid-bg"></div>
 
     <div id="login-container" class="relative z-10 w-full max-w-lg px-6">
         

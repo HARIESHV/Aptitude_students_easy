@@ -588,6 +588,45 @@ def export_submissions(current_user):
 # -----------------
 # API Shared Features
 # -----------------
+
+@app.route('/api/meetlinks', methods=['GET'])
+@token_required
+def get_meetlinks(current_user):
+    links = MeetLink.query.order_by(MeetLink.created_at.desc()).all()
+    output = []
+    for l in links:
+        output.append({
+            'id': l.id,
+            'title': l.title,
+            'url': l.url,
+            'created_at': l.created_at.strftime('%Y-%m-%d %I:%M %p')
+        })
+    return jsonify({'meetlinks': output})
+
+@app.route('/api/admin/meetlinks', methods=['POST'])
+@token_required
+@admin_required
+def create_meetlink(current_user):
+    data = request.get_json()
+    new_link = MeetLink(
+        title=data.get('title', 'Live Class'),
+        url=data.get('url')
+    )
+    db.session.add(new_link)
+    db.session.commit()
+    return jsonify({'message': 'Meet link posted successfully!', 'id': new_link.id})
+
+@app.route('/api/admin/meetlinks/<int:id>', methods=['DELETE'], endpoint='delete_admin_meetlink')
+@token_required
+@admin_required
+def delete_admin_meetlink(current_user, id):
+    link = db.session.get(MeetLink, id)
+    if not link:
+        return jsonify({'message': 'Link not found!'}), 404
+        
+    db.session.delete(link)
+    db.session.commit()
+    return jsonify({'message': 'Meet link deleted successfully!'})
 @app.route('/api/questions', methods=['GET'])
 @token_required
 def get_questions(current_user):
@@ -614,20 +653,6 @@ def get_questions(current_user):
             q_data['correct_text_answer'] = q.correct_text_answer
         output.append(q_data)
     return jsonify({'questions': output})
-
-@app.route('/api/meetlinks', methods=['GET'])
-@token_required
-def get_meetlinks(current_user):
-    links = MeetLink.query.order_by(MeetLink.created_at.desc()).all()
-    output = []
-    for link in links:
-        output.append({
-            'id': link.id,
-            'title': link.title,
-            'url': link.url,
-            'created_at': link.created_at.strftime('%Y-%m-%d %I:%M %p')
-        })
-    return jsonify({'meetlinks': output})
 
 @app.route('/api/broadcast', methods=['POST'])
 @token_required

@@ -645,6 +645,88 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) { console.error(err); }
     };
 
+    // --- Meet Links API ---
+    const addMeetLink = document.getElementById('add-meetlink-form');
+    if (addMeetLink) {
+        addMeetLink.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('m-title').value;
+            const url = document.getElementById('m-url').value;
+
+            try {
+                showAlert('Broadcasting link...', false);
+                const res = await fetch(`${API_BASE}/admin/meetlinks`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ title, url })
+                });
+
+                if (res.ok) {
+                    addMeetLink.reset();
+                    showAlert('Link broadcasted successfully!');
+                    fetchMeetLinks();
+                } else {
+                    showAlert('Failed to broadcast link.', true);
+                }
+            } catch (err) {
+                showAlert('Network Error', true);
+            }
+        });
+    }
+
+    async function fetchMeetLinks() {
+        try {
+            const list = document.getElementById('meetlinks-list');
+            if(!list) return;
+            list.innerHTML = emptyState('Scanning for active links...');
+            const res = await fetch(`${API_BASE}/meetlinks`, { headers: getHeaders() });
+            if (!res.ok) throw new Error('Failed to fetch');
+            const data = await res.json();
+            
+            if (!data.meetlinks || data.meetlinks.length === 0) {
+                list.innerHTML = emptyState('No active meet links recorded.');
+                return;
+            }
+
+            list.innerHTML = data.meetlinks.map(m => `
+                <div class="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative text-left">
+                    <button onclick="deleteMeetLink(${m.id})" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-xl bg-red-100/50 dark:bg-red-900/30 text-red-500 hover:bg-red-500 hover:text-white transition-all">
+                        <i class="fas fa-trash text-xs"></i>
+                    </button>
+                    <div class="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 flex items-center justify-center mb-4 text-xl">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <div class="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-widest">${m.created_at}</div>
+                    <div class="font-bold text-lg mb-4 text-slate-900 dark:text-white">${m.title}</div>
+                    <a href="${m.url}" target="_blank" class="w-full inline-block text-center py-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 font-bold rounded-xl border border-indigo-100 dark:border-indigo-800/30 active:scale-[0.98] transition-all">
+                         Join Meeting <i class="fas fa-external-link-alt ml-1 text-xs opacity-70"></i>
+                    </a>
+                </div>
+            `).join('');
+        } catch (err) {
+            console.error(err);
+            const list = document.getElementById('meetlinks-list');
+            if(list) list.innerHTML = emptyState('Error connecting to active links.');
+        }
+    }
+    window.fetchMeetLinks = fetchMeetLinks;
+
+    window.deleteMeetLink = async (id) => {
+        if(!confirm('Are you sure you want to stop broadcasting this link?')) return;
+        try {
+            showAlert('Deleting broadcast...', false);
+            const res = await fetch(`${API_BASE}/admin/meetlinks/${id}`, { method: 'DELETE', headers: getHeaders() });
+            if (res.ok) {
+                showAlert('Link disconnected!');
+                fetchMeetLinks();
+            } else {
+                showAlert('Failed to disconnect link.', true);
+            }
+        } catch(err) {
+            showAlert('Error', true);
+        }
+    };
+
     // --- Excel Export ---
     async function downloadExcelBlob(endpoint, defaultFilename) {
         try {
@@ -704,4 +786,5 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial Load
     fetchQuestions();
     fetchGlobalStats();
+    fetchMeetLinks();
 });
