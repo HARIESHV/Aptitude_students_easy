@@ -462,6 +462,7 @@ def get_admin_stats(current_user):
     total_students = User.query.filter_by(role='student').count()
     total_submissions = Submission.query.count()
     total_proofs = Submission.query.filter(Submission.file_path != None).count()
+    total_questions = Question.query.count()
     
     # Calculate global average as total correct / total submissions
     if total_submissions > 0:
@@ -474,6 +475,7 @@ def get_admin_stats(current_user):
         'total_students': total_students,
         'total_submissions': total_submissions,
         'total_proofs': total_proofs,
+        'total_questions': total_questions,
         'global_average': round(global_avg, 2)
     })
 

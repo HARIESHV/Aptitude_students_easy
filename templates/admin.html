@@ -206,7 +206,10 @@
                 gap: 24px;
             }
             @media (min-width: 1400px) {
-                .grid-desktop { grid-template-columns: repeat(4, 1fr); }
+                .grid-desktop { grid-template-columns: repeat(5, 1fr); }
+            }
+            @media (min-width: 900px) and (max-width: 1399px) {
+                .grid-desktop { grid-template-columns: repeat(3, 1fr); }
             }
         }
 
@@ -348,6 +351,13 @@
                         <div>
                             <div class="text-2xl font-black text-slate-900 dark:text-white" id="global-stat-proofs">-</div>
                             <div class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">Total Quiz Proofs</div>
+                        </div>
+                    </div>
+                    <div class="content-card flex items-center gap-6">
+                        <div class="w-14 h-14 bg-orange-100 dark:bg-orange-900/30 text-orange-600 rounded-2xl flex items-center justify-center text-xl"><i class="fas fa-question-circle"></i></div>
+                        <div>
+                            <div class="text-2xl font-black text-slate-900 dark:text-white" id="global-stat-questions">-</div>
+                            <div class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">Questions Posted</div>
                         </div>
                     </div>
                 </div>
@@ -569,11 +579,11 @@
                         <table class="w-full text-left min-w-[800px]">
                             <thead class="bg-slate-50 dark:bg-slate-950 font-black text-[10px] uppercase tracking-widest text-slate-400">
                                 <tr>
-                                    <th class="px-10 py-5">Student</th>
-                                    <th class="px-10 py-5">Question Context</th>
-                                    <th class="px-10 py-5">Initial Proof</th>
-                                    <th class="px-10 py-5">Latest Proof</th>
-                                    <th class="px-10 py-5 text-right">Preview</th>
+                                    <th class="px-10 py-5">Student Name</th>
+                                    <th class="px-10 py-5">Question Title</th>
+                                    <th class="px-10 py-5">Evidence File</th>
+                                    <th class="px-10 py-5">Upload Date</th>
+                                    <th class="px-10 py-5 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="proofs-tbody" class="divide-y divide-slate-100 dark:divide-slate-800">
