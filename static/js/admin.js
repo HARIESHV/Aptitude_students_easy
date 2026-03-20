@@ -435,16 +435,37 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="text-sm font-medium text-slate-600 dark:text-slate-300 truncate max-w-[200px]">${group.question}</div>
                             </td>
                             <td class="px-10 py-6">
-                                <div class="space-y-1.5">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-[8px] font-black text-slate-400 uppercase tracking-tighter w-12">Student:</span>
-                                        <div class="text-xs font-bold text-slate-600 dark:text-slate-200 italic truncate max-w-[150px]" title="${latest.selected_option}">${latest.selected_option || 'N/A'}</div>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-[8px] font-black text-indigo-400 uppercase tracking-tighter w-12">Correct:</span>
-                                        <div class="text-xs font-bold text-indigo-600 dark:text-indigo-400 italic truncate max-w-[150px]" title="${latest.correct_answer}">${latest.correct_answer || 'N/A'}</div>
-                                    </div>
-                                </div>
+                                ${(() => {
+                                    const isText = latest.question_type === 'text';
+                                    const studentAns = latest.selected_option || '';
+                                    const correctAns = latest.correct_answer || '';
+                                    if (isText) {
+                                        // For text answers: show full content in a block
+                                        const shortAns = studentAns.length > 80 ? studentAns.substring(0, 80) + '…' : studentAns;
+                                        const viewBtn = studentAns.length > 80 ? `<button onclick="showFullAnswer('${encodeURIComponent(studentAns)}', '${encodeURIComponent(correctAns)}')" class="mt-1 text-[8px] font-black text-indigo-500 uppercase tracking-widest hover:underline">View Full Answer</button>` : '';
+                                        return `<div class="space-y-1.5">
+                                            <div class="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1"><i class="fas fa-align-left text-[7px]"></i> Text Answer</div>
+                                            <div class="p-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-lg text-xs font-bold text-amber-800 dark:text-amber-200">${shortAns || '<span class="opacity-40">No answer</span>'}</div>
+                                            ${viewBtn}
+                                            <div class="flex items-center gap-1 mt-1">
+                                                <span class="text-[8px] font-black text-indigo-400 uppercase tracking-tighter">Correct:</span>
+                                                <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 italic">${correctAns || 'N/A'}</span>
+                                            </div>
+                                        </div>`;
+                                    } else {
+                                        // For MCQ: compact inline display
+                                        return `<div class="space-y-1">
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-[8px] font-black text-slate-400 uppercase tracking-tighter w-12">Student:</span>
+                                                <div class="text-xs font-bold text-slate-600 dark:text-slate-200 italic" title="${studentAns}">${studentAns || 'N/A'}</div>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-[8px] font-black text-indigo-400 uppercase tracking-tighter w-12">Correct:</span>
+                                                <div class="text-xs font-bold text-indigo-600 dark:text-indigo-400 italic">${correctAns || 'N/A'}</div>
+                                            </div>
+                                        </div>`;
+                                    }
+                                })()}
                             </td>
                             <td class="px-10 py-6 text-center">
                                 <div class="flex flex-col items-center gap-1">
@@ -597,6 +618,53 @@ document.addEventListener('DOMContentLoaded', () => {
             list.appendChild(card);
         });
     }
+
+    window.showFullAnswer = (encodedStudentAns, encodedCorrectAns) => {
+        const studentAns = decodeURIComponent(encodedStudentAns);
+        const correctAns = decodeURIComponent(encodedCorrectAns);
+        
+        // Reuse or create a simple modal
+        let modal = document.getElementById('text-answer-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'text-answer-modal';
+            modal.className = 'fixed inset-0 z-[9999] flex items-center justify-center p-6';
+            modal.style.background = 'rgba(0,0,0,0.7)';
+            modal.style.backdropFilter = 'blur(6px)';
+            document.body.appendChild(modal);
+        }
+        modal.innerHTML = `
+            <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
+                <div class="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-900 dark:text-white">Full Text Answer</h3>
+                        <div class="text-[10px] text-amber-500 font-black uppercase tracking-widest mt-0.5">Student Submission</div>
+                    </div>
+                    <button onclick="document.getElementById('text-answer-modal').remove(); document.body.style.overflow='';" 
+                            class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 transition-all flex items-center justify-center">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-8 space-y-6 max-h-[60vh] overflow-y-auto">
+                    <div>
+                        <div class="text-[9px] font-black text-amber-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <i class="fas fa-user-graduate"></i> Student Answer
+                        </div>
+                        <div class="p-5 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-700/30 rounded-2xl text-sm font-medium text-slate-700 dark:text-amber-100 leading-relaxed whitespace-pre-wrap">${studentAns || 'No answer submitted'}</div>
+                    </div>
+                    <div>
+                        <div class="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <i class="fas fa-check-circle"></i> Expected Answer
+                        </div>
+                        <div class="p-5 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-700/30 rounded-2xl text-sm font-bold text-indigo-700 dark:text-indigo-200 leading-relaxed whitespace-pre-wrap">${correctAns || 'N/A'}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        modal.addEventListener('click', (e) => { if (e.target === modal) { modal.remove(); document.body.style.overflow = ''; } });
+    };
 
     window.previewFile = (path) => {
         console.log("🛠️ Attempting to preview file:", path);
