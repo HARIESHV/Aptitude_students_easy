@@ -536,15 +536,6 @@ def get_all_submissions(current_user):
     submissions = Submission.query.order_by(Submission.timestamp.desc()).all()
     output = []
     for sub in submissions:
-        # Check if file physically exists on this server's disk
-        file_exists = False
-        if sub.file_path:
-            # sub.file_path is usually '/static/uploads/filename'
-            # We need to map it to local disk path
-            rel_path = sub.file_path.lstrip('/')
-            abs_disk_path = os.path.join(app.root_path, rel_path)
-            file_exists = os.path.exists(abs_disk_path)
-
         output.append({
             'id': sub.id,
             'submission_id': sub.submission_id or str(sub.id),
@@ -557,7 +548,7 @@ def get_all_submissions(current_user):
             'selected_option': sub.selected_option,
             'correct_answer': sub.question.correct_option if sub.question.question_type != 'text' else sub.question.correct_text_answer,
             'is_correct': sub.is_correct,
-            'file_path': sub.file_path if file_exists else None, # Hide if missing from disk
+            'file_path': sub.file_path,
             'timestamp': sub.timestamp.strftime('%Y-%m-%d %I:%M %p')
         })
     return jsonify({'submissions': output})

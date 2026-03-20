@@ -494,53 +494,45 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2. Populate Quiz Proofs (Files Table)
             if (proofsTbody) {
                 proofsTbody.innerHTML = '';
-                // Filter groups where at least one attempt has a file
-                const fileGroups = groups.filter(g => g.attempts.some(a => a.file_path));
+                // Quiz Proofs: Show every individual submission that has a file, newest first
+                const proofSubs = subs.filter(s => s.file_path);
 
-                if (fileGroups.length === 0) {
-                    proofsTbody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-400 font-bold">${emptyState('No uploaded files found in history.')}</td></tr>`;
+                if (proofSubs.length === 0) {
+                    proofsTbody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-slate-400 font-bold">${emptyState('No uploaded files found in history.')}</td></tr>`;
                 } else {
-                    fileGroups.forEach(group => {
-                        const withFiles = group.attempts.filter(a => a.file_path);
-                        const latest = withFiles[0];
-                        const initial = withFiles[withFiles.length - 1];
+                    proofSubs.forEach(sub => {
+                        // Extract filename from path (e.g. /static/uploads/sub_123_abc.pdf -> sub_123_abc.pdf)
+                        const filename = sub.file_path.split('/').pop() || `Proof_ID_${sub.id}.bin`;
 
                         const tr = document.createElement('tr');
                         tr.className = 'group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
                         
-                        const initialBtn = initial.file_path ? 
-                            `<button onclick="previewFile('${initial.file_path}')" class="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg flex items-center gap-2 hover:bg-indigo-600 hover:text-white transition-all text-[9px] font-black uppercase tracking-tight" title="${initial.timestamp}">
-                                <i class="fas fa-history"></i> Initial</button>` : `<span class="text-[9px] text-slate-300 font-bold uppercase">No File</span>`;
-
-                        const latestBtn = latest.file_path ? 
-                            `<button onclick="previewFile('${latest.file_path}')" class="px-3 py-1.5 bg-indigo-100 text-indigo-600 rounded-lg flex items-center gap-2 hover:bg-indigo-600 hover:text-white transition-all text-[9px] font-black uppercase tracking-tight" title="${latest.timestamp}">
-                                <i class="fas fa-check-circle"></i> Latest</button>` : `<span class="text-[9px] text-slate-300 font-bold uppercase">No File</span>`;
-
                         tr.innerHTML = `
                             <td class="px-10 py-6">
-                                <div class="font-bold text-slate-900 dark:text-white">${group.student}</div>
-                                <div class="text-[9px] text-indigo-500 font-bold uppercase tracking-tight">@${group.username}</div>
+                                <div class="font-bold text-slate-900 dark:text-white">${sub.student}</div>
+                                <div class="text-[9px] text-indigo-500 font-bold uppercase tracking-tight">@${sub.username}</div>
                             </td>
                             <td class="px-10 py-6">
-                                <div class="text-sm font-medium text-slate-500 truncate max-w-[200px]">${group.question}</div>
+                                <div class="text-sm font-medium text-slate-500 truncate max-w-[200px]">${sub.question}</div>
+                                <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">${sub.topic || ''}</div>
                             </td>
                             <td class="px-10 py-6">
                                 <div class="flex items-center gap-2">
                                     <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/10 flex items-center justify-center text-emerald-600">
                                         <i class="fas fa-file-pdf"></i>
                                     </div>
-                                    <div class="text-[10px] font-bold text-slate-600 dark:text-slate-300">Proof_ID_${latest.id}.bin</div>
+                                    <div class="text-[10px] font-bold text-slate-600 dark:text-slate-300 w-32 truncate" title="${filename}">${filename}</div>
                                 </div>
                             </td>
                             <td class="px-10 py-6">
-                                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">${latest.timestamp}</div>
+                                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">${sub.timestamp}</div>
                             </td>
                             <td class="px-10 py-6 text-right">
                                 <div class="flex items-center justify-end gap-3">
-                                    <button onclick="previewFile('${latest.file_path}')" class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg font-bold text-[10px] hover:bg-indigo-600 hover:text-white transition-all uppercase tracking-widest">Preview</button>
-                                    <a href="${latest.file_path}" download="Proof_${group.username}_Q${latest.id}.bin" class="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold text-[10px] hover:scale-105 transition-all uppercase tracking-widest flex items-center gap-2">
+                                    <button onclick="previewFile('${sub.file_path}')" class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg font-bold text-[10px] hover:bg-indigo-600 hover:text-white transition-all uppercase tracking-widest">Preview</button>
+                                    <button onclick="downloadSecureFile('${sub.file_path}', '${filename}')" class="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold text-[10px] hover:scale-105 transition-all uppercase tracking-widest flex items-center gap-2">
                                         <i class="fas fa-download"></i> Download
-                                    </a>
+                                    </button>
                                 </div>
                             </td>
                         `;
@@ -604,9 +596,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <button onclick="previewFile('${sub.file_path}')" class="flex-1 py-3 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-600 hover:text-white active:scale-95 transition-all">
                                 <i class="fas fa-eye mr-1"></i> Preview
                             </button>
-                            <a href="${sub.file_path}" download="Proof_${sub.username}_Q${sub.id}.bin" class="flex-1 py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center justify-center">
+                            <button onclick="downloadSecureFile('${sub.file_path}', '${sub.username}_Q${sub.id}')" class="flex-1 py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center justify-center">
                                 <i class="fas fa-download mr-1"></i> Download
-                            </a>
+                            </button>
                         </div>
                     ` : `
                         <div class="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-xl text-[10px] font-bold uppercase tracking-widest text-center opacity-50">
@@ -669,7 +661,26 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.addEventListener('click', (e) => { if (e.target === modal) { modal.remove(); document.body.style.overflow = ''; } });
     };
 
-    window.previewFile = (path) => {
+    window.downloadSecureFile = async (path, filename) => {
+        try {
+            const res = await fetch(path, { method: 'HEAD' });
+            if (!res.ok) {
+                showAlert('Wait! The file link exists in the database, but the file was deleted from the server storage.', true);
+                return;
+            }
+            // Trigger actual download
+            const a = document.createElement('a');
+            a.href = path;
+            a.download = `Proof_${filename}.bin`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } catch (e) {
+            showAlert('Connection error. Could not verify file.', true);
+        }
+    };
+
+    window.previewFile = async (path) => {
         console.log("🛠️ Attempting to preview file:", path);
         const modal = document.getElementById('file-preview-modal');
         const body = document.getElementById('preview-body');
@@ -691,42 +702,44 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const ext = path.split('.').pop().toLowerCase();
         downloadBtn.href = path;
+        downloadBtn.style.display = 'flex'; // Reset immediately when opening
+
+        try {
+            const res = await fetch(path, { method: 'HEAD' });
+            if (!res.ok) {
+                downloadBtn.style.display = 'none'; // Hide download button if file is missing
+                body.innerHTML = `
+                    <div class="p-16 text-center space-y-4">
+                        <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto text-2xl">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <h5 class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">File Not Found (404)</h5>
+                        <p class="text-[10px] text-slate-500 max-w-[200px] mx-auto">The link exists in the database, but the file is missing from the server storage.</p>
+                        <div class="pt-4">
+                            <button onclick="downloadSecureFile('${path}', 'Missing_File')" class="text-[10px] font-black uppercase text-indigo-600 border-b-2 border-indigo-600 pb-1">Try Direct Download</button>
+                        </div>
+                    </div>
+                `;
+                return; // Stop here if the file is missing physically.
+            }
+        } catch (e) {
+            downloadBtn.style.display = 'none';
+            body.innerHTML = `<div class="p-10 text-slate-400 font-bold">❌ Connection error. The server might be blocking the request.</div>`;
+            return;
+        }
 
         setTimeout(() => {
             const cacheBuster = `t=${new Date().getTime()}`;
             const fullUrl = path.includes('?') ? `${path}&${cacheBuster}` : `${path}?${cacheBuster}`;
 
             if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'jfif', 'pjpeg', 'pjp'].includes(ext)) {
-                // Pre-check file availability
-                fetch(path, { method: 'HEAD' })
-                    .then(r => {
-                        console.log("🔍 File availability check:", r.status);
-                        if (r.ok) {
-                            body.innerHTML = `
-                                <img src="${fullUrl}" 
-                                     class="max-w-full h-auto rounded-xl shadow-2xl border-4 border-white dark:border-slate-800 motion-safe:animate-reveal" 
-                                     style="max-height: 65vh; object-fit: contain;"
-                                     onerror="this.parentElement.innerHTML='<div class=p-10>❌ Error loading image. The file might be corrupt or blocked.</div>'"
-                                     loading="lazy">
-                            `;
-                        } else {
-                            body.innerHTML = `
-                                <div class="p-16 text-center space-y-4">
-                                    <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto text-2xl">
-                                        <i class="fas fa-exclamation-triangle"></i>
-                                    </div>
-                                    <h5 class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">File Not Found (404)</h5>
-                                    <p class="text-[10px] text-slate-500 max-w-[200px] mx-auto">The link exists in the database, but the file is missing from the server storage.</p>
-                                    <div class="pt-4">
-                                        <a href="${path}" download class="text-[10px] font-black uppercase text-indigo-600 border-b-2 border-indigo-600 pb-1">Try Direct Download</a>
-                                    </div>
-                                </div>
-                            `;
-                        }
-                    })
-                    .catch(() => {
-                        body.innerHTML = `<div class="p-10 text-slate-400 font-bold">❌ Connection error. The server might be blocking the request.</div>`;
-                    });
+                body.innerHTML = `
+                    <img src="${fullUrl}" 
+                         class="max-w-full h-auto rounded-xl shadow-2xl border-4 border-white dark:border-slate-800 motion-safe:animate-reveal" 
+                         style="max-height: 65vh; object-fit: contain;"
+                         onerror="this.parentElement.innerHTML='<div class=p-10>❌ Error loading image. The file might be corrupt or blocked.</div>'"
+                         loading="lazy">
+                `;
             } else if (ext === 'pdf') {
                 body.innerHTML = `<iframe src="${fullUrl}" class="w-full h-[65vh] rounded-xl border-0 shadow-lg bg-white" loading="lazy"></iframe>`;
             } else if (['doc', 'docx', 'xls', 'xlsx'].includes(ext)) {
@@ -755,7 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             }
-        }, 600);
+        }, 300);
     };
 
     window.closeFilePreview = () => {
