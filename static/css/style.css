@@ -27,6 +27,13 @@
     --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
     --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
     --shadow-lg: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+
+    /* Motion tokens */
+    --motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --motion-ease-soft: cubic-bezier(0.25, 0.8, 0.25, 1);
+    --motion-duration-fast: 180ms;
+    --motion-duration: 260ms;
+    --motion-duration-slow: 420ms;
 }
 
 body.dark-mode {
@@ -41,6 +48,142 @@ body.dark-mode {
     --border-color: #334155;
     --hover-bg: #334155;
     --active-bg: #312e81;
+}
+
+/* ----------------------------- */
+/* Global Motion System          */
+/* ----------------------------- */
+
+@keyframes motionFadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes motionFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes motionSlideLeftIn {
+    from { opacity: 0; transform: translateX(16px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes motionSlideRightIn {
+    from { opacity: 0; transform: translateX(-16px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+.motion-page-enter {
+    animation: motionFadeUp var(--motion-duration-slow) var(--motion-ease-soft) both;
+}
+
+.motion-fade-up {
+    animation: motionFadeUp var(--motion-duration) var(--motion-ease-standard) both;
+}
+
+.motion-fade-in {
+    animation: motionFadeIn var(--motion-duration) var(--motion-ease-standard) both;
+}
+
+.motion-slide-left-in {
+    animation: motionSlideLeftIn var(--motion-duration) var(--motion-ease-standard) both;
+}
+
+.motion-slide-right-in {
+    animation: motionSlideRightIn var(--motion-duration) var(--motion-ease-standard) both;
+}
+
+.motion-stagger > * {
+    opacity: 0;
+    transform: translateY(10px);
+    animation: motionFadeUp var(--motion-duration) var(--motion-ease-standard) forwards;
+}
+.motion-stagger > *:nth-child(1) { animation-delay: 40ms; }
+.motion-stagger > *:nth-child(2) { animation-delay: 80ms; }
+.motion-stagger > *:nth-child(3) { animation-delay: 120ms; }
+.motion-stagger > *:nth-child(4) { animation-delay: 160ms; }
+.motion-stagger > *:nth-child(5) { animation-delay: 200ms; }
+.motion-stagger > *:nth-child(6) { animation-delay: 240ms; }
+
+/* Interaction: cards & buttons */
+.motion-card {
+    transition: transform var(--motion-duration-fast) var(--motion-ease-standard),
+                box-shadow var(--motion-duration-fast) var(--motion-ease-standard),
+                border-color var(--motion-duration-fast) var(--motion-ease-standard),
+                background-color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.motion-card-tap {
+    transform: scale(1.02);
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.24);
+}
+
+.motion-btn {
+    transition: transform var(--motion-duration-fast) var(--motion-ease-standard),
+                box-shadow var(--motion-duration-fast) var(--motion-ease-standard),
+                background-color var(--motion-duration-fast) var(--motion-ease-standard),
+                opacity var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.motion-btn-tap {
+    transform: scale(0.95);
+    opacity: 0.9;
+}
+
+.motion-btn-hover {
+    box-shadow: 0 12px 30px rgba(79, 70, 229, 0.35);
+}
+
+/* Section transitions (used by JS-controlled tabs/sections) */
+.section-enter {
+    animation: motionFadeUp var(--motion-duration-slow) var(--motion-ease-soft) both;
+}
+
+.section-exit {
+    animation: motionFadeIn var(--motion-duration-fast) ease-out reverse both;
+}
+
+/* Answer feedback */
+@keyframes answerPulseCorrect {
+    0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+    100% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+}
+
+@keyframes answerShakeWrong {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-4px); }
+    40% { transform: translateX(4px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(3px); }
+}
+
+.answer-correct {
+    animation: answerPulseCorrect 420ms var(--motion-ease-standard);
+}
+
+.answer-wrong {
+    animation: answerShakeWrong 260ms var(--motion-ease-standard);
+}
+
+/* Progress fill */
+@keyframes progressFill {
+    from { width: 0; }
+    to   { width: var(--progress-target, 100%); }
+}
+
+.progress-animate {
+    animation: progressFill 800ms var(--motion-ease-soft) forwards;
+}
+
+/* Reduced motion: respect user preference */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 
 

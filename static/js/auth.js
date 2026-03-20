@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize Theme
     const themeToggle = document.getElementById('theme-toggle');
     const currentTheme = localStorage.getItem('theme') || 'light';
-    
+
     if (currentTheme === 'dark') {
         document.body.classList.add('dark-mode', 'dark');
         if (themeToggle) themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ username, password, role: currentRole })
                 });
                 const data = await res.json();
-                
+
                 if (res.ok) {
                     localStorage.setItem('token', data.token);
                     localStorage.setItem('username', data.username);
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ username, password, role: 'student' }) // Registration defaults to student
                 });
                 const data = await res.json();
-                
+
                 if (res.ok) {
                     showAlert('Success! Network access granted.', false);
                     setTimeout(() => toLogin.click(), 1500);
@@ -158,13 +158,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
     if (token) {
-        fetch(`${API_BASE}/ping`, { headers: { 'Authorization': `Bearer ${token}` }})
-        .then(res => {
-            if (res.ok) {
-                window.location.href = role === 'admin' ? '/admin_dashboard' : '/student_dashboard';
-            } else {
-                localStorage.clear();
-            }
-        }).catch(() => {});
+        fetch(`${API_BASE}/ping`, { headers: { 'Authorization': `Bearer ${token}` } })
+            .then(res => {
+                if (res.ok) {
+                    window.location.href = role === 'admin' ? '/admin_dashboard' : '/student_dashboard';
+                } else {
+                    localStorage.clear();
+                }
+            }).catch(() => { });
     }
 });

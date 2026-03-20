@@ -12,6 +12,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, index=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), index=True, nullable=False) # 'admin' or 'student'
+    full_name = db.Column(db.String(255), nullable=True)
 
 class Question(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -37,6 +38,7 @@ class Submission(db.Model):
     selected_option = db.Column(db.Text, nullable=True)
     is_correct = db.Column(db.Boolean, nullable=False)
     file_path = db.Column(db.String(255), nullable=True)
+    submission_id = db.Column(db.String(36), unique=True, nullable=False)
     timestamp = db.Column(db.DateTime, default=ist_now)
     
     student = db.relationship('User', backref=db.backref('submissions', lazy=True))

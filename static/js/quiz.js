@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="w-20 h-20 md:w-24 md:h-24 bg-green-100 dark:bg-green-900/20 text-green-600 rounded-full flex items-center justify-center text-4xl md:text-5xl mx-auto shadow-xl shadow-green-500/20">
                     <i class="fas fa-check-double"></i>
                 </div>
-                <h1 class="text-2xl md:text-3xl font-bold font-orbitron">Category Conquered!</h1>
+                <h1 class="text-2xl md:text-3xl font-bold font-orbitron text-slate-900 dark:text-white">Category Conquered!</h1>
                 <p class="text-slate-500 font-medium text-base md:text-lg">You have completed all available questions in <br/><span class="text-indigo-600 font-bold">${categoryName}</span>.</p>
                 <button onclick="window.location.href='/student_dashboard'" class="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all">Return to Dashboard</button>
             </div>`;
@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="space-y-1">
                 <div class="flex items-center gap-2 md:gap-3">
                     <div class="w-8 h-8 md:w-10 md:h-10 bg-indigo-600 text-white rounded-lg md:rounded-xl flex items-center justify-center text-base md:text-xl">${meta.icon}</div>
-                    <h1 class="text-xl md:text-2xl font-bold font-orbitron tracking-tight">${categoryName}</h1>
+                    <h1 class="text-xl md:text-2xl font-bold font-orbitron tracking-tight text-slate-900 dark:text-white">${categoryName}</h1>
                 </div>
                 <p class="text-slate-400 font-bold uppercase tracking-widest text-[10px] md:text-xs">Question ${currentQuestionIndex + 1} of ${filteredQuestions.length}</p>
             </div>
@@ -121,13 +121,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const q = filteredQuestions[currentQuestionIndex];
         const qCard = document.createElement('div');
-        qCard.className = 'glass-panel rounded-3xl md:rounded-[2.5rem] p-6 md:p-12 space-y-8 md:space-y-10 relative overflow-hidden active-question-card animate-reveal';
+        qCard.className = 'glass-panel rounded-3xl md:rounded-[2.5rem] p-6 md:p-12 space-y-8 md:space-y-10 relative overflow-hidden active-question-card motion-fade-up';
         qCard.id = `q-card-${q.id}`;
         qCard.innerHTML = `
             <div class="flex flex-col md:flex-row justify-between items-start gap-4 md:items-center">
                 <div class="space-y-1">
                     <span class="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-indigo-500">${q.subtopic}</span>
-                    <h3 class="text-2xl md:text-3xl font-bold leading-tight">${q.title}</h3>
+                    <h3 class="text-2xl md:text-3xl font-bold leading-tight text-slate-900 dark:text-white">${q.title}</h3>
                 </div>
                 <div id="timer-badge-${q.id}" class="px-4 py-2 md:px-6 md:py-3 bg-slate-100 dark:bg-slate-900 rounded-xl md:rounded-2xl border border-black/5 dark:border-white/5 flex items-center gap-2 md:gap-3 font-bold text-sm md:text-base">
                     <i class="fas fa-clock text-slate-400"></i> 
@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
 
             <div id="q-content-${q.id}" class="space-y-8 md:space-y-10">
-                <p class="text-lg md:text-xl text-slate-600 dark:text-slate-300 font-medium leading-relaxed">${q.description}</p>
+                <p class="text-lg md:text-xl text-slate-800 dark:text-slate-200 font-medium leading-relaxed">${q.description}</p>
                 
                 <form id="solve-form-${q.id}" class="space-y-8">
                     ${q.question_type === 'text' ? `
@@ -149,22 +149,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 q-options-list">
                         <div class="q-option-card glass-panel !bg-white/40 dark:!bg-slate-900/40 p-5 md:p-6 rounded-2xl md:rounded-3xl flex items-center gap-4 md:gap-5" data-option="A">
                             <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 opt-letter text-sm md:text-base">A</div>
-                            <span class="font-bold text-base md:text-lg opt-text">${q.option_a}</span>
+                            <span class="font-bold text-base md:text-lg text-slate-900 dark:text-white opt-text">${q.option_a}</span>
                             <input type="radio" name="option_${q.id}" value="A" required class="hidden">
                         </div>
                         <div class="q-option-card glass-panel !bg-white/40 dark:!bg-slate-900/40 p-5 md:p-6 rounded-2xl md:rounded-3xl flex items-center gap-4 md:gap-5" data-option="B">
                             <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 opt-letter text-sm md:text-base">B</div>
-                            <span class="font-bold text-base md:text-lg opt-text">${q.option_b}</span>
+                            <span class="font-bold text-base md:text-lg text-slate-900 dark:text-white opt-text">${q.option_b}</span>
                             <input type="radio" name="option_${q.id}" value="B" class="hidden">
                         </div>
                         <div class="q-option-card glass-panel !bg-white/40 dark:!bg-slate-900/40 p-5 md:p-6 rounded-2xl md:rounded-3xl flex items-center gap-4 md:gap-5" data-option="C">
                             <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 opt-letter text-sm md:text-base">C</div>
-                            <span class="font-bold text-base md:text-lg opt-text">${q.option_c}</span>
+                            <span class="font-bold text-base md:text-lg text-slate-900 dark:text-white opt-text">${q.option_c}</span>
                             <input type="radio" name="option_${q.id}" value="C" class="hidden">
                         </div>
                         <div class="q-option-card glass-panel !bg-white/40 dark:!bg-slate-900/40 p-5 md:p-6 rounded-2xl md:rounded-3xl flex items-center gap-4 md:gap-5" data-option="D">
                             <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 opt-letter text-sm md:text-base">D</div>
-                            <span class="font-bold text-base md:text-lg opt-text">${q.option_d}</span>
+                            <span class="font-bold text-base md:text-lg text-slate-900 dark:text-white opt-text">${q.option_d}</span>
                             <input type="radio" name="option_${q.id}" value="D" class="hidden">
                         </div>
                     </div>
@@ -220,8 +220,8 @@ document.addEventListener('DOMContentLoaded', () => {
             cards.forEach(card => {
                 card.addEventListener('click', () => {
                     if (card.classList.contains('correct') || card.classList.contains('incorrect')) return;
-                    cards.forEach(c => c.classList.remove('selected'));
-                    card.classList.add('selected');
+                    cards.forEach(c => c.classList.remove('selected', 'motion-card-tap'));
+                    card.classList.add('selected', 'motion-card-tap');
                     card.querySelector('input').checked = true;
                 });
             });

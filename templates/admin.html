@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - AptitudeLab</title>
+    <title>Admin Panel - Aptitude</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -209,6 +209,38 @@
                 .grid-desktop { grid-template-columns: repeat(4, 1fr); }
             }
         }
+
+        /* Responsive File Preview Modal */
+        #file-preview-modal {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .preview-content-container {
+            width: 95%;
+            max-width: 800px;
+            max-height: 85vh;
+            overflow: auto;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        .preview-media-wrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+        }
+        .preview-media-wrapper img, .preview-media-wrapper iframe {
+            width: 100%;
+            height: auto;
+            max-height: 70vh;
+            border-radius: 12px;
+            background: #f1f5f9;
+        }
+        @media (max-width: 480px) {
+            .preview-content-container { width: 100%; border-radius: 0; height: 100vh; max-height: 100vh; }
+            .preview-media-wrapper { padding: 12px; }
+        }
     </style>
 </head>
 <body class="text-slate-900 dark:text-slate-100">
@@ -298,7 +330,7 @@
                         <div class="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-2xl flex items-center justify-center text-xl"><i class="fas fa-chart-line"></i></div>
                         <div>
                             <div class="text-2xl font-black text-slate-900 dark:text-white" id="global-stat-average">-</div>
-                            <div class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">Global Avg</div>
+                            <div class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">Total Average</div>
                         </div>
                     </div>
                     <div class="content-card flex items-center gap-6">
@@ -338,7 +370,7 @@
                  </div>
                  <div class="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
                      <div class="text-xl font-black text-slate-900 dark:text-white" id="stat-avg-mobile">-</div>
-                     <div class="text-[7px] text-slate-400 uppercase font-black">Profic</div>
+                     <div class="text-[7px] text-slate-400 uppercase font-black">Average</div>
                  </div>
                  <div class="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
                      <div class="text-xl font-black text-slate-900 dark:text-white" id="stat-submissions-mobile">-</div>
@@ -495,15 +527,20 @@
 
                 <!-- MORE SECTIONS (Submissions, registry, etc. follow same clean table pattern) -->
                  <section id="submissions" class="dashboard-section hidden">
-                    <div class="content-card overflow-hidden !p-0">
-                        <div class="p-10 border-b flex items-center justify-between">
+                    <div class="content-card overflow-x-auto !p-0">
+                        <div class="p-10 border-b flex items-center justify-between sticky left-0">
                             <h3 class="text-2xl font-bold">Student Submissions</h3>
                             <button id="export-submissions-btn" class="px-6 py-3 bg-green-600 text-white rounded-xl font-bold text-sm">Export Excel</button>
                         </div>
-                        <table class="w-full text-left">
+                        <table class="w-full text-left min-w-[800px]">
                             <thead class="bg-slate-50 dark:bg-slate-950 font-black text-[10px] uppercase tracking-widest text-slate-400">
                                 <tr>
-                                    <th class="px-10 py-5">Student</th><th class="px-10 py-5">Question</th><th class="px-10 py-5">Result</th><th class="px-10 py-5 text-right">Time</th>
+                                    <th class="px-10 py-5">Student</th>
+                                    <th class="px-10 py-5">Question</th>
+                                    <th class="px-10 py-5">Result</th>
+                                    <th class="px-10 py-5">Initial Proof</th>
+                                    <th class="px-10 py-5">Latest Proof</th>
+                                    <th class="px-10 py-5 text-right flex items-center justify-end gap-2">Actions <i class="fas fa-history text-[8px] opacity-30"></i></th>
                                 </tr>
                             </thead>
                             <tbody id="submissions-tbody" class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -667,6 +704,26 @@
                     <button type="button" onclick="closeEditModal()" class="px-10 py-5 bg-slate-100 dark:bg-slate-900 text-slate-500 rounded-2xl font-bold">Discard</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- File Preview Modal -->
+    <div id="file-preview-modal" class="fixed inset-0 z-[110] hidden flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="preview-content-container bg-white dark:bg-slate-900 flex flex-col relative">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-900 z-10">
+                <h3 class="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Submission Proof</h3>
+                <button onclick="closeFilePreview()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500 transition-all">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="preview-body" class="preview-media-wrapper bg-slate-50 dark:bg-[#020617]">
+                <!-- Dynamic Content (img or iframe) -->
+            </div>
+            <div class="p-6 border-t border-slate-100 dark:border-slate-800 flex items-center gap-4 sticky bottom-0 bg-white dark:bg-slate-900 z-10">
+                <a id="preview-download-btn" href="#" download class="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-bold flex items-center justify-center gap-3 shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
+                    <i class="fas fa-download"></i> Download Original
+                </a>
+            </div>
         </div>
     </div>
 

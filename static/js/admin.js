@@ -388,49 +388,242 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Submissions Section ---
     async function fetchSubmissions() {
         const tbody = document.getElementById('submissions-tbody');
+        const mobileContainer = document.getElementById('mobile-content-area');
         if (!tbody) return;
 
         try {
             const res = await fetch(`${API_BASE}/submissions`, { headers: getHeaders() });
             const data = await res.json();
+            
+            // Render Desktop Table
             tbody.innerHTML = '';
-            
             if (!data.submissions || data.submissions.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-slate-400 font-bold">${emptyState('No submissions recorded yet.')}</td></tr>`;
-                return;
+                tbody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-slate-400 font-bold">${emptyState('No submissions recorded yet.')}</td></tr>`;
+            } else {
+                // Highly intelligent grouping: by student & question
+                const grouped = new Map();
+                data.submissions.forEach(sub => {
+                    const key = `${sub.username}_${sub.question}`;
+                    if (!grouped.has(key)) {
+                        grouped.set(key, {
+                            student: sub.student,
+                            username: sub.username,
+                            question: sub.question,
+                            attempts: []
+                        });
+                    }
+                    grouped.get(key).attempts.push(sub);
+                });
+
+                // Render each group
+                Array.from(grouped.values()).forEach(group => {
+                    const attempts = group.attempts;
+                    const latest = attempts[0];
+                    const oldest = attempts[attempts.length - 1];
+                    const tr = document.createElement('tr');
+                    tr.className = 'group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
+                    
+                    const oldestBtn = oldest.file_path ? 
+                        `<button onclick="previewFile('${oldest.file_path}')" class="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg flex items-center gap-2 hover:bg-indigo-600 hover:text-white transition-all text-[10px] font-bold uppercase tracking-tight" title="${oldest.timestamp}">
+                            <i class="fas fa-history"></i> Initial</button>` : 
+                        `<span class="text-[9px] text-slate-300 font-bold uppercase">No File</span>`;
+
+                    const latestBtn = latest.file_path ? 
+                        `<button onclick="previewFile('${latest.file_path}')" class="px-3 py-1.5 bg-indigo-100 text-indigo-600 rounded-lg flex items-center gap-2 hover:bg-indigo-600 hover:text-white transition-all text-[10px] font-bold uppercase tracking-tight" title="${latest.timestamp}">
+                            <i class="fas fa-check-circle"></i> Latest</button>` : 
+                        `<span class="text-[9px] text-slate-300 font-bold uppercase">No File</span>`;
+
+                    // Any others?
+                    const intermediateCount = attempts.length - 2;
+                    const historyBadge = intermediateCount > 0 ? 
+                        `<div class="text-[8px] font-black text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded-full mt-1 inline-block">+${intermediateCount} others</div>` : '';
+
+                    tr.innerHTML = `
+                        <td class="px-10 py-6">
+                            <div class="font-bold text-slate-900 dark:text-white">${group.student}</div>
+                            <div class="text-[10px] text-indigo-500 font-bold uppercase tracking-tight -mt-0.5">@${group.username}</div>
+                        </td>
+                        <td class="px-10 py-6">
+                            <div class="text-sm font-medium text-slate-600 dark:text-slate-300 truncate max-w-xs">${group.question}</div>
+                        </td>
+                        <td class="px-10 py-6">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full ${latest.is_correct ? 'bg-green-500' : 'bg-red-500'}"></div>
+                                <span class="font-bold text-xs ${latest.is_correct ? 'text-green-600' : 'text-red-500'} uppercase tracking-widest">${latest.is_correct ? 'Correct' : 'Incorrect'}</span>
+                            </div>
+                        </td>
+                        <td class="px-10 py-6">${oldestBtn}</td>
+                        <td class="px-10 py-6">
+                            ${latestBtn}
+                            ${historyBadge}
+                        </td>
+                        <td class="px-10 py-6 text-right">
+                            <button class="w-8 h-8 bg-red-50 text-red-600 rounded-lg flex items-center justify-center hover:bg-red-600 hover:text-white transition-all opacity-0 group-hover:opacity-100" onclick="deleteSubmission(${latest.id})" title="Delete Latest Attempt"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
             }
-            
-            data.submissions.forEach(sub => {
-                const tr = document.createElement('tr');
-                tr.className = 'group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
-                tr.innerHTML = `
-                    <td class="px-10 py-6">
-                        <div class="font-bold text-slate-900 dark:text-white">${sub.student}</div>
-                        <div class="text-[10px] text-slate-400 font-black uppercase tracking-widest">${sub.timestamp}</div>
-                    </td>
-                    <td class="px-10 py-6">
-                        <div class="text-sm font-medium text-slate-600 dark:text-slate-300 truncate max-w-xs">${sub.question}</div>
-                    </td>
-                    <td class="px-10 py-6">
-                        <div class="flex items-center gap-2">
-                            <div class="w-2 h-2 rounded-full ${sub.is_correct ? 'bg-green-500' : 'bg-red-500'}"></div>
-                            <span class="font-bold text-xs ${sub.is_correct ? 'text-green-600' : 'text-red-500'} uppercase tracking-widest">${sub.is_correct ? 'Correct' : 'Incorrect'}</span>
-                        </div>
-                    </td>
-                    <td class="px-10 py-6 text-right">
-                        <div class="flex justify-end gap-2 lg:opacity-0 group-hover:opacity-100 transition-opacity">
-                            ${sub.file_path ? `<a href="${sub.file_path}" target="_blank" class="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all"><i class="fas fa-eye"></i></a>` : ''}
-                            <button class="w-8 h-8 bg-red-50 text-red-600 rounded-lg flex items-center justify-center hover:bg-red-600 hover:text-white transition-all" onclick="deleteSubmission(${sub.id})"><i class="fas fa-trash"></i></button>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
+
+            // Sync to Mobile if visible
+            const activeNav = document.querySelector('.nav-links div.active');
+            if(activeNav && activeNav.dataset.target === 'submissions' && mobileContainer) {
+                renderSubmissionsMobile(data.submissions);
+            }
+
         } catch (err) { 
-            tbody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-red-500 font-bold">Failed to load submissions database.</td></tr>`;
+            if(tbody) tbody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-red-500 font-bold">Failed to load submissions database.</td></tr>`;
             console.error(err); 
         }
     }
+
+    function renderSubmissionsMobile(submissions) {
+        const mobileContainer = document.getElementById('mobile-content-area');
+        if(!mobileContainer) return;
+        
+        mobileContainer.innerHTML = `
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Student Logs</h3>
+                <button onclick="downloadExcelBlob('export/submissions', 'Logs.xlsx')" class="p-2 bg-green-600 text-white rounded-lg text-xs font-bold uppercase"><i class="fas fa-download"></i> EXCEL</button>
+            </div>
+            <div id="mobile-submissions-list" class="space-y-4"></div>
+        `;
+
+        const list = document.getElementById('mobile-submissions-list');
+        if(!submissions || submissions.length === 0) {
+            list.innerHTML = `<div class="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px]">No activity logs found</div>`;
+            return;
+        }
+
+        submissions.forEach(sub => {
+            const card = document.createElement('div');
+            card.className = 'glass-morphism p-5 rounded-3xl border-none shadow-xl space-y-4';
+            card.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-sm font-black text-slate-900 dark:text-white truncate max-w-[150px]">${sub.student}</div>
+                        <div class="text-[9px] font-black text-indigo-500 uppercase tracking-tight -mt-0.5">@${sub.username}</div>
+                        <div class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">${sub.timestamp}</div>
+                    </div>
+                    <div class="px-2.5 py-1 ${sub.is_correct ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'} rounded-lg text-[9px] font-black uppercase tracking-widest border ${sub.is_correct ? 'border-emerald-500/20' : 'border-rose-500/20'}">
+                        ${sub.is_correct ? 'Correct' : 'Fail'}
+                    </div>
+                </div>
+                <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400 line-clamp-2">${sub.question}</div>
+                <div class="flex gap-2 pt-2">
+                    ${sub.file_path ? `
+                        <button onclick="previewFile('${sub.file_path}')" class="flex-1 py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
+                            <i class="fas fa-file-alt mr-1"></i> View Proof
+                        </button>
+                    ` : `
+                        <div class="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-xl text-[10px] font-bold uppercase tracking-widest text-center opacity-50">
+                            No Proof
+                        </div>
+                    `}
+                    <button onclick="deleteSubmission(${sub.id})" class="w-12 h-12 bg-rose-50 dark:bg-rose-900/10 text-rose-500 rounded-xl flex items-center justify-center active:scale-95 transition-all">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    window.previewFile = (path) => {
+        console.log("🛠️ Attempting to preview file:", path);
+        const modal = document.getElementById('file-preview-modal');
+        const body = document.getElementById('preview-body');
+        const downloadBtn = document.getElementById('preview-download-btn');
+        
+        if(!modal || !body || !downloadBtn) {
+            console.error("❌ Preview modal elements missing!");
+            return;
+        }
+        
+        body.innerHTML = `
+            <div class="p-20 text-center flex flex-col items-center gap-4">
+                <i class="fas fa-circle-notch fa-spin text-4xl text-indigo-600"></i>
+                <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Opening Secure Archive...</p>
+            </div>
+        `;
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        
+        const ext = path.split('.').pop().toLowerCase();
+        downloadBtn.href = path;
+
+        setTimeout(() => {
+            const cacheBuster = `t=${new Date().getTime()}`;
+            const fullUrl = path.includes('?') ? `${path}&${cacheBuster}` : `${path}?${cacheBuster}`;
+
+            if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'jfif', 'pjpeg', 'pjp'].includes(ext)) {
+                // Pre-check file availability
+                fetch(path, { method: 'HEAD' })
+                    .then(r => {
+                        console.log("🔍 File availability check:", r.status);
+                        if (r.ok) {
+                            body.innerHTML = `
+                                <img src="${fullUrl}" 
+                                     class="max-w-full h-auto rounded-xl shadow-2xl border-4 border-white dark:border-slate-800 motion-safe:animate-reveal" 
+                                     style="max-height: 65vh; object-fit: contain;"
+                                     onerror="this.parentElement.innerHTML='<div class=p-10>❌ Error loading image. The file might be corrupt or blocked.</div>'"
+                                     loading="lazy">
+                            `;
+                        } else {
+                            body.innerHTML = `
+                                <div class="p-16 text-center space-y-4">
+                                    <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto text-2xl">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                    <h5 class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">File Not Found (404)</h5>
+                                    <p class="text-[10px] text-slate-500 max-w-[200px] mx-auto">The link exists in the database, but the file is missing from the server storage.</p>
+                                    <div class="pt-4">
+                                        <a href="${path}" download class="text-[10px] font-black uppercase text-indigo-600 border-b-2 border-indigo-600 pb-1">Try Direct Download</a>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    })
+                    .catch(() => {
+                        body.innerHTML = `<div class="p-10 text-slate-400 font-bold">❌ Connection error. The server might be blocking the request.</div>`;
+                    });
+            } else if (ext === 'pdf') {
+                body.innerHTML = `<iframe src="${fullUrl}" class="w-full h-[65vh] rounded-xl border-0 shadow-lg bg-white" loading="lazy"></iframe>`;
+            } else if (['doc', 'docx', 'xls', 'xlsx'].includes(ext)) {
+                body.innerHTML = `
+                    <div class="p-16 text-center space-y-6">
+                        <div class="w-24 h-24 bg-blue-50 dark:bg-blue-900/20 rounded-3xl flex items-center justify-center text-4xl mx-auto text-blue-500 shadow-inner">
+                            <i class="fas fa-file-word"></i>
+                        </div>
+                        <div class="space-y-2">
+                            <h4 class="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">MS Office Document</h4>
+                            <p class="text-xs font-bold text-slate-500">Browser cannot preview .${ext} files directly.</p>
+                        </div>
+                        <div class="pt-4">
+                            <p class="text-[9px] text-slate-400 uppercase tracking-widest font-black mb-4">Click below to open/download</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                body.innerHTML = `
+                    <div class="p-16 text-center space-y-6">
+                        <div class="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center text-4xl mx-auto text-slate-400">
+                            <i class="fas fa-file-download"></i>
+                        </div>
+                        <p class="text-sm font-bold text-slate-500">Direct preview unavailable for .${ext} files.</p>
+                        <p class="text-[9px] text-slate-400 uppercase tracking-widest font-black">Download to view contents</p>
+                    </div>
+                `;
+            }
+        }, 600);
+    };
+
+    window.closeFilePreview = () => {
+        const modal = document.getElementById('file-preview-modal');
+        if(modal) modal.classList.add('hidden');
+        document.body.style.overflow = '';
+        document.getElementById('preview-body').innerHTML = '';
+    };
 
     window.deleteSubmission = async (id) => {
         if (!confirm('Erase this record?')) return;
@@ -533,7 +726,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="text-slate-300 hover:text-red-500 transition-colors" onclick="deleteMessage(${m.id})"><i class="fas fa-trash"></i></button>
                     </div>
                     <p class="text-slate-600 dark:text-slate-300 font-medium">${m.content}</p>
-                    ${m.file_path ? `<a href="${m.file_path}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-600"><i class="fas fa-file-alt"></i> Attachment</a>` : ''}
+                    ${m.file_path ? `<button onclick="previewFile('${m.file_path}')" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-600 active:scale-95 transition-all"><i class="fas fa-file-alt"></i> View Attachment</button>` : ''}
                 `;
                 list.appendChild(item);
             });
@@ -581,9 +774,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
                 tr.innerHTML = `
                     <td class="px-10 py-6"><div class="w-8 h-8 rounded-lg ${i<3?'bg-amber-100 text-amber-600':'bg-slate-100 dark:bg-slate-800 text-slate-500'} flex items-center justify-center font-black text-xs">#${i+1}</div></td>
-                    <td class="px-10 py-6"><div class="font-bold text-slate-900 dark:text-white">${std.username}</div></td>
-                    <td class="px-10 py-6 text-center text-sm font-bold text-slate-500">${std.total_submissions}</td>
-                    <td class="px-10 py-6 text-right"><span class="text-xl font-black text-indigo-600 font-orbitron">${std.average}%</span></td>
+                    <td class="px-10 py-6">
+                        <div class="font-bold text-slate-900 dark:text-white">${std.name || std.username}</div>
+                        <div class="text-[10px] text-indigo-500 font-bold uppercase tracking-tight -mt-0.5">@${std.username}</div>
+                    </td>
+                    <td class="px-10 py-6 text-center text-sm font-bold text-slate-500">${std.answeredQuestions || 0}</td>
+                    <td class="px-10 py-6 text-right"><span class="text-xl font-black text-indigo-600 font-orbitron">${std.average || 0}%</span></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -614,7 +810,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
                 tr.innerHTML = `
                     <td class="px-10 py-6"><div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center font-black text-xs">#${i+1}</div></td>
-                    <td class="px-10 py-6 font-bold text-slate-900 dark:text-white">${std.username}</td>
+                    <td class="px-10 py-6">
+                        <div class="font-bold text-slate-900 dark:text-white">${std.name || std.username}</div>
+                        <div class="text-[10px] text-indigo-500 font-bold uppercase tracking-tight -mt-0.5">@${std.username}</div>
+                    </td>
                     <td class="px-10 py-6 text-center font-bold text-slate-500">${std.total_submissions}</td>
                     <td class="px-10 py-6 text-center"><span class="px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-bold">${std.average}%</span></td>
                     <td class="px-10 py-6 text-right">

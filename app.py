@@ -1,4 +1,5 @@
 import os
+import uuid
 import threading
 import time
 from datetime import datetime, timedelta
@@ -49,7 +50,7 @@ print(f"Connected to Cloud Database (Neon/Postgres)")
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_pre_ping": False,         # Disabled: TCP keepalives handle dropped connections
+    "pool_pre_ping": True,          # Re-enabled: Verify connection before each use
     "pool_recycle": 270,            # Recycle connections every 270s (before Neon's ~300s idle timeout)
     "pool_size": 5,
     "max_overflow": 10,
@@ -59,12 +60,11 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         "keepalives_idle": 30,      # Send keepalive after 30s idle
         "keepalives_interval": 10,  # Retry keepalive every 10s
         "keepalives_count": 5,      # Drop after 5 failed keepalives
-        "connect_timeout": 30
+        "connect_timeout": 60       # Increased timeout for unstable connections
     }
 }
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'super-secret-aptitude-master-key-1234567890')
-app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'static', 'uploads')
-
+app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 db.init_app(app)
@@ -120,7 +120,7 @@ def run_maintenance(app):
                         err_str = str(e)
                         # SSL EOF / connection dropped — dispose the whole pool so
                         # SQLAlchemy creates fresh connections for every future request
-                        print(f"DB Keep-alive: connection lost ({err_str[:80]}). Disposing pool...")
+                        print(f"DB Keep-alive: connection lost ({err_str[:60]}...). Disposing pool...")
                         try:
                             db.engine.dispose()
                         except Exception:
@@ -129,17 +129,22 @@ def run_maintenance(app):
                         break  # Break inner loop to re-enter outer try and reconnect
                     time.sleep(45)
         except Exception as e:
+            err_str = str(e)
             with app.app_context():
-                err_str = str(e)
                 # Dispose pool on any error so fresh connections are used next time
                 try:
                     db.engine.dispose()
                 except Exception:
                     pass
                 db.session.remove()
-            if "timeout expired" in err_str or "EOF" in err_str or "SSL" in err_str:
-                print(f"DB Maintenance: Transient connection error, retrying in 15s... ({err_str[:80]})")
-                time.sleep(15)
+            
+            # Special handling for DNS / Host errors
+            if "could not translate host name" in err_str.lower() or "timeout expired" in err_str.lower():
+                print(f"DB Maintenance: Cloud DNS/Network error detected. Waiting 30s before retry... ({err_str[:80]}...)")
+                time.sleep(30)
+            elif "EOF" in err_str or "SSL" in err_str or "connection reset" in err_str.lower():
+                print(f"DB Maintenance: Managed connection interrupted, retrying in 10s... ({err_str[:80]}...)")
+                time.sleep(10)
             else:
                 print(f"DB Maintenance Loop Error: {err_str[:120]}")
                 time.sleep(10)
@@ -248,8 +253,9 @@ def ping():
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json()
-    username = (data.get('username') or '').strip()   # Strip whitespace
-    password = (data.get('password') or '').strip()   # Strip whitespace (esp. mobile keyboards)
+    username = (data.get('username') or '').strip()
+    full_name = (data.get('full_name') or username).strip()
+    password = (data.get('password') or '').strip()
     role = data.get('role', 'student') 
 
     if not username or not password:
@@ -260,7 +266,7 @@ def register():
         return jsonify({'message': 'User already exists!'}), 400
         
     hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
-    new_user = User(username=username, password=hashed_password, role=role)
+    new_user = User(username=username, password=hashed_password, role=role, full_name=full_name)
     db.session.add(new_user)
     db.session.commit()
     
@@ -425,25 +431,7 @@ def get_students(current_user):
         })
     return jsonify({'students': output})
 
-@app.route('/api/leaderboard', methods=['GET'])
-@token_required
-def get_leaderboard(current_user):
-    students = User.query.filter_by(role='student').all()
-    output = []
-    for std in students:
-        submissions = Submission.query.filter_by(student_id=std.id).all()
-        total = len(submissions)
-        correct = len([s for s in submissions if s.is_correct])
-        average = (correct / total * 100) if total > 0 else 0
-        output.append({
-            'username': std.username,
-            'average': float("{:.2f}".format(average)),
-            'total_submissions': total,
-            'is_me': std.id == current_user.id
-        })
-    # Sort by average score descending
-    output.sort(key=lambda x: x['average'], reverse=True)
-    return jsonify({'leaderboard': output})
+
 
 @app.route('/api/admin/stats', methods=['GET'])
 @token_required
@@ -452,17 +440,12 @@ def get_admin_stats(current_user):
     total_students = User.query.filter_by(role='student').count()
     total_submissions = Submission.query.count()
     
-    # Calculate global average as the average of each student's percentage
-    students = User.query.filter_by(role='student').all()
-    student_avgs = []
-    
-    for student in students:
-        student_subs = Submission.query.filter_by(student_id=student.id).all()
-        if student_subs:
-            correct = sum(1 for s in student_subs if s.is_correct)
-            student_avgs.append((correct / len(student_subs)) * 100)
-            
-    global_avg = sum(student_avgs) / len(student_avgs) if student_avgs else 0
+    # Calculate global average as total correct / total submissions
+    if total_submissions > 0:
+        correct_submissions = Submission.query.filter_by(is_correct=True).count()
+        global_avg = (correct_submissions / total_submissions) * 100
+    else:
+        global_avg = 0
         
     return jsonify({
         'total_students': total_students,
@@ -527,14 +510,25 @@ def get_all_submissions(current_user):
     submissions = Submission.query.order_by(Submission.timestamp.desc()).all()
     output = []
     for sub in submissions:
+        # Check if file physically exists on this server's disk
+        file_exists = False
+        if sub.file_path:
+            # sub.file_path is usually '/static/uploads/filename'
+            # We need to map it to local disk path
+            rel_path = sub.file_path.lstrip('/')
+            abs_disk_path = os.path.join(app.root_path, rel_path)
+            file_exists = os.path.exists(abs_disk_path)
+
         output.append({
             'id': sub.id,
-            'student': sub.student.username,
+            'submission_id': sub.submission_id or str(sub.id),
+            'student': sub.student.full_name or sub.student.username,
+            'username': sub.student.username,
             'question': sub.question.title,
             'topic': sub.question.topic,
             'selected_option': sub.selected_option,
             'is_correct': sub.is_correct,
-            'file_path': sub.file_path,
+            'file_path': sub.file_path if file_exists else None, # Hide if missing from disk
             'timestamp': sub.timestamp.strftime('%Y-%m-%d %I:%M %p')
         })
     return jsonify({'submissions': output})
@@ -794,8 +788,16 @@ def submit_answer(current_user):
                 filename = secure_filename(file.filename)
                 timestamp_prefix = datetime.now().strftime('%Y%m%d%H%M%S')
                 filename = f"sub_{timestamp_prefix}_{filename}"
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                file_path = f'/static/uploads/{filename}'
+                full_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                try:
+                    file.save(full_path)
+                    if os.path.exists(full_path):
+                        file_path = f'/static/uploads/{filename}'
+                        print(f"✅ Submission file saved successfully: {full_path}")
+                    else:
+                        print(f"❌ File save failed verification: {full_path}")
+                except Exception as e:
+                    print(f"❌ File system error during save: {str(e)}")
 
     if not question_id:
         return jsonify({'message': 'Missing question ID!'}), 400
@@ -805,9 +807,10 @@ def submit_answer(current_user):
     if not question:
         return jsonify({'message': 'Question not found!'}), 404
 
-    existing = Submission.query.filter_by(student_id=current_user.id, question_id=question_id).first()
-    if existing:
-        return jsonify({'message': 'You have already submitted an answer for this question!'}), 400
+    # Multi-submission support enabled as per requirements
+    # existing = Submission.query.filter_by(student_id=current_user.id, question_id=question_id).first()
+    # if existing:
+    #     return jsonify({'message': 'You have already submitted an answer for this question!'}), 400
 
     if question.question_type == 'text':
         is_correct = False
@@ -821,7 +824,8 @@ def submit_answer(current_user):
         question_id=question_id,
         selected_option=selected_option,
         is_correct=is_correct,
-        file_path=file_path
+        file_path=file_path,
+        submission_id=str(uuid.uuid4())
     )
     db.session.add(new_sub)
     db.session.commit()
@@ -870,9 +874,57 @@ def get_student_history(current_user):
             'selected_option': sub.selected_option,
             'correct_option': sub.question.correct_option if sub.question.question_type != 'text' else sub.question.correct_text_answer,
             'is_correct': sub.is_correct,
+            'file_path': sub.file_path,
             'timestamp': sub.timestamp.strftime('%Y-%m-%d %I:%M %p')
         })
     return jsonify({'history': output})
+
+@app.route('/api/leaderboard', methods=['GET'])
+@token_required
+def get_leaderboard(current_user):
+    # Get all students
+    students = User.query.filter_by(role='student').all()
+    
+    board = []
+    for s in students:
+        # Count unique correctly answered questions
+        solved_ids = db.session.query(Submission.question_id)\
+            .filter_by(student_id=s.id, is_correct=True)\
+            .distinct().all()
+        
+        count = len(solved_ids)
+        
+        # Get latest correct submission timestamp for tie-breaking
+        latest_sub = Submission.query.filter_by(student_id=s.id, is_correct=True)\
+            .order_by(Submission.timestamp.desc()).first()
+        
+        # Calculate average for the leaderboard
+        all_subs = Submission.query.filter_by(student_id=s.id).all()
+        total_all = len(all_subs)
+        correct_all = len([sub for sub in all_subs if sub.is_correct])
+        avg = (correct_all / total_all * 100) if total_all > 0 else 0
+
+        board.append({
+            'name': s.full_name or s.username,
+            'username': s.username,
+            'answeredQuestions': count,
+            'average': round(avg, 2),
+            'lastActivity': latest_sub.timestamp.isoformat() if latest_sub else None
+        })
+    
+    # Sort by count desc, then by activity (oldest activity first if tied? or newest?)
+    # Usually, if tied, newest activity ranks lower (reached it later).
+    # Lambda ranks desc for questions, then asc for timestamp maybe?
+    # I'll use timestamp asc so earlier achiever is on top? Wait.
+    # High count on top. If tied, earliest achieved is higher?
+    # Usually: if tied, the one who REACHED that count EARLIEST is first.
+    board.sort(key=lambda x: (-x['answeredQuestions'], x['lastActivity'] or '9999-12-31'))
+    
+    # Add Rank
+    for i, item in enumerate(board):
+        item['rank'] = i + 1
+        
+    return jsonify({'leaderboard': board})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

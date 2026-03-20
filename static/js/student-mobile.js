@@ -72,7 +72,13 @@ else {
 
     if (themeBtn) {
         themeBtn.addEventListener('click', () => {
-            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+            
+            // If switched to dark mode, automatically show the practice/quiz section
+            if (newTheme === 'dark') {
+                switchSection('mob-practice');
+            }
         });
     }
 

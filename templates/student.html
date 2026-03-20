@@ -1,20 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="description" content="Aptitude PRO — Practice Quantitative Aptitude, Logical Reasoning, Verbal Ability, and Placement tests.">
-    <title>Dashboard — Aptitude PRO</title>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description"
+        content="Aptitude — Practice Quantitative Aptitude, Logical Reasoning, Verbal Ability, and Placement tests.">
+    <title>Dashboard — AptitudePRO</title>
 
     <!-- UI Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- CSS Framework & Assets -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
+
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -34,7 +39,7 @@
             }
         }
     </script>
-    
+
     <style>
         :root {
             --glass-bg: rgba(255, 255, 255, 0.7);
@@ -50,12 +55,12 @@
 
         /* ─── Layout Switching ─── */
         @media (max-width: 767px) {
-            body { 
+            body {
                 background: var(--bg-gradient);
                 background-attachment: fixed;
             }
         }
-        
+
         /* Glassmorphism utility */
         .glass-morphism {
             background: var(--glass-bg);
@@ -80,6 +85,51 @@
 
         .btn-gradient:active {
             transform: scale(0.95);
+        }
+
+        /* Responsive File Preview Modal */
+        #file-preview-modal {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .preview-content-container {
+            width: 95%;
+            max-width: 800px;
+            max-height: 85vh;
+            overflow: auto;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .preview-media-wrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .preview-media-wrapper img,
+        .preview-media-wrapper iframe {
+            width: 100%;
+            height: auto;
+            max-height: 70vh;
+            border-radius: 12px;
+            background: #f1f5f9;
+        }
+
+        @media (max-width: 480px) {
+            .preview-content-container {
+                width: 100%;
+                border-radius: 0;
+                height: 100vh;
+                max-height: 100vh;
+            }
+
+            .preview-media-wrapper {
+                padding: 12px;
+            }
         }
 
         /* Mobile Bottom Nav */
@@ -118,16 +168,29 @@
         }
 
         /* Hide scrollbars */
-        ::-webkit-scrollbar { display: none; }
-        * { -ms-overflow-style: none; scrollbar-width: none; }
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        * {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
 
         .dashboard-section-mob {
             animation: fadeInScale 0.4s ease-out both;
         }
 
         @keyframes fadeInScale {
-            from { opacity: 0; transform: translateY(10px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         .pill-badge {
@@ -144,30 +207,45 @@
 
         /* ─── MOVING GRID ─────────────────────────────── */
         @keyframes gridWave {
-          0%{ transform: perspective(600px) rotateX(60deg) translateY(0px); }
-          50%{ transform: perspective(600px) rotateX(60deg) translateY(-10px); }
-          100%{ transform: perspective(600px) rotateX(60deg) translateY(0px); }
+            0% {
+                transform: perspective(600px) rotateX(60deg) translateY(0px);
+            }
+
+            50% {
+                transform: perspective(600px) rotateX(60deg) translateY(-10px);
+            }
+
+            100% {
+                transform: perspective(600px) rotateX(60deg) translateY(0px);
+            }
         }
 
         @keyframes gridMove {
-            0%   { background-position: 0 0; }
-            100% { background-position: 0 -60px; }
+            0% {
+                background-position: 0 0;
+            }
+
+            100% {
+                background-position: 0 -60px;
+            }
         }
 
         .grid-bg {
             position: fixed;
-            bottom: 0; left: -200px;
+            bottom: 0;
+            left: -200px;
             width: calc(100% + 400px);
             height: 55vh;
             background-image:
-                linear-gradient(rgba(99,102,241,0.2) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(99,102,241,0.2) 1px, transparent 1px);
+                linear-gradient(rgba(99, 102, 241, 0.2) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99, 102, 241, 0.2) 1px, transparent 1px);
             background-size: 60px 60px;
             transform-origin: bottom center;
             animation: gridMove 15s linear infinite, gridWave 8s ease-in-out infinite;
             z-index: -1;
             pointer-events: none;
         }
+
         .grid-bg::after {
             content: '';
             position: absolute;
@@ -175,13 +253,15 @@
             background: linear-gradient(to top, #020617 0%, transparent 60%);
             transition: background 0.5s ease;
         }
+
         body:not(.dark-mode) .grid-bg::after {
             background: linear-gradient(to top, #f8fafc 0%, transparent 60%);
         }
+
         body:not(.dark-mode) .grid-bg {
             background-image:
-                linear-gradient(rgba(99,102,241,0.1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(99,102,241,0.1) 1px, transparent 1px);
+                linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px);
         }
 
         /* Desktop Specific (md+) */
@@ -192,24 +272,31 @@
                 height: 100vh;
                 overflow: hidden;
             }
-            body { 
+
+            body {
                 background: #f8fafc;
                 user-select: auto;
             }
-            .dark-mode body { background: #020617; }
+
+            .dark-mode body {
+                background: #020617;
+            }
         }
 
         #three-bg-container {
             position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100vh;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
             z-index: -1;
-            background: rgba(255,255,255,0.05);
+            background: rgba(255, 255, 255, 0.05);
             pointer-events: none;
             overflow: hidden;
         }
+
         .dark-mode #three-bg-container {
-            background: rgba(15,23,42,0.1);
+            background: rgba(15, 23, 42, 0.1);
         }
 
         @media (min-width: 768px) {
@@ -232,11 +319,13 @@
             overflow: hidden;
             position: relative;
         }
+
         .dark-mode .premium-card {
             background: rgba(15, 23, 42, 0.8);
             border: 1px solid rgba(255, 255, 255, 0.05);
             box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
         }
+
         .premium-card:hover {
             transform: translateY(-8px) scale(1.02);
             box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.2);
@@ -244,9 +333,12 @@
         }
 
         .category-icon-orb {
-            width: 64px; height: 64px;
+            width: 64px;
+            height: 64px;
             border-radius: 20px;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 1.5rem;
             margin-bottom: 1.5rem;
             background: linear-gradient(135deg, #6366f1, #4f46e5);
@@ -257,19 +349,31 @@
         .active-pill {
             position: relative;
         }
+
         .active-pill::after {
             content: '';
             position: absolute;
-            left: 0; top: 50%; transform: translateY(-50%);
-            width: 4px; height: 60%;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 60%;
             background: #6366f1;
             border-radius: 2px;
         }
 
         @keyframes sectionFadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
+
         .dashboard-section {
             animation: sectionFadeIn 0.6s ease-out forwards;
         }
@@ -280,6 +384,7 @@
             backdrop-filter: blur(25px) !important;
             border-right: 1px solid rgba(0, 0, 0, 0.05) !important;
         }
+
         .dark-mode .sidebar {
             background: rgba(2, 6, 23, 0.8) !important;
             border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
@@ -291,12 +396,14 @@
             backdrop-filter: blur(20px) !important;
             border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
         }
+
         .dark-mode .topbar {
             background: rgba(15, 23, 42, 0.3) !important;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
         }
     </style>
 </head>
+
 <body class="dashboard-body dark:text-slate-100">
 
     <!-- ==========================================
@@ -304,9 +411,10 @@
          ========================================== -->
     <div class="block md:hidden">
         <!-- Fixed Top Header -->
-        <header class="fixed top-0 left-0 right-0 z-[100] h-16 px-6 flex items-center justify-between glass-morphism rounded-b-2xl max-w-[430px] mx-auto">
+        <header
+            class="fixed top-0 left-0 right-0 z-[100] h-16 px-6 flex items-center justify-between glass-morphism rounded-b-2xl max-w-[430px] mx-auto">
             <div class="flex items-center gap-2">
-                <span class="font-extrabold text-lg tracking-tight text-indigo-600 dark:text-indigo-400">Aptitude<span class="text-slate-900 dark:text-white">PRO</span></span>
+                <span class="font-extrabold text-lg tracking-tight text-indigo-600 dark:text-indigo-400">Aptitude</span>
             </div>
             <div class="flex items-center gap-2">
             </div>
@@ -314,8 +422,10 @@
 
         <!-- Main Content for Mobile -->
         <main class="w-full max-w-[430px] mx-auto pt-20 pb-28 px-4 space-y-8 flex flex-col items-center">
-            
-            <div id="dashboard-alert-mob" class="hidden fixed top-20 left-4 right-4 z-[110] px-6 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-2xl border backdrop-blur-md"></div>
+
+            <div id="dashboard-alert-mob"
+                class="hidden fixed top-20 left-4 right-4 z-[110] px-6 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-2xl border backdrop-blur-md">
+            </div>
 
             <!-- PRACTICE SECTION (MOBILE HOME) -->
             <section id="practice-mob" class="dashboard-section-mob w-full space-y-6">
@@ -325,11 +435,10 @@
                 </div>
             </section>
 
-            <!-- LEADERBOARD SECTION -->
             <section id="leaderboard-section-mob" class="dashboard-section-mob hidden w-full space-y-6">
                 <h3 class="text-lg font-bold text-slate-900 dark:text-white text-center">Elite Achievers</h3>
-                <div class="glass-morphism rounded-3xl overflow-hidden shadow-xl p-2">
-                    <div id="student-leaderboard-tbody-mob" class="flex flex-col"></div>
+                <div class="glass-morphism rounded-[2.5rem] overflow-hidden shadow-2xl p-4 md:p-6">
+                    <div id="student-leaderboard-tbody-mob" class="flex flex-col gap-4"></div>
                 </div>
             </section>
 
@@ -342,12 +451,14 @@
             <!-- PROFILE SECTION -->
             <section id="stats-mob" class="dashboard-section-mob hidden w-full space-y-8">
                 <div class="bg-indigo-600/5 dark:bg-indigo-500/5 rounded-3xl p-8 flex flex-col items-center space-y-4">
-                    <div class="w-24 h-24 bg-indigo-600 rounded-3xl flex items-center justify-center text-white text-3xl shadow-2xl shadow-indigo-600/40">
+                    <div
+                        class="w-24 h-24 bg-indigo-600 rounded-3xl flex items-center justify-center text-white text-3xl shadow-2xl shadow-indigo-600/40">
                         <i class="fas fa-user-astronaut"></i>
                     </div>
                     <div class="text-center">
                         <h2 class="text-2xl font-bold text-slate-900 dark:text-white" id="welcome-text-mob">Student</h2>
-                        <p class="text-indigo-500 font-bold text-[10px] uppercase tracking-widest mt-1">Aptitude PRO Scholar</p>
+                        <p class="text-indigo-500 font-bold text-[10px] uppercase tracking-widest mt-1">Aptitude Scholar
+                        </p>
                     </div>
                 </div>
 
@@ -360,38 +471,46 @@
                         <div class="text-2xl font-black text-emerald-500" id="big-correct-mob">0</div>
                         <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Accuracy</div>
                     </div>
-                    <div class="glass-morphism p-8 col-span-2 rounded-[32px] text-center bg-gradient-to-br from-indigo-600/5 to-blue-600/5 border-none">
+                    <div
+                        class="glass-morphism p-8 col-span-2 rounded-[32px] text-center bg-gradient-to-br from-indigo-600/5 to-blue-600/5 border-none">
                         <div class="text-5xl font-black text-indigo-600 mb-2"><span id="big-average-mob">0</span>%</div>
-                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Overall Proficiency</div>
+                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Overall Proficiency
+                        </div>
                     </div>
                 </div>
 
-                <button id="logout-btn-mob" class="w-full py-4.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-2xl font-bold text-sm transition-all active:scale-95">
+                <button id="logout-btn-mob"
+                    class="w-full py-4.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-2xl font-bold text-sm transition-all active:scale-95">
                     Logout Terminal
                 </button>
             </section>
-            
+
             <!-- MEET LINKS SECTION (MOBILE) -->
             <section id="student-meetlinks-mob" class="dashboard-section-mob hidden w-full space-y-6">
                 <h3 class="text-lg font-bold text-slate-900 dark:text-white text-center">Live Classes</h3>
                 <div class="glass-morphism p-6 rounded-3xl space-y-4 text-center border border-indigo-500/20">
-                    <div class="w-16 h-16 bg-indigo-500/10 text-indigo-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-2 shadow-inner">
+                    <div
+                        class="w-16 h-16 bg-indigo-500/10 text-indigo-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-2 shadow-inner">
                         <i class="fas fa-video"></i>
                     </div>
-                    <p class="text-sm font-bold text-slate-900 dark:text-white">No active classes scheduled right now.</p>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400">When your instructor schedules a live aptitude session, the meeting link will appear here.</p>
+                    <p class="text-sm font-bold text-slate-900 dark:text-white">No active classes scheduled right now.
+                    </p>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400">When your instructor schedules a live
+                        aptitude session, the meeting link will appear here.</p>
                 </div>
             </section>
-            
+
             <!-- MESSAGES SECTION (MOBILE) -->
             <section id="messages-mob" class="dashboard-section-mob hidden w-full space-y-8">
                 <h3 class="text-lg font-bold text-slate-900 dark:text-white text-center">Doubts & Messages</h3>
-                
+
                 <div class="glass-morphism p-6 rounded-3xl space-y-4">
                     <h4 class="text-sm font-bold text-indigo-600 uppercase tracking-widest">New Transmission</h4>
                     <form id="student-send-msg-form-mob" class="space-y-4">
-                        <textarea id="s-msg-content-mob" placeholder="Type your doubt..." rows="3" required class="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"></textarea>
-                        <button type="submit" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">
+                        <textarea id="s-msg-content-mob" placeholder="Type your doubt..." rows="3" required
+                            class="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"></textarea>
+                        <button type="submit"
+                            class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">
                             Send to Admin
                         </button>
                     </form>
@@ -421,8 +540,8 @@
                 <span>Rank</span>
             </div>
             <div class="nav-icon-link" data-target="messages-mob">
-                 <i class="fas fa-envelope"></i>
-                 <span>Doubts</span>
+                <i class="fas fa-envelope"></i>
+                <span>Doubts</span>
             </div>
             <div class="nav-icon-link" data-target="stats-mob">
                 <i class="fas fa-user-circle"></i>
@@ -446,14 +565,18 @@
         <nav class="sidebar">
             <div class="sidebar-header">
                 <div class="brand-orb"><i class="fas fa-brain"></i></div>
-                <h2>Aptitude <span>PRO</span></h2>
+                <h2>Aptitude</h2>
             </div>
             <ul class="nav-links">
                 <li class="active" data-target="practice"><i class="fas fa-th-large"></i> Dashboard</li>
-                <li data-target="practice" data-category="Quantitative Aptitude"><i class="fas fa-divide"></i> Quantitative</li>
-                <li data-target="practice" data-category="Logical Reasoning"><i class="fas fa-puzzle-piece"></i> Logical Reasoning</li>
-                <li data-target="practice" data-category="Verbal Ability"><i class="fas fa-font"></i> Verbal Ability</li>
-                <li data-target="practice" data-category="Placement / Company Tests"><i class="fas fa-building"></i> Company Tests</li>
+                <li data-target="practice" data-category="Quantitative Aptitude"><i class="fas fa-divide"></i>
+                    Quantitative</li>
+                <li data-target="practice" data-category="Logical Reasoning"><i class="fas fa-puzzle-piece"></i> Logical
+                    Reasoning</li>
+                <li data-target="practice" data-category="Verbal Ability"><i class="fas fa-font"></i> Verbal Ability
+                </li>
+                <li data-target="practice" data-category="Placement / Company Tests"><i class="fas fa-building"></i>
+                    Company Tests</li>
                 <li data-target="leaderboard-section"><i class="fas fa-trophy"></i> Leaderboard</li>
                 <li data-target="student-meetlinks"><i class="fas fa-video"></i> Live Classes</li>
                 <li data-target="student-messages"><i class="fas fa-envelope"></i> Doubts / Messages</li>
@@ -464,12 +587,13 @@
         </nav>
 
         <!-- Main Content -->
-        <main class="main-content">
+        <main class="main-content motion-page-enter">
             <!-- Hero -->
             <section class="dashboard-hero">
                 <div class="hero-content">
                     <h1 class="animate-reveal">The challenge begins, <span id="user-display-name">Learner</span></h1>
-                    <p class="animate-reveal delay-1">Sharpen your aptitude skills. Solve problems. Track your growth.</p>
+                    <p class="animate-reveal delay-1">Sharpen your aptitude skills. Solve problems. Track your growth.
+                    </p>
                 </div>
             </section>
 
@@ -487,7 +611,7 @@
                 </div>
             </header>
 
-            <div class="content-sections container">
+            <div class="content-sections container motion-stagger">
                 <div id="dashboard-alert" class="alert hidden"></div>
 
                 <!-- Practice Area -->
@@ -495,11 +619,17 @@
                     <div class="stats-cards">
                         <div class="stat-card glass-panel">
                             <i class="fas fa-tasks"></i>
-                            <div class="stat-info"><h4 id="stat-attempted">0</h4><p>Attempted</p></div>
+                            <div class="stat-info">
+                                <h4 id="stat-attempted">0</h4>
+                                <p>Attempted</p>
+                            </div>
                         </div>
                         <div class="stat-card glass-panel">
                             <i class="fas fa-percentage"></i>
-                            <div class="stat-info"><h4 id="stat-average">0%</h4><p>Average Score</p></div>
+                            <div class="stat-info">
+                                <h4 id="stat-average">0%</h4>
+                                <p>Average Score</p>
+                            </div>
                         </div>
                     </div>
                     <div id="quiz-categories-view" class="mt-4">
@@ -515,9 +645,12 @@
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Question</th><th>Topic / Subtopic</th>
-                                        <th>My Answer</th><th>Correct Answer</th>
-                                        <th>Status</th><th>Date (IST)</th>
+                                        <th>Question</th>
+                                        <th>Topic / Subtopic</th>
+                                        <th>My Answer</th>
+                                        <th>Correct Answer</th>
+                                        <th>Status</th>
+                                        <th>Date (IST)</th>
                                     </tr>
                                 </thead>
                                 <tbody id="student-history-tbody"></tbody>
@@ -532,8 +665,11 @@
                         <h3>My Performance Summary</h3>
                         <div class="performance-chart-placeholder">
                             <i class="fas fa-chart-pie large-icon"></i>
-                            <h2 class="mt-3">Overall Average: <span id="big-average" class="highlight-text">0</span>%</h2>
-                            <p class="mt-2 text-muted">Total Attempted: <span id="big-attempted">0</span> | Correct: <span id="big-correct">0</span></p>
+                            <h2 class="mt-3">Overall Average: <span id="big-average" class="highlight-text">0</span>%
+                            </h2>
+                            <p class="mt-2 text-muted">Total Attempted: <span id="big-attempted">0</span> | Correct:
+                                <span id="big-correct">0</span>
+                            </p>
                         </div>
                     </div>
                 </section>
@@ -551,9 +687,12 @@
                     <div class="card glass-panel mb-4">
                         <h3>Send a Message (With File)</h3>
                         <form id="student-send-msg-form" class="custom-form">
-                            <textarea id="s-msg-content" placeholder="Type your doubt or message..." rows="3" required></textarea>
-                            <label class="text-muted" style="font-size:0.85rem;"><i class="fas fa-paperclip"></i> Attach File (Optional):</label>
-                            <input type="file" id="s-msg-file" class="mt-1" accept=".pdf,.doc,.docx,.jpg,.png,.jpeg,.zip" style="width:100%;border:none;">
+                            <textarea id="s-msg-content" placeholder="Type your doubt or message..." rows="3"
+                                required></textarea>
+                            <label class="text-muted" style="font-size:0.85rem;"><i class="fas fa-paperclip"></i> Attach
+                                File (Optional):</label>
+                            <input type="file" id="s-msg-file" class="mt-1"
+                                accept=".pdf,.doc,.docx,.jpg,.png,.jpeg,.zip" style="width:100%;border:none;">
                             <button type="submit" class="btn-primary mt-3">Send to Admin</button>
                         </form>
                     </div>
@@ -570,13 +709,19 @@
                             <i class="fas fa-trophy" style="font-size:1.8rem;color:#f59e0b;"></i>
                             <div>
                                 <h3 style="margin:0;">Leaderboard</h3>
-                                <p style="margin:0;font-size:0.85rem;color:var(--text-muted);">Top students ranked by average score</p>
+                                <p style="margin:0;font-size:0.85rem;color:var(--text-muted);">Top students ranked by
+                                    average score</p>
                             </div>
                         </div>
                         <div class="table-responsive">
                             <table class="data-table">
                                 <thead>
-                                    <tr><th>Rank</th><th>Student</th><th>Questions Attempted</th><th>Average Score</th></tr>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Student</th>
+                                        <th>Questions Solved</th>
+                                        <th>Last Active</th>
+                                    </tr>
                                 </thead>
                                 <tbody id="student-leaderboard-tbody"></tbody>
                             </table>
@@ -592,6 +737,33 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <script src="{{ url_for('static', filename='js/three-background.js') }}"></script>
+    <!-- File Preview Modal -->
+    <div id="file-preview-modal"
+        class="fixed inset-0 z-[110] hidden flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="preview-content-container bg-white dark:bg-slate-900 flex flex-col relative">
+            <div
+                class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-900 z-10">
+                <h3 class="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Proof Details
+                </h3>
+                <button onclick="closeFilePreview()"
+                    class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:hover:bg-slate-800 text-slate-400 hover:text-red-500 transition-all">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="preview-body" class="preview-media-wrapper bg-slate-50 dark:bg-[#020617]">
+                <!-- Dynamic Content (img or iframe) -->
+            </div>
+            <div
+                class="p-6 border-t border-slate-100 dark:border-slate-800 flex items-center gap-4 sticky bottom-0 bg-white dark:bg-slate-900 z-10">
+                <a id="preview-download-btn" href="#" download
+                    class="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-bold flex items-center justify-center gap-3 shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
+                    <i class="fas fa-download"></i> Download Proof
+                </a>
+            </div>
+        </div>
+    </div>
+
     <script src="{{ url_for('static', filename='js/student.js') }}"></script>
 </body>
+
 </html>
