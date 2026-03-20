@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if(target === 'questions') fetchQuestions();
-            if(target === 'submissions') fetchSubmissions();
+            if(target === 'submissions' || target === 'proofs') fetchSubmissions();
             if(target === 'meetlinks') fetchMeetLinks();
             if(target === 'messages') { fetchMessages(); fetchStudentsForMessages(); }
             if(target === 'registry') fetchStudents();
@@ -387,92 +387,122 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Submissions Section ---
     async function fetchSubmissions() {
-        const tbody = document.getElementById('submissions-tbody');
+        const resultsTbody = document.getElementById('submissions-tbody');
+        const proofsTbody = document.getElementById('proofs-tbody');
         const mobileContainer = document.getElementById('mobile-content-area');
-        if (!tbody) return;
+        if (!resultsTbody && !proofsTbody) return;
 
         try {
             const res = await fetch(`${API_BASE}/submissions`, { headers: getHeaders() });
             const data = await res.json();
+            const subs = data.submissions || [];
             
-            // Render Desktop Table
-            tbody.innerHTML = '';
-            if (!data.submissions || data.submissions.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-slate-400 font-bold">${emptyState('No submissions recorded yet.')}</td></tr>`;
-            } else {
-                // Highly intelligent grouping: by student & question
-                const grouped = new Map();
-                data.submissions.forEach(sub => {
-                    const key = `${sub.username}_${sub.question}`;
-                    if (!grouped.has(key)) {
-                        grouped.set(key, {
-                            student: sub.student,
-                            username: sub.username,
-                            question: sub.question,
-                            attempts: []
-                        });
-                    }
-                    grouped.get(key).attempts.push(sub);
-                });
+            // Intelligent Grouping: Each student get one row per question
+            const grouped = new Map();
+            subs.forEach(s => {
+                const key = `${s.username}_${s.question}`;
+                if (!grouped.has(key)) {
+                    grouped.set(key, {
+                        student: s.student,
+                        username: s.username,
+                        question: s.question,
+                        attempts: []
+                    });
+                }
+                grouped.get(key).attempts.push(s);
+            });
 
-                // Render each group
-                Array.from(grouped.values()).forEach(group => {
-                    const attempts = group.attempts;
-                    const latest = attempts[0];
-                    const oldest = attempts[attempts.length - 1];
-                    const tr = document.createElement('tr');
-                    tr.className = 'group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
-                    
-                    const oldestBtn = oldest.file_path ? 
-                        `<button onclick="previewFile('${oldest.file_path}')" class="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg flex items-center gap-2 hover:bg-indigo-600 hover:text-white transition-all text-[10px] font-bold uppercase tracking-tight" title="${oldest.timestamp}">
-                            <i class="fas fa-history"></i> Initial</button>` : 
-                        `<span class="text-[9px] text-slate-300 font-bold uppercase">No File</span>`;
+            const groups = Array.from(grouped.values());
 
-                    const latestBtn = latest.file_path ? 
-                        `<button onclick="previewFile('${latest.file_path}')" class="px-3 py-1.5 bg-indigo-100 text-indigo-600 rounded-lg flex items-center gap-2 hover:bg-indigo-600 hover:text-white transition-all text-[10px] font-bold uppercase tracking-tight" title="${latest.timestamp}">
-                            <i class="fas fa-check-circle"></i> Latest</button>` : 
-                        `<span class="text-[9px] text-slate-300 font-bold uppercase">No File</span>`;
+            // 1. Populate Quiz Records (Results Table)
+            if (resultsTbody) {
+                resultsTbody.innerHTML = '';
+                if (groups.length === 0) {
+                    resultsTbody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-slate-400 font-bold">${emptyState('No quiz records found.')}</td></tr>`;
+                } else {
+                    groups.forEach(group => {
+                        const latest = group.attempts[0]; // Subs are desc by timestamp
+                        const attCount = group.attempts.length;
 
-                    // Any others?
-                    const intermediateCount = attempts.length - 2;
-                    const historyBadge = intermediateCount > 0 ? 
-                        `<div class="text-[8px] font-black text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded-full mt-1 inline-block">+${intermediateCount} others</div>` : '';
+                        const tr = document.createElement('tr');
+                        tr.className = 'group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
+                        tr.innerHTML = `
+                            <td class="px-10 py-6">
+                                <div class="font-bold text-slate-900 dark:text-white">${group.student}</div>
+                                <div class="text-[10px] text-indigo-500 font-bold uppercase tracking-tight -mt-0.5">@${group.username}</div>
+                            </td>
+                            <td class="px-10 py-6">
+                                <div class="text-sm font-medium text-slate-600 dark:text-slate-300 truncate max-w-xs">${group.question}</div>
+                            </td>
+                            <td class="px-10 py-6">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-2 h-2 rounded-full ${latest.is_correct ? 'bg-green-500' : 'bg-red-500'}"></div>
+                                    <span class="font-bold text-xs ${latest.is_correct ? 'text-green-600' : 'text-red-500'} uppercase tracking-widest">${latest.is_correct ? 'Correct' : 'Incorrect'}</span>
+                                    ${attCount > 1 ? `<span class="ml-2 text-[8px] bg-slate-100 px-1.5 py-0.5 rounded-full text-slate-500 font-black">${attCount} ATTEMPTS</span>` : ''}
+                                </div>
+                            </td>
+                            <td class="px-10 py-6">
+                                <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">${latest.timestamp}</div>
+                            </td>
+                            <td class="px-10 py-6 text-right">
+                                <button class="w-8 h-8 bg-red-50 text-red-600 rounded-lg flex items-center justify-center hover:bg-red-600 hover:text-white transition-all opacity-0 group-hover:opacity-100" onclick="deleteSubmission(${latest.id})" title="Delete Latest Instance"><i class="fas fa-trash"></i></button>
+                            </td>
+                        `;
+                        resultsTbody.appendChild(tr);
+                    });
+                }
+            }
 
-                    tr.innerHTML = `
-                        <td class="px-10 py-6">
-                            <div class="font-bold text-slate-900 dark:text-white">${group.student}</div>
-                            <div class="text-[10px] text-indigo-500 font-bold uppercase tracking-tight -mt-0.5">@${group.username}</div>
-                        </td>
-                        <td class="px-10 py-6">
-                            <div class="text-sm font-medium text-slate-600 dark:text-slate-300 truncate max-w-xs">${group.question}</div>
-                        </td>
-                        <td class="px-10 py-6">
-                            <div class="flex items-center gap-2">
-                                <div class="w-2 h-2 rounded-full ${latest.is_correct ? 'bg-green-500' : 'bg-red-500'}"></div>
-                                <span class="font-bold text-xs ${latest.is_correct ? 'text-green-600' : 'text-red-500'} uppercase tracking-widest">${latest.is_correct ? 'Correct' : 'Incorrect'}</span>
-                            </div>
-                        </td>
-                        <td class="px-10 py-6">${oldestBtn}</td>
-                        <td class="px-10 py-6">
-                            ${latestBtn}
-                            ${historyBadge}
-                        </td>
-                        <td class="px-10 py-6 text-right">
-                            <button class="w-8 h-8 bg-red-50 text-red-600 rounded-lg flex items-center justify-center hover:bg-red-600 hover:text-white transition-all opacity-0 group-hover:opacity-100" onclick="deleteSubmission(${latest.id})" title="Delete Latest Attempt"><i class="fas fa-trash"></i></button>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
+            // 2. Populate Quiz Proofs (Files Table)
+            if (proofsTbody) {
+                proofsTbody.innerHTML = '';
+                // Filter groups where at least one attempt has a file
+                const fileGroups = groups.filter(g => g.attempts.some(a => a.file_path));
+
+                if (fileGroups.length === 0) {
+                    proofsTbody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-400 font-bold">${emptyState('No uploaded files found in history.')}</td></tr>`;
+                } else {
+                    fileGroups.forEach(group => {
+                        const withFiles = group.attempts.filter(a => a.file_path);
+                        const latest = withFiles[0];
+                        const initial = withFiles[withFiles.length - 1];
+
+                        const tr = document.createElement('tr');
+                        tr.className = 'group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
+                        
+                        const initialBtn = initial.file_path ? 
+                            `<button onclick="previewFile('${initial.file_path}')" class="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg flex items-center gap-2 hover:bg-indigo-600 hover:text-white transition-all text-[9px] font-black uppercase tracking-tight" title="${initial.timestamp}">
+                                <i class="fas fa-history"></i> Initial</button>` : `<span class="text-[9px] text-slate-300 font-bold uppercase">No File</span>`;
+
+                        const latestBtn = latest.file_path ? 
+                            `<button onclick="previewFile('${latest.file_path}')" class="px-3 py-1.5 bg-indigo-100 text-indigo-600 rounded-lg flex items-center gap-2 hover:bg-indigo-600 hover:text-white transition-all text-[9px] font-black uppercase tracking-tight" title="${latest.timestamp}">
+                                <i class="fas fa-check-circle"></i> Latest</button>` : `<span class="text-[9px] text-slate-300 font-bold uppercase">No File</span>`;
+
+                        tr.innerHTML = `
+                            <td class="px-10 py-6">
+                                <div class="font-bold text-slate-900 dark:text-white">${group.student}</div>
+                            </td>
+                            <td class="px-10 py-6">
+                                <div class="text-sm font-medium text-slate-500 truncate max-w-xs">${group.question}</div>
+                            </td>
+                            <td class="px-10 py-6">${initialBtn}</td>
+                            <td class="px-10 py-6">${latestBtn}</td>
+                            <td class="px-10 py-6 text-right">
+                                <button onclick="previewFile('${latest.file_path}')" class="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs shadow-lg shadow-indigo-600/20 hover:scale-105 transition-all">Preview Evidence</button>
+                            </td>
+                        `;
+                        proofsTbody.appendChild(tr);
+                    });
+                }
             }
 
             // Sync to Mobile if visible
-            const activeNav = document.querySelector('.nav-links div.active');
-            if(activeNav && activeNav.dataset.target === 'submissions' && mobileContainer) {
-                renderSubmissionsMobile(data.submissions);
+            const activeNav = document.querySelector('.nav-links .nav-item.active');
+            if(activeNav && (activeNav.dataset.target === 'submissions' || activeNav.dataset.target === 'proofs') && mobileContainer) {
+                renderSubmissionsMobile(subs);
             }
 
         } catch (err) { 
-            if(tbody) tbody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-red-500 font-bold">Failed to load submissions database.</td></tr>`;
             console.error(err); 
         }
     }
@@ -811,10 +841,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 tr.innerHTML = `
                     <td class="px-10 py-6"><div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center font-black text-xs">#${i+1}</div></td>
                     <td class="px-10 py-6">
-                        <div class="font-bold text-slate-900 dark:text-white">${std.name || std.username}</div>
+                        <div class="font-bold text-slate-900 dark:text-white">${std.name}</div>
                         <div class="text-[10px] text-indigo-500 font-bold uppercase tracking-tight -mt-0.5">@${std.username}</div>
                     </td>
-                    <td class="px-10 py-6 text-center font-bold text-slate-500">${std.total_submissions}</td>
+                    <td class="px-10 py-6 text-center">
+                        <span class="font-bold text-slate-600 dark:text-slate-200">${std.total_submissions}</span>
+                    </td>
+                    <td class="px-10 py-6 text-center">
+                        <span class="font-bold text-indigo-600 dark:text-indigo-400">${std.total_proofs}</span>
+                    </td>
                     <td class="px-10 py-6 text-center"><span class="px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-bold">${std.average}%</span></td>
                     <td class="px-10 py-6 text-right">
                         <button class="w-8 h-8 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all" onclick="deleteStudent(${std.id})"><i class="fas fa-trash"></i></button>
@@ -964,7 +999,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 'global-stat-average': `${data.global_average}%`,
                 'stat-avg-mobile': `${data.global_average}%`,
                 'global-stat-submissions': data.total_submissions,
-                'stat-submissions-mobile': data.total_submissions
+                'stat-submissions-mobile': data.total_submissions,
+                'global-stat-proofs': data.total_proofs
             };
 
             for (const [id, val] of Object.entries(stats)) {

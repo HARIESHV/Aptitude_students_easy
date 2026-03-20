@@ -171,14 +171,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     `}
                     
                     <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 pt-6 border-t border-black/5 dark:border-white/5">
-                        <div class="flex items-center gap-4">
+                        <div id="proof-section-${q.id}" class="flex items-center gap-4 ${currentQuestionIndex === filteredQuestions.length - 1 ? '' : 'hidden pointer-events-none'}">
                             <label id="attach-label-${q.id}" class="cursor-pointer group flex items-center gap-3 px-4 md:px-5 py-2.5 md:py-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/50 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/20 transition-all">
                                 <span class="relative flex h-2 w-2">
                                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                                     <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                                 </span>
                                 <i class="fas fa-paperclip text-red-400 group-hover:text-red-600"></i>
-                                <span class="text-[10px] md:text-xs font-bold text-red-500 group-hover:text-red-600 uppercase tracking-widest">Attach Proof <span class="text-red-500">*Required</span></span>
+                                <span class="text-[10px] md:text-xs font-bold text-red-500 group-hover:text-red-600 uppercase tracking-widest">Final Quiz Proof <span class="text-red-500">*Required</span></span>
                                 <input type="file" id="file-${q.id}" class="hidden" accept=".pdf,.doc,.docx,image/*">
                             </label>
                             <div id="file-status-${q.id}" class="text-[9px] md:text-[10px] font-black uppercase text-emerald-600 tracking-widest hidden flex items-center gap-1.5">
@@ -246,26 +246,28 @@ document.addEventListener('DOMContentLoaded', () => {
         formEl.addEventListener('submit', (e) => {
             e.preventDefault();
             
-            // ── Mandatory Attach Proof Validation ──
-            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-                // Shake the attach label and show error
-                attachLabel.style.animation = 'none';
-                attachLabel.offsetHeight; // Reflow
-                attachLabel.style.animation = 'shake 0.4s ease-in-out';
-                attachLabel.className = attachLabel.className.replace('bg-red-50', 'bg-red-100');
-                
-                // Inject shake CSS if not present
-                if (!document.getElementById('shake-style')) {
-                    const style = document.createElement('style');
-                    style.id = 'shake-style';
-                    style.textContent = `@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }`;
-                    document.head.appendChild(style);
+            // ── Mandatory Final Proof Validation ──
+            if (currentQuestionIndex === filteredQuestions.length - 1) {
+                if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                    // Shake the attach label and show error
+                    attachLabel.style.animation = 'none';
+                    attachLabel.offsetHeight; // Reflow
+                    attachLabel.style.animation = 'shake 0.4s ease-in-out';
+                    attachLabel.className = attachLabel.className.replace('bg-red-50', 'bg-red-100');
+                    
+                    // Inject shake CSS if not present
+                    if (!document.getElementById('shake-style')) {
+                        const style = document.createElement('style');
+                        style.id = 'shake-style';
+                        style.textContent = `@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }`;
+                        document.head.appendChild(style);
+                    }
+                    
+                    showAlert('⚠️ Final Proof is required! Please attach your full working/solution file before completing the quiz.', true);
+                    // Scroll to the attach area
+                    attachLabel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return; // Block submission
                 }
-                
-                showAlert('⚠️ Proof attachment is required! Please attach your working/solution file before submitting.', true);
-                // Scroll to the attach area
-                attachLabel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                return; // Block submission
             }
 
             let selected = 'None';

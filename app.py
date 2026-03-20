@@ -440,13 +440,16 @@ def get_students(current_user):
     for std in students:
         submissions = Submission.query.filter_by(student_id=std.id).all()
         total = len(submissions)
+        proofs = len([s for s in submissions if s.file_path])
         correct = len([s for s in submissions if s.is_correct])
         average = (correct / total * 100) if total > 0 else 0
         output.append({
             'id': std.id,
+            'name': std.full_name or std.username,
             'username': std.username,
             'average': float("{:.2f}".format(average)),
-            'total_submissions': total
+            'total_submissions': total,
+            'total_proofs': proofs
         })
     return jsonify({'students': output})
 
@@ -458,6 +461,7 @@ def get_students(current_user):
 def get_admin_stats(current_user):
     total_students = User.query.filter_by(role='student').count()
     total_submissions = Submission.query.count()
+    total_proofs = Submission.query.filter(Submission.file_path != None).count()
     
     # Calculate global average as total correct / total submissions
     if total_submissions > 0:
@@ -469,6 +473,7 @@ def get_admin_stats(current_user):
     return jsonify({
         'total_students': total_students,
         'total_submissions': total_submissions,
+        'total_proofs': total_proofs,
         'global_average': round(global_avg, 2)
     })
 
