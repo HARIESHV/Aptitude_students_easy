@@ -550,6 +550,7 @@ def get_all_submissions(current_user):
             'submission_id': sub.submission_id or str(sub.id),
             'student': sub.student.full_name or sub.student.username,
             'username': sub.student.username,
+            'question_id': sub.question.id,
             'question': sub.question.title,
             'topic': sub.question.topic,
             'question_type': sub.question.question_type,

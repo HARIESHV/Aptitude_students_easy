@@ -397,15 +397,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             const subs = data.submissions || [];
             
-            // Intelligent Grouping: Each student get one row per question
+            // Intelligent Grouping: Each student gets one row per UNIQUE QUESTION (by ID, not title)
             const grouped = new Map();
             subs.forEach(s => {
-                const key = `${s.username}_${s.question}`;
+                const key = `${s.username}_${s.question_id}`; // Use question_id to keep same-topic questions separate
                 if (!grouped.has(key)) {
                     grouped.set(key, {
                         student: s.student,
                         username: s.username,
                         question: s.question,
+                        topic: s.topic,
+                        question_id: s.question_id,
                         attempts: []
                     });
                 }
@@ -433,6 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             </td>
                             <td class="px-10 py-6">
                                 <div class="text-sm font-medium text-slate-600 dark:text-slate-300 truncate max-w-[200px]">${group.question}</div>
+                                <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">${group.topic || ''}</div>
                             </td>
                             <td class="px-10 py-6">
                                 ${(() => {
