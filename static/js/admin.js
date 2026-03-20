@@ -432,17 +432,31 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="text-[10px] text-indigo-500 font-bold uppercase tracking-tight -mt-0.5">@${group.username}</div>
                             </td>
                             <td class="px-10 py-6">
-                                <div class="text-sm font-medium text-slate-600 dark:text-slate-300 truncate max-w-xs">${group.question}</div>
+                                <div class="text-sm font-medium text-slate-600 dark:text-slate-300 truncate max-w-[200px]">${group.question}</div>
                             </td>
                             <td class="px-10 py-6">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-2 h-2 rounded-full ${latest.is_correct ? 'bg-green-500' : 'bg-red-500'}"></div>
-                                    <span class="font-bold text-xs ${latest.is_correct ? 'text-green-600' : 'text-red-500'} uppercase tracking-widest">${latest.is_correct ? 'Correct' : 'Incorrect'}</span>
-                                    ${attCount > 1 ? `<span class="ml-2 text-[8px] bg-slate-100 px-1.5 py-0.5 rounded-full text-slate-500 font-black">${attCount} ATTEMPTS</span>` : ''}
+                                <div class="space-y-1.5">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[8px] font-black text-slate-400 uppercase tracking-tighter w-12">Student:</span>
+                                        <div class="text-xs font-bold text-slate-600 dark:text-slate-200 italic truncate max-w-[150px]" title="${latest.selected_option}">${latest.selected_option || 'N/A'}</div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[8px] font-black text-indigo-400 uppercase tracking-tighter w-12">Correct:</span>
+                                        <div class="text-xs font-bold text-indigo-600 dark:text-indigo-400 italic truncate max-w-[150px]" title="${latest.correct_answer}">${latest.correct_answer || 'N/A'}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-10 py-6 text-center">
+                                <div class="flex flex-col items-center gap-1">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-1.5 h-1.5 rounded-full ${latest.is_correct ? 'bg-green-500' : 'bg-red-500'}"></div>
+                                        <span class="font-black text-[10px] ${latest.is_correct ? 'text-green-600' : 'text-red-500'} uppercase tracking-widest">${latest.is_correct ? 'Passed' : 'Failed'}</span>
+                                    </div>
+                                    ${attCount > 1 ? `<span class="text-[7px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-400 font-black uppercase">${attCount} attempts</span>` : ''}
                                 </div>
                             </td>
                             <td class="px-10 py-6">
-                                <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">${latest.timestamp}</div>
+                                <div class="text-[9px] text-slate-400 font-black font-mono uppercase tracking-tight">${latest.timestamp}</div>
                             </td>
                             <td class="px-10 py-6 text-right">
                                 <button class="w-8 h-8 bg-red-50 text-red-600 rounded-lg flex items-center justify-center hover:bg-red-600 hover:text-white transition-all opacity-0 group-hover:opacity-100" onclick="deleteSubmission(${latest.id})" title="Delete Latest Instance"><i class="fas fa-trash"></i></button>
@@ -535,11 +549,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="text-[9px] font-black text-indigo-500 uppercase tracking-tight -mt-0.5">@${sub.username}</div>
                         <div class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">${sub.timestamp}</div>
                     </div>
-                    <div class="px-2.5 py-1 ${sub.is_correct ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'} rounded-lg text-[9px] font-black uppercase tracking-widest border ${sub.is_correct ? 'border-emerald-500/20' : 'border-rose-500/20'}">
+                    <div class="px-2.5 py-1 ${sub.is_correct ? 'emerald-gradient text-white border-none' : 'rose-gradient text-white border-none'} rounded-lg text-[9px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/10">
                         ${sub.is_correct ? 'Correct' : 'Fail'}
                     </div>
                 </div>
-                <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400 line-clamp-2">${sub.question}</div>
+                <div class="space-y-1">
+                    <div class="text-[11px] font-medium text-slate-400 uppercase tracking-widest font-black">${sub.question}</div>
+                    <div class="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 italic">
+                        "${sub.selected_option || 'No Answer Provided'}"
+                    </div>
+                </div>
                 <div class="flex gap-2 pt-2">
                     ${sub.file_path ? `
                         <button onclick="previewFile('${sub.file_path}')" class="flex-1 py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">

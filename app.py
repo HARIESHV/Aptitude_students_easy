@@ -550,7 +550,9 @@ def get_all_submissions(current_user):
             'username': sub.student.username,
             'question': sub.question.title,
             'topic': sub.question.topic,
+            'question_type': sub.question.question_type,
             'selected_option': sub.selected_option,
+            'correct_answer': sub.question.correct_option if sub.question.question_type != 'text' else sub.question.correct_text_answer,
             'is_correct': sub.is_correct,
             'file_path': sub.file_path if file_exists else None, # Hide if missing from disk
             'timestamp': sub.timestamp.strftime('%Y-%m-%d %I:%M %p')
