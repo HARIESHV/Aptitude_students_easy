@@ -252,25 +252,44 @@ def ping():
 
 @app.route('/api/register', methods=['POST'])
 def register():
-    data = request.get_json()
-    username = (data.get('username') or '').strip()
-    full_name = (data.get('full_name') or username).strip()
-    password = (data.get('password') or '').strip()
-    role = data.get('role', 'student') 
+    try:
+        data = request.get_json()
+        username = (data.get('username') or '').strip()
+        full_name = (data.get('full_name') or username).strip()
+        password = (data.get('password') or '').strip()
+        role = data.get('role', 'student') 
 
-    if not username or not password:
-        return jsonify({'message': 'Missing data!'}), 400
-    
-    # Case-insensitive duplicate check: 'Hariesh' and 'hariesh' are the same user
-    if User.query.filter(db.func.lower(User.username) == username.lower()).first():
-        return jsonify({'message': 'User already exists!'}), 400
+        if not username or not password:
+            return jsonify({'message': 'Missing data!'}), 400
         
-    hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
-    new_user = User(username=username, password=hashed_password, role=role, full_name=full_name)
-    db.session.add(new_user)
-    db.session.commit()
-    
-    return jsonify({'message': 'User created successfully!'}), 201
+        # Case-insensitive duplicate check: 'Hariesh' and 'hariesh' are the same user
+        if User.query.filter(db.func.lower(User.username) == username.lower()).first():
+            return jsonify({'message': 'User already exists!'}), 400
+            
+        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+        new_user = User(username=username, password=hashed_password, role=role, full_name=full_name)
+        db.session.add(new_user)
+        db.session.commit()
+        
+        # Auto-login: Generate token immediately
+        import datetime as dt
+        token = jwt.encode(
+            {'user_id': new_user.id, 'role': new_user.role, 'exp': dt.datetime.now(dt.timezone.utc) + timedelta(hours=24)}, 
+            app.config['SECRET_KEY'], 
+            algorithm="HS256"
+        )
+        if isinstance(token, bytes):
+            token = token.decode('utf-8')
+            
+        return jsonify({
+            'message': 'Account created! Logging you in...', 
+            'token': token, 
+            'role': new_user.role, 
+            'username': new_user.username, 
+            'user_id': new_user.id
+        }), 201
+    except Exception as e:
+        return jsonify({'message': f'Registration failed: {str(e)}'}), 500
 
 @app.route('/api/login', methods=['POST'])
 def login():

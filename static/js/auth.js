@@ -141,11 +141,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await res.json();
 
                 if (res.ok) {
-                    showAlert('Success! Network access granted.', false);
-                    setTimeout(() => toLogin.click(), 1500);
+                    showAlert(data.message || 'Success! Network access granted.', false);
+                    
+                    // Auto-login: Store token and redirect
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('role', data.role);
+                    localStorage.setItem('username', data.username);
+                    localStorage.setItem('user_id', data.user_id);
+                    
+                    setTimeout(() => {
+                        window.location.href = '/student_dashboard';
+                    }, 1500);
                 } else {
                     showAlert(data.message || 'Registry failed');
                     submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
                 }
             } catch (error) {
                 showAlert('Registry server error.');
