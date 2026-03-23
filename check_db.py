@@ -24,6 +24,11 @@ try:
     cols = [r[0] for r in cur.fetchall()]
     print(f"Submission columns: {cols}")
     
+    print("Checking columns in 'message'...")
+    cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='message'")
+    cols = [r[0] for r in cur.fetchall()]
+    print(f"Message columns: {cols}")
+    
     cur.close()
     conn.close()
 except Exception as e:

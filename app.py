@@ -548,7 +548,7 @@ def get_all_submissions(current_user):
             'selected_option': sub.selected_option,
             'correct_answer': sub.question.correct_option if sub.question.question_type != 'text' else sub.question.correct_text_answer,
             'is_correct': sub.is_correct,
-            'file_path': sub.file_path,
+            'file_path': f"/api/downloads/submission/{sub.submission_id}" if sub.file_data else sub.file_path,
             'timestamp': sub.timestamp.strftime('%Y-%m-%d %I:%M %p')
         })
     return jsonify({'submissions': output})
@@ -704,10 +704,24 @@ def send_message(current_user):
             file = request.files['file']
             if file.filename != '':
                 filename = secure_filename(file.filename)
+                
+                # Store in DB for persistence
+                file_data = file.read()
+                file_mimetype = file.mimetype
+                
+                # Save locally as well if possible
                 timestamp_prefix = datetime.now().strftime('%Y%m%d%H%M%S')
-                filename = f"{timestamp_prefix}_{filename}"
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                file_path = f'/static/uploads/{filename}'
+                filename = f"msg_{timestamp_prefix}_{filename}"
+                full_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                try:
+                    file.stream.seek(0)
+                    file.save(full_path)
+                except Exception as e:
+                    print(f"Warning: message file copy failed: {str(e)}")
+                    
+                # Use download API link
+                msg_uuid = str(uuid.uuid4())
+                file_path = f'/api/downloads/message/{msg_uuid}'
     
     if receiver_id == 'all' or receiver_id == '' or receiver_id is None:
         receiver_id = None
@@ -724,7 +738,9 @@ def send_message(current_user):
         sender_role=current_user.role,
         receiver_id=receiver_id,
         content=content,
-        file_path=file_path
+        file_path=file_path,
+        file_data=file_data if 'file_data' in locals() else None,
+        file_mimetype=file_mimetype if 'file_mimetype' in locals() else None
     )
     db.session.add(new_message)
     db.session.commit()
@@ -806,18 +822,25 @@ def submit_answer(current_user):
             file = request.files['file']
             if file.filename != '':
                 filename = secure_filename(file.filename)
+                
+                # We store file in memory to put into DB directly
+                file_data = file.read()
+                file_mimetype = file.mimetype
+                
+                # Still try to save a fast copy locally if it's not ephemeral (useful for debugging)
                 timestamp_prefix = datetime.now().strftime('%Y%m%d%H%M%S')
                 filename = f"sub_{timestamp_prefix}_{filename}"
                 full_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 try:
+                    file.stream.seek(0) # Reset stream after reading
                     file.save(full_path)
-                    if os.path.exists(full_path):
-                        file_path = f'/static/uploads/{filename}'
-                        print(f"✅ Submission file saved successfully: {full_path}")
-                    else:
-                        print(f"❌ File save failed verification: {full_path}")
                 except Exception as e:
-                    print(f"❌ File system error during save: {str(e)}")
+                    print(f"Warning: local file copy failed: {str(e)}")
+                    
+                # Setup the DB file storing logic
+                # Path is now the dynamic download endpoint
+                sub_uuid = str(uuid.uuid4())
+                file_path = f'/api/downloads/submission/{sub_uuid}'
 
     if not question_id:
         return jsonify({'message': 'Missing question ID!'}), 400
@@ -839,13 +862,17 @@ def submit_answer(current_user):
     else:
         is_correct = (selected_option == question.correct_option)
     
+    sub_uuid = sub_uuid if 'sub_uuid' in locals() else str(uuid.uuid4())
+    
     new_sub = Submission(
         student_id=current_user.id,
         question_id=question_id,
         selected_option=selected_option,
         is_correct=is_correct,
         file_path=file_path,
-        submission_id=str(uuid.uuid4())
+        file_data=file_data if 'file_data' in locals() else None,
+        file_mimetype=file_mimetype if 'file_mimetype' in locals() else None,
+        submission_id=sub_uuid
     )
     db.session.add(new_sub)
     db.session.commit()
@@ -856,6 +883,47 @@ def submit_answer(current_user):
         'correct_option': question.correct_option if question.question_type != 'text' else question.correct_text_answer,
         'answer_description': question.answer_description
     }), 201
+
+import io
+@app.route('/api/downloads/submission/<string:submission_id>')
+def download_submission_proof(submission_id):
+    sub = Submission.query.filter_by(submission_id=submission_id).first()
+    if not sub:
+        return "File Not Found (Submission missing)", 404
+        
+    if getattr(sub, 'file_data', None):
+        return send_file(
+            io.BytesIO(sub.file_data),
+            mimetype=sub.file_mimetype or 'application/octet-stream',
+            as_attachment=False,
+            download_name=sub.file_path.split('/')[-1] if sub.file_path else 'proof.bin'
+        )
+    # Fallback to local file if missing in DB
+    if sub.file_path and sub.file_path.startswith('/static/'):
+        local_path = sub.file_path.replace('/static/', '')
+        full_path = os.path.join(app.root_path, 'static', local_path)
+        if os.path.exists(full_path):
+            return send_from_directory(os.path.join(app.root_path, 'static'), local_path)
+    
+    return send_file(os.path.join(app.root_path, 'static', 'images', 'missing_file.png'), mimetype='image/png')
+
+@app.route('/api/downloads/message/<string:msg_id>')
+def download_message_file(msg_id):
+    # UUID check (we stored it in file_path as /api/downloads/message/UUID)
+    # But wait, we didn't add a message_uuid column. 
+    # Let's use the file_path itself to identify, or just search by part of file_path.
+    message = Message.query.filter(Message.file_path.like(f'%{msg_id}%')).first()
+    if not message:
+        return "File Not Found", 404
+        
+    if message.file_data:
+        return send_file(
+            io.BytesIO(message.file_data),
+            mimetype=message.file_mimetype or 'application/octet-stream',
+            as_attachment=False,
+            download_name=message.file_path.split('/')[-1] if message.file_path else 'attachment.bin'
+        )
+    return "File Not Found (Offline content)", 404
 
 @app.route('/api/student/stats', methods=['GET'])
 @token_required
@@ -894,7 +962,7 @@ def get_student_history(current_user):
             'selected_option': sub.selected_option,
             'correct_option': sub.question.correct_option if sub.question.question_type != 'text' else sub.question.correct_text_answer,
             'is_correct': sub.is_correct,
-            'file_path': sub.file_path,
+            'file_path': f"/api/downloads/submission/{sub.submission_id}" if sub.file_data else sub.file_path,
             'timestamp': sub.timestamp.strftime('%Y-%m-%d %I:%M %p')
         })
     return jsonify({'history': output})
