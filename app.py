@@ -823,6 +823,13 @@ def submit_answer(current_user):
             if file.filename != '':
                 filename = secure_filename(file.filename)
                 
+                # Restriction: Only allow PDF, Image, and DOCX
+                allowed_extensions = {'.pdf', '.docx', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'}
+                file_ext = os.path.splitext(filename)[1].lower()
+                
+                if file_ext not in allowed_extensions:
+                    return jsonify({'message': 'Invalid file type! Only PDF, Images (JPG, PNG, SVG), and DOCX are allowed.'}), 400
+                
                 # We store file in memory to put into DB directly
                 file_data = file.read()
                 file_mimetype = file.mimetype
@@ -892,11 +899,27 @@ def download_submission_proof(submission_id):
         return "File Not Found (Submission missing)", 404
         
     if getattr(sub, 'file_data', None):
+        # Infer extension from mimetype
+        ext_map = {
+            'application/pdf': '.pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+            'image/jpeg': '.jpg',
+            'image/png': '.png',
+            'image/gif': '.gif',
+            'image/webp': '.webp',
+            'image/svg+xml': '.svg'
+        }
+        ext = ext_map.get(sub.file_mimetype, '.bin')
+        
+        # Build a safe filename
+        username = sub.student.username if sub.student else 'student'
+        display_name = f"Proof_{username}_Q{sub.question_id}{ext}"
+        
         return send_file(
             io.BytesIO(sub.file_data),
             mimetype=sub.file_mimetype or 'application/octet-stream',
-            as_attachment=False,
-            download_name=sub.file_path.split('/')[-1] if sub.file_path else 'proof.bin'
+            as_attachment=True,
+            download_name=display_name
         )
     # Fallback to local file if missing in DB
     if sub.file_path and sub.file_path.startswith('/static/'):
@@ -917,11 +940,25 @@ def download_message_file(msg_id):
         return "File Not Found", 404
         
     if message.file_data:
+        # Infer extension from mimetype
+        ext_map = {
+            'application/pdf': '.pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+            'application/msword': '.doc',
+            'image/jpeg': '.jpg',
+            'image/png': '.png',
+            'image/gif': '.gif',
+            'image/webp': '.webp',
+            'image/svg+xml': '.svg'
+        }
+        ext = ext_map.get(message.file_mimetype, '.bin')
+        display_name = f"Attachment_{message.id}{ext}"
+        
         return send_file(
             io.BytesIO(message.file_data),
             mimetype=message.file_mimetype or 'application/octet-stream',
-            as_attachment=False,
-            download_name=message.file_path.split('/')[-1] if message.file_path else 'attachment.bin'
+            as_attachment=True,
+            download_name=display_name
         )
     return "File Not Found (Offline content)", 404
 

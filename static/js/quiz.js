@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </span>
                                 <i class="fas fa-paperclip text-red-400 group-hover:text-red-600"></i>
                                 <span class="text-[10px] md:text-xs font-bold text-red-500 group-hover:text-red-600 uppercase tracking-widest">Final Quiz Proof <span class="text-red-500">*Required</span></span>
-                                <input type="file" id="file-${q.id}" class="hidden" accept=".pdf,.doc,.docx,image/*">
+                                <input type="file" id="file-${q.id}" class="hidden" accept=".pdf,.docx,image/*">
                             </label>
                             <div id="file-status-${q.id}" class="text-[9px] md:text-[10px] font-black uppercase text-emerald-600 tracking-widest hidden flex items-center gap-1.5">
                                 <i class="fas fa-check-circle"></i> File Ready

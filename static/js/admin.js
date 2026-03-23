@@ -501,8 +501,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     proofsTbody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-slate-400 font-bold">${emptyState('No uploaded files found in history.')}</td></tr>`;
                 } else {
                     proofSubs.forEach(sub => {
-                        // Extract filename from path (e.g. /static/uploads/sub_123_abc.pdf -> sub_123_abc.pdf)
+                        if (!sub.file_path) return;
+                        const ext = sub.file_path.split('.').pop().split('?')[0].toLowerCase();
+                        const allowed = ['pdf', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+                        if (!sub.file_path.includes('/api/downloads/submission/') && !allowed.includes(ext)) return;
+
                         const filename = sub.file_path.split('/').pop() || `Proof_ID_${sub.id}.bin`;
+                        let iconClass = 'fa-file-alt';
+                        if (ext === 'pdf') iconClass = 'fa-file-pdf';
+                        else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) iconClass = 'fa-file-image';
+                        else if (ext === 'docx') iconClass = 'fa-file-word';
 
                         const tr = document.createElement('tr');
                         tr.className = 'group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
@@ -519,7 +527,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td class="px-10 py-6">
                                 <div class="flex items-center gap-2">
                                     <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/10 flex items-center justify-center text-emerald-600">
-                                        <i class="fas fa-file-pdf"></i>
+                                        <i class="fas ${iconClass}"></i>
                                     </div>
                                     <div class="text-[10px] font-bold text-slate-600 dark:text-slate-300 w-32 truncate" title="${filename}">${filename}</div>
                                 </div>
@@ -591,20 +599,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
                 <div class="flex gap-2 pt-2">
-                    ${sub.file_path ? `
-                        <div class="flex-1 flex gap-2">
-                            <button onclick="previewFile('${sub.file_path}')" class="flex-1 py-3 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-600 hover:text-white active:scale-95 transition-all">
-                                <i class="fas fa-eye mr-1"></i> Preview
-                            </button>
-                            <button onclick="downloadSecureFile('${sub.file_path}', '${sub.username}_Q${sub.id}')" class="flex-1 py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center justify-center">
-                                <i class="fas fa-download mr-1"></i> Download
-                            </button>
-                        </div>
-                    ` : `
-                        <div class="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-xl text-[10px] font-bold uppercase tracking-widest text-center opacity-50">
-                            No Proof Uploaded
-                        </div>
-                    `}
+                    ${(() => {
+                        if (!sub.file_path) return '<div class="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-xl text-[10px] font-bold uppercase tracking-widest text-center opacity-50">No Proof Uploaded</div>';
+                        const ext = sub.file_path.split('.').pop().split('?')[0].toLowerCase();
+                        const allowed = ['pdf', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+                        if (sub.file_path.includes('/api/downloads/submission/') || allowed.includes(ext)) {
+                            return `
+                                <div class="flex-1 flex gap-2">
+                                    <button onclick="previewFile('${sub.file_path}')" class="flex-1 py-3 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-600 hover:text-white active:scale-95 transition-all"><i class="fas fa-eye mr-1"></i> Preview</button>
+                                    <button onclick="downloadSecureFile('${sub.file_path}', '${sub.username}_Q${sub.id}')" class="flex-1 py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center justify-center"><i class="fas fa-download mr-1"></i> Download</button>
+                                </div>
+                            `;
+                        }
+                        return '<div class="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-xl text-[10px] font-bold uppercase tracking-widest text-center opacity-50">Invalid Proof Format</div>';
+                    })()}
                     <button onclick="deleteSubmission(${sub.id})" class="w-12 h-12 bg-rose-50 dark:bg-rose-900/10 text-rose-500 rounded-xl flex items-center justify-center active:scale-95 transition-all">
                         <i class="fas fa-trash-alt"></i>
                     </button>
@@ -671,7 +679,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Trigger actual download
             const a = document.createElement('a');
             a.href = path;
-            a.download = `Proof_${filename}.bin`;
+            // Removed hardcoded .bin to allow server-determined extension
+            a.download = filename; 
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

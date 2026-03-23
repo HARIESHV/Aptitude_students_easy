@@ -475,11 +475,16 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <div class="w-2.5 h-2.5 rounded-full ${sub.is_correct ? 'bg-emerald-500' : 'bg-rose-500'} shadow-[0_0_10px_rgba(16,185,129,0.3)]"></div>
                                     <span class="text-[10px] font-black uppercase tracking-widest ${sub.is_correct ? 'text-emerald-500' : 'text-rose-500'}">${sub.is_correct ? 'Success' : 'Failed'}</span>
                                 </div>
-                                ${sub.file_path ? `
-                                    <button onclick="previewFile('${sub.file_path}')" class="px-4 py-2 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all">
-                                        <i class="fas fa-eye mr-1.5"></i> Proof
-                                    </button>
-                                ` : ''}
+                                ${(() => {
+                                    if (!sub.file_path) return '';
+                                    const ext = sub.file_path.split('.').pop().split('?')[0].toLowerCase();
+                                    const allowed = ['pdf', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+                                    // Also allow the new API links which might not have extensions but we assume are valid now
+                                    if (sub.file_path.includes('/api/downloads/submission/') || allowed.includes(ext)) {
+                                        return `<button onclick="previewFile('${sub.file_path}')" class="px-4 py-2 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all"><i class="fas fa-eye mr-1.5"></i> Proof</button>`;
+                                    }
+                                    return '';
+                                })()}
                             </div>
                         `;
                         el.appendChild(card);
@@ -493,7 +498,15 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td class="px-6 py-4"><span class="badge ${sub.is_correct ? 'correct' : 'incorrect'}">${sub.is_correct ? 'Correct' : 'Incorrect'}</span></td>
                             <td class="px-6 py-4 text-slate-400 text-xs">${sub.timestamp}</td>
                             <td class="px-6 py-4 text-right">
-                                ${sub.file_path ? `<button onclick="previewFile('${sub.file_path}')" class="text-indigo-600 hover:text-indigo-700 font-black text-[10px] uppercase tracking-widest"><i class="fas fa-eye mr-1"></i> View</button>` : '<span class="text-slate-300 text-[10px] uppercase font-bold">No Proof</span>'}
+                                ${(() => {
+                                    if (!sub.file_path) return '<span class="text-slate-300 text-[10px] uppercase font-bold">No Proof</span>';
+                                    const ext = sub.file_path.split('.').pop().split('?')[0].toLowerCase();
+                                    const allowed = ['pdf', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+                                    if (sub.file_path.includes('/api/downloads/submission/') || allowed.includes(ext)) {
+                                        return `<button onclick="previewFile('${sub.file_path}')" class="text-indigo-600 hover:text-indigo-700 font-black text-[10px] uppercase tracking-widest"><i class="fas fa-eye mr-1"></i> View</button>`;
+                                    }
+                                    return '<span class="text-slate-300 text-[10px] uppercase font-bold">No Proof</span>';
+                                })()}
                             </td>
                         `;
                         el.appendChild(tr);
