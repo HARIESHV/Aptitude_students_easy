@@ -449,8 +449,13 @@ def get_students(current_user):
             'username': std.username,
             'average': float("{:.2f}".format(average)),
             'total_submissions': total,
-            'total_proofs': proofs
+            'total_proofs': proofs,
+            'correct': correct
         })
+    
+    # Sort by correct solving count, then average
+    output.sort(key=lambda x: (-x['correct'], -x['average']))
+    
     return jsonify({'students': output})
 
 
@@ -918,7 +923,7 @@ def download_submission_proof(submission_id):
         return send_file(
             io.BytesIO(sub.file_data),
             mimetype=sub.file_mimetype or 'application/octet-stream',
-            as_attachment=True,
+            as_attachment=False,
             download_name=display_name
         )
     # Fallback to local file if missing in DB
@@ -957,7 +962,7 @@ def download_message_file(msg_id):
         return send_file(
             io.BytesIO(message.file_data),
             mimetype=message.file_mimetype or 'application/octet-stream',
-            as_attachment=True,
+            as_attachment=False,
             download_name=display_name
         )
     return "File Not Found (Offline content)", 404
@@ -1037,13 +1042,8 @@ def get_leaderboard(current_user):
             'lastActivity': latest_sub.timestamp.isoformat() if latest_sub else None
         })
     
-    # Sort by count desc, then by activity (oldest activity first if tied? or newest?)
-    # Usually, if tied, newest activity ranks lower (reached it later).
-    # Lambda ranks desc for questions, then asc for timestamp maybe?
-    # I'll use timestamp asc so earlier achiever is on top? Wait.
-    # High count on top. If tied, earliest achieved is higher?
-    # Usually: if tied, the one who REACHED that count EARLIEST is first.
-    board.sort(key=lambda x: (-x['answeredQuestions'], x['lastActivity'] or '9999-12-31'))
+    # Sort by Solved Questions desc, then by Average desc, then by activity (earlier is better/higher rank)
+    board.sort(key=lambda x: (-x['answeredQuestions'], -x['average'], x['lastActivity'] or '9999-12-31'))
     
     # Add Rank
     for i, item in enumerate(board):
