@@ -984,7 +984,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>
                     <td class="px-10 py-6 text-center"><span class="px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-bold">${std.average}%</span></td>
                     <td class="px-10 py-6 text-right">
-                        <button class="w-8 h-8 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all" onclick="deleteStudent(${std.id})"><i class="fas fa-trash"></i></button>
+                        <div class="flex items-center justify-end gap-2">
+                            <button class="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all" onclick='editStudent(${JSON.stringify(std).replace(/'/g, "&apos;")})'><i class="fas fa-edit"></i></button>
+                            <button class="w-8 h-8 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all" onclick="deleteStudent(${std.id})"><i class="fas fa-trash"></i></button>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -1002,6 +1005,43 @@ document.addEventListener('DOMContentLoaded', () => {
             if(res.ok) { showAlert('Node decommissioned.'); fetchStudents(); fetchGlobalStats(); }
         } catch (err) { console.error(err); }
     };
+
+    window.editStudent = (std) => {
+        document.getElementById('edit-student-id').value = std.id;
+        document.getElementById('edit-student-name').value = std.name || '';
+        document.getElementById('edit-student-username').value = std.username || '';
+        document.getElementById('edit-student-password').value = '';
+        openEditStudentModal();
+    };
+
+    window.openEditStudentModal = () => document.getElementById('edit-student-modal').classList.remove('hidden');
+    window.closeEditStudentModal = () => document.getElementById('edit-student-modal').classList.add('hidden');
+
+    document.getElementById('edit-student-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('edit-student-id').value;
+        const data = {
+            name: document.getElementById('edit-student-name').value,
+            username: document.getElementById('edit-student-username').value,
+            password: document.getElementById('edit-student-password').value
+        };
+
+        try {
+            const res = await fetch(`${API_BASE}/students/${id}`, {
+                method: 'PUT',
+                headers: getHeaders(),
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                showAlert('Student profile updated!');
+                closeEditStudentModal();
+                fetchStudents();
+            } else {
+                const err = await res.json();
+                showAlert(err.message || 'Update failed', true);
+            }
+        } catch (error) { showAlert('Error connecting to server', true); }
+    });
 
     window.deleteMessage = async (id) => {
         if(!confirm('Purge transmission?')) return;
@@ -1150,6 +1190,103 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const logoutBtnDesktop = document.getElementById('logout-btn-desktop');
     if(logoutBtnDesktop) logoutBtnDesktop.addEventListener('click', handleLogout);
+
+    // --- Notifications logic ---
+    let lastNotiCheck = localStorage.getItem('last_noti_read_admin') || '1970-01-01 00:00:00';
+    let lastNotiSoundTime = localStorage.getItem('last_noti_sound_admin') || '1970-01-01 00:00:00';
+    
+    // Low-latency professional notification sound
+    const notiSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    notiSound.volume = 0.5;
+
+    const playNotiSound = () => {
+        notiSound.play().catch(e => console.warn('Sound blocked by browser policy. Interaction required.'));
+    };
+
+    const fetchNotifications = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/notifications`, { headers: getHeaders() });
+            if (!res.ok) return;
+            const data = await res.json();
+            renderNotifications(data.notifications);
+        } catch (err) { console.error('Noti Error:', err); }
+    };
+
+    const renderNotifications = (notis) => {
+        const list = document.getElementById('noti-list-desktop');
+        const badge = document.getElementById('noti-badge-desktop');
+        if (!list) return;
+
+        const filteredNotis = notis.slice(0, 5);
+        
+        // 1. Update Badge for "Unread"
+        const unreadCount = filteredNotis.filter(n => n.timestamp > lastNotiCheck).length;
+        if (unreadCount > 0) {
+            badge.innerText = unreadCount;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+
+        // 2. Play sound for "Newly Arrived" (since last poll/sound)
+        if (filteredNotis.length > 0) {
+            const latestTimestamp = filteredNotis[0].timestamp;
+            if (latestTimestamp > lastNotiSoundTime) {
+                // If this is the FIRST time we have any sound time, don't play on initial load
+                if (lastNotiSoundTime !== '1970-01-01 00:00:00') {
+                    playNotiSound();
+                }
+                lastNotiSoundTime = latestTimestamp;
+                localStorage.setItem('last_noti_sound_admin', latestTimestamp);
+            }
+        }
+
+        if (filteredNotis.length === 0) {
+            list.innerHTML = '<div class="p-8 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">No new updates</div>';
+            return;
+        }
+
+        list.innerHTML = filteredNotis.map(n => `
+            <div class="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex gap-4 ${n.timestamp > lastNotiCheck ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}">
+                <div class="w-10 h-10 shrink-0 rounded-xl ${n.type === 'submission' ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-100 text-indigo-600'} flex items-center justify-center text-sm">
+                    <i class="fas ${n.type === 'submission' ? (n.is_correct ? 'fa-check-circle' : 'fa-times-circle') : 'fa-envelope'}"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="text-[10px] font-black uppercase tracking-widest text-slate-400">${n.title}</div>
+                    <div class="text-xs font-bold text-slate-700 dark:text-slate-200 mt-0.5">${n.content}</div>
+                    <div class="text-[9px] text-slate-400 mt-1">${n.timestamp}</div>
+                </div>
+            </div>
+        `).join('');
+    };
+
+    window.markAllRead = () => {
+        // Set lastRead to current time string "YYYY-MM-DD HH:MM:SS"
+        const now = new Date();
+        const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)).toISOString().replace('T', ' ').split('.')[0];
+        lastNotiCheck = istTime;
+        localStorage.setItem('last_noti_read_admin', lastNotiCheck);
+        fetchNotifications();
+    };
+
+    // Toggle dropdown
+    const notiBtn = document.getElementById('noti-btn-desktop');
+    const notiDropdown = document.getElementById('noti-dropdown-desktop');
+    if (notiBtn && notiDropdown) {
+        notiBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            notiDropdown.classList.toggle('hidden');
+        });
+        notiDropdown.addEventListener('click', (e) => e.stopPropagation());
+    }
+
+    document.addEventListener('click', () => {
+        if (notiDropdown) notiDropdown.classList.add('hidden');
+    });
+
+    // Start polling
+    fetchNotifications();
+    setInterval(fetchNotifications, 30000);
 
     // Initial Load
     fetchQuestions();

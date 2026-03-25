@@ -416,7 +416,22 @@
             <div class="flex items-center gap-2">
                 <span class="font-extrabold text-lg tracking-tight text-indigo-600 dark:text-indigo-400">Aptitude</span>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-3">
+                <div class="relative">
+                    <button id="noti-btn-mob" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-500 hover:text-indigo-500 relative transition-all">
+                        <i class="fas fa-bell"></i>
+                        <span id="noti-badge-mob" class="absolute top-1 right-1 w-3.5 h-3.5 bg-red-500 text-white text-[7px] font-black rounded-full flex items-center justify-center hidden">0</span>
+                    </button>
+                    <!-- Mobile Noti Dropdown (Centered for mobile) -->
+                    <div id="noti-dropdown-mob" class="fixed left-4 right-4 top-20 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-2xl hidden z-[150] overflow-hidden">
+                        <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                            <h4 class="text-[10px] font-black uppercase tracking-widest text-slate-400">Updates</h4>
+                            <button onclick="markAllRead()" class="text-[9px] font-bold text-indigo-500">Dismiss all</button>
+                        </div>
+                        <div id="noti-list-mob" class="max-h-80 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800/50"></div>
+                    </div>
+                </div>
+                <button id="theme-toggle-mob" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-400"><i class="fas fa-moon"></i></button>
             </div>
         </header>
 
@@ -605,6 +620,23 @@
                     </button>
                 </div>
                 <div class="topbar-right">
+                    <!-- Desktop Notifications -->
+                    <div class="relative mr-4">
+                        <button id="noti-btn-desktop" class="theme-btn-orb relative">
+                            <i class="fas fa-bell"></i>
+                            <span id="noti-badge-desktop" class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center hidden">0</span>
+                        </button>
+                        <div id="noti-dropdown-desktop" class="absolute right-0 mt-3 w-80 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl hidden z-[110] overflow-hidden text-left">
+                            <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                                <h4 class="text-xs font-black uppercase tracking-widest text-slate-400">Alerts</h4>
+                                <button onclick="markAllRead()" class="text-[9px] font-bold text-indigo-500 hover:underline">Mark all read</button>
+                            </div>
+                            <div id="noti-list-desktop" class="max-h-96 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800/50 p-2">
+                                <div class="p-8 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">No alerts</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <button id="fullscreen-toggle" class="theme-btn-orb mr-2"><i class="fas fa-expand"></i></button>
                     <button id="theme-toggle" class="theme-btn-orb"><i class="fas fa-moon"></i></button>
                     <div class="user-info-badge"><span id="welcome-text">Welcome, Student</span></div>

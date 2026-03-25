@@ -304,6 +304,24 @@
                 </div>
  
                 <div class="flex items-center gap-6">
+                    <!-- Notifications -->
+                    <div class="relative">
+                        <button id="noti-btn-desktop" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-indigo-500 transition-all relative">
+                            <i class="fas fa-bell"></i>
+                            <span id="noti-badge-desktop" class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center hidden">0</span>
+                        </button>
+                        <!-- Dropdown -->
+                        <div id="noti-dropdown-desktop" class="absolute right-0 mt-3 w-80 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl hidden z-[60] overflow-hidden">
+                            <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                                <h4 class="text-xs font-black uppercase tracking-widest text-slate-400">Notifications</h4>
+                                <button onclick="markAllRead()" class="text-[9px] font-bold text-indigo-500 hover:underline">Mark all read</button>
+                            </div>
+                            <div id="noti-list-desktop" class="max-h-96 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800/50">
+                                <div class="p-8 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">No new updates</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <button id="theme-toggle-top-desktop" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-indigo-500 transition-all">
                         <i class="fas fa-moon"></i>
                     </button>
@@ -746,6 +764,40 @@
                 <div class="flex gap-4 pt-6">
                     <button type="submit" class="flex-1 py-5 bg-indigo-600 text-white rounded-2xl font-bold shadow-xl shadow-indigo-600/20 hover:scale-[1.01] transition-all">Submit Updates</button>
                     <button type="button" onclick="closeEditModal()" class="px-10 py-5 bg-slate-100 dark:bg-slate-900 text-slate-500 rounded-2xl font-bold">Discard</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Student Modal -->
+    <div id="edit-student-modal" class="modal fixed inset-0 z-[100] hidden flex items-center justify-center p-12">
+        <div class="content-card w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-10 relative">
+            <button onclick="closeEditStudentModal()" class="absolute right-8 top-8 w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-red-500 transition-all">
+                <i class="fas fa-times"></i>
+            </button>
+            <h3 class="text-3xl font-bold font-orbitron text-indigo-600 uppercase tracking-tight">Modify Student Profile</h3>
+            
+            <form id="edit-student-form" class="space-y-8">
+                <input type="hidden" id="edit-student-id">
+                
+                <div class="space-y-2">
+                    <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Full Name</label>
+                    <input type="text" id="edit-student-name" required class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Username</label>
+                    <input type="text" id="edit-student-username" required class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest">New Password (leave blank to keep current)</label>
+                    <input type="password" id="edit-student-password" class="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
+                </div>
+
+                <div class="flex gap-4 pt-6">
+                    <button type="submit" class="flex-1 py-5 bg-indigo-600 text-white rounded-2xl font-bold shadow-xl shadow-indigo-600/20 hover:scale-[1.01] transition-all">Update Student</button>
+                    <button type="button" onclick="closeEditStudentModal()" class="px-10 py-5 bg-slate-100 dark:bg-slate-900 text-slate-500 rounded-2xl font-bold">Discard</button>
                 </div>
             </form>
         </div>

@@ -41,9 +41,9 @@ if database_url.startswith("postgres://"):
 if "?" in database_url:
     base_part, _ = database_url.split("?", 1)
     # Reconstruct with optimized parameters for cloud stability
-    database_url = f"{base_part}?sslmode=require&connect_timeout=30"
+    database_url = f"{base_part}?sslmode=require&connect_timeout=60&gssencmode=disable"
 else:
-    database_url = f"{database_url}?sslmode=require&connect_timeout=30"
+    database_url = f"{database_url}?sslmode=require&connect_timeout=60&gssencmode=disable"
 
 print(f"Connected to Cloud Database (Neon/Postgres)")
 
@@ -159,7 +159,17 @@ def handle_exception(e):
         return e
     
     # log the error
-    print(f"CRITICAL SERVER ERROR: {str(e)}")
+    err_msg = str(e).lower()
+    msg_slice = err_msg[0:200]
+    print(f"SERVER ERROR: {msg_slice}")
+    
+    # Identify Database Connectivity Issues
+    if "could not translate host name" in err_msg or "connection reset" in err_msg or "timeout expired" in err_msg:
+        return jsonify({
+            "message": "Database connectivity mission failed. We are re-establishing the uplink...",
+            "details": str(e) if app.debug else "Network/DNS issue"
+        }), 503
+    
     import traceback
     traceback.print_exc()
     
@@ -183,19 +193,62 @@ def token_required(f):
     def decorated(*args, **kwargs):
         token = None
         if 'Authorization' in request.headers:
-            token = request.headers['Authorization'].split(" ")[1]
+            try:
+                auth_header = request.headers['Authorization']
+                if " " in auth_header:
+                    token = auth_header.split(" ")[1]
+                else:
+                    token = auth_header
+            except IndexError:
+                pass
 
         if not token:
             return jsonify({'message': 'Token is missing!'}), 401
 
         try:
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
-            current_user = db.session.get(User, data['user_id'])
-        except:
+            user_id = data.get('user_id')
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'Token has expired!'}), 401
+        except jwt.InvalidTokenError:
             return jsonify({'message': 'Token is invalid!'}), 401
+        except Exception:
+            return jsonify({'message': 'Authentication failed!'}), 401
+
+        # Distinguish between token errors and DB connectivity errors
+        current_user = None
+        db_error = None
+        
+        # Internal Retry Loop (3 attempts, 1s sleep) for DB/DNS flickers
+        for i in range(3):
+            try:
+                # get() is generally fast and thread-safe for this check.
+                current_user = db.session.get(User, user_id)
+                if current_user:
+                    break # Success
+            except Exception as e:
+                db_error = e
+                err_str = str(e).lower()
+                # If it's a DNS or connection issue, wait and retry.
+                if "translate host name" in err_str or "connection" in err_str or "reset" in err_str:
+                    print(f"Auth DB Retry {i+1}/3: {err_str[:80]}")
+                    # Dispose pool to force fresh resolution next time
+                    db.engine.dispose()
+                    db.session.remove()
+                    time.sleep(1)
+                else:
+                    # Not a transient network error, just stop
+                    break
+
+        if db_error and not current_user:
+            print(f"Auth DB Final Failure: {str(db_error)}")
+            return jsonify({
+                'message': 'Database uplink temporarily down. Retrying mission...',
+                'details': str(db_error) if app.debug else "DNS/Network Flicker"
+            }), 503
 
         if not current_user:
-             return jsonify({'message': 'User not found!'}), 401
+             return jsonify({'message': 'User session no longer valid!'}), 401
              
         return f(current_user, *args, **kwargs)
     return decorated
@@ -500,6 +553,41 @@ def delete_student(current_user, id):
     db.session.commit()
     return jsonify({'message': 'Student and all related records deleted successfully!'})
 
+@app.route('/api/students/<int:id>', methods=['PUT'])
+@token_required
+@admin_required
+def update_student(current_user, id):
+    try:
+        student = db.session.get(User, id)
+        if not student or student.role != 'student':
+            return jsonify({'message': 'Student not found!'}), 404
+        
+        data = request.get_json()
+        new_username = (data.get('username') or '').strip()
+        new_name = (data.get('name') or '').strip()
+        new_password = (data.get('password') or '').strip()
+
+        if not new_username or not new_name:
+            return jsonify({'message': 'Username and Name are required!'}), 400
+
+        # Case-insensitive duplicate check for ANOTHER user
+        existing_user = User.query.filter(db.func.lower(User.username) == new_username.lower()).first()
+        if existing_user and existing_user.id != id:
+            return jsonify({'message': 'Username already taken!'}), 400
+
+        student.username = new_username
+        student.full_name = new_name
+        
+        if new_password:
+            student.password = generate_password_hash(new_password, method='pbkdf2:sha256')
+        
+        db.session.commit()
+        return jsonify({'message': 'Student profile updated successfully!'}), 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"Update Student Error: {e}")
+        return jsonify({'message': f'Update failed: {str(e)}'}), 500
+
 @app.route('/api/export/students', methods=['GET'])
 @token_required
 @admin_required
@@ -569,6 +657,65 @@ def delete_submission(current_user, id):
     db.session.delete(submission)
     db.session.commit()
     return jsonify({'message': 'Submission deleted successfully!'})
+
+@app.route('/api/notifications', methods=['GET'])
+@token_required
+def get_notifications(current_user):
+    notifications = []
+    
+    if current_user.role == 'admin':
+        # 1. Recent Submissions
+        recent_subs = Submission.query.order_by(Submission.timestamp.desc()).limit(5).all()
+        for sub in recent_subs:
+            notifications.append({
+                'type': 'submission',
+                'title': 'New Submission',
+                'content': f"{sub.student.full_name or sub.student.username} answered {sub.question.title}",
+                'timestamp': sub.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'is_correct': sub.is_correct
+            })
+            
+        # 2. Recent Messages from students
+        recent_msgs = Message.query.filter_by(sender_role='student').order_by(Message.timestamp.desc()).limit(5).all()
+        for msg in recent_msgs:
+            notifications.append({
+                'type': 'message',
+                'title': 'Student Message',
+                'content': f"{msg.sender.username}: {msg.content[:40]}...",
+                'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            })
+    else:
+        # Student notifications
+        # 1. Messages from Admin to this student or broadcast
+        recent_msgs = Message.query.filter(
+            (Message.sender_role == 'admin') & 
+            ((Message.receiver_id == current_user.id) | (Message.receiver_id == None))
+        ).order_by(Message.timestamp.desc()).limit(5).all()
+        
+        for msg in recent_msgs:
+            notifications.append({
+                'type': 'message',
+                'title': 'Admin Message',
+                'content': msg.content[:50] + '...' if len(msg.content) > 50 else msg.content,
+                'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            })
+            
+        # 2. Recent Meet Links
+        recent_links = MeetLink.query.order_by(MeetLink.created_at.desc()).limit(3).all()
+        for link in recent_links:
+            notifications.append({
+                'type': 'meetlink',
+                'title': 'New Live Class',
+                'content': link.title,
+                'timestamp': link.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+            
+    # Sort all by timestamp
+    notifications.sort(key=lambda x: x['timestamp'], reverse=True)
+    
+    # Use explicit slice to avoid lint confusion
+    final_list = notifications[0:10] if len(notifications) > 10 else notifications
+    return jsonify({'notifications': final_list})
 
 @app.route('/api/export/submissions', methods=['GET'])
 @token_required

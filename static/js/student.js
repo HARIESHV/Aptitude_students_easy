@@ -794,6 +794,117 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- Notifications logic ---
+    let lastNotiCheck = localStorage.getItem('last_noti_read_student') || '1970-01-01 00:00:00';
+    let lastNotiSoundTime = localStorage.getItem('last_noti_sound_student') || '1970-01-01 00:00:00';
+
+    const notiSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    notiSound.volume = 0.5;
+
+    const playNotiSound = () => {
+        notiSound.play().catch(e => console.warn('Sound blocked by browser policy. Interaction required.'));
+    };
+
+    const fetchNotifications = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/notifications`, { headers: getHeaders() });
+            if (!res.ok) return;
+            const data = await res.json();
+            renderNotifications(data.notifications);
+        } catch (err) { console.error('Noti Error:', err); }
+    };
+
+    const renderNotifications = (notis) => {
+        const listDesktop = document.getElementById('noti-list-desktop');
+        const listMob = document.getElementById('noti-list-mob');
+        const badgeDesktop = document.getElementById('noti-badge-desktop');
+        const badgeMob = document.getElementById('noti-badge-mob');
+
+        const filteredNotis = notis.slice(0, 5);
+        
+        // 1. Badge count for UNREAD
+        const unreadCount = filteredNotis.filter(n => n.timestamp > lastNotiCheck).length;
+
+        // Update Badges
+        [badgeDesktop, badgeMob].forEach(badge => {
+            if (!badge) return;
+            if (unreadCount > 0) {
+                badge.innerText = unreadCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        });
+
+        // 2. Play Sound for NEWLY ARRIVED
+        if (filteredNotis.length > 0) {
+            const latestTimestamp = filteredNotis[0].timestamp;
+            if (latestTimestamp > lastNotiSoundTime) {
+                if (lastNotiSoundTime !== '1970-01-01 00:00:00') {
+                    playNotiSound();
+                }
+                lastNotiSoundTime = latestTimestamp;
+                localStorage.setItem('last_noti_sound_student', latestTimestamp);
+            }
+        }
+
+        // Update Lists
+        [listDesktop, listMob].forEach(list => {
+            if (!list) return;
+            if (filteredNotis.length === 0) {
+                list.innerHTML = '<div class="p-8 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">No alerts</div>';
+                return;
+            }
+            list.innerHTML = filteredNotis.map(n => `
+                <div class="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex gap-4 ${n.timestamp > lastNotiCheck ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}">
+                    <div class="w-10 h-10 shrink-0 rounded-xl ${n.type === 'meetlink' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-600'} flex items-center justify-center text-sm">
+                        <i class="fas ${n.type === 'meetlink' ? 'fa-video' : 'fa-envelope'}"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-[10px] font-black uppercase tracking-widest text-slate-400">${n.title}</div>
+                        <div class="text-xs font-bold text-slate-700 dark:text-slate-200 mt-0.5">${n.content}</div>
+                        <div class="text-[9px] text-slate-400 mt-1">${n.timestamp}</div>
+                    </div>
+                </div>
+            `).join('');
+        });
+    };
+
+    window.markAllRead = () => {
+        const now = new Date();
+        const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)).toISOString().replace('T', ' ').split('.')[0];
+        lastNotiCheck = istTime;
+        localStorage.setItem('last_noti_read_student', lastNotiCheck);
+        fetchNotifications();
+    };
+
+    // Toggle dropdowns
+    const btns = ['noti-btn-desktop', 'noti-btn-mob'];
+    const dropdowns = ['noti-dropdown-desktop', 'noti-dropdown-mob'];
+
+    btns.forEach((id, idx) => {
+        const btn = document.getElementById(id);
+        const dropdown = document.getElementById(dropdowns[idx]);
+        if (btn && dropdown) {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('hidden');
+            });
+            dropdown.addEventListener('click', (e) => e.stopPropagation());
+        }
+    });
+
+    document.addEventListener('click', () => {
+        dropdowns.forEach(id => {
+            const d = document.getElementById(id);
+            if (d) d.classList.add('hidden');
+        });
+    });
+
+    // Start polling
+    fetchNotifications();
+    setInterval(fetchNotifications, 45000);
+
     // Initialize
     fetchStudentQuestions();
     fetchMeetLinks();
