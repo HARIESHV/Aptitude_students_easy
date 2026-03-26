@@ -16,6 +16,7 @@ from werkzeug.utils import secure_filename
 
 import sqlalchemy
 from sqlalchemy import func
+from sqlalchemy.pool import NullPool
 from models import db, User, Question, Submission, MeetLink, Message
 
 # Load environment variables from .env file
@@ -31,11 +32,16 @@ database_url = os.environ.get('DATABASE_URL')
 # Ensure we have a valid database URL
 if not database_url:
     # Use fallback quietly
-    database_url = "postgresql://neondb_owner:npg_6ravLTU9Bxmt@ep-spring-snow-adlcovzz-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+    database_url = "postgresql://neondb_owner:npg_6ravLTU9Bxmt@ep-spring-snow-adlcovzz.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 # Handle Render's legacy postgres:// prefix
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+# FORCE direct connection for Stability (strip Neon pooler if present)
+if "-pooler" in database_url:
+    print("DB Maintenance: Switching to Direct Endpoint for session stability.")
+    database_url = database_url.replace("-pooler", "")
 
 # Ensure the URL is clean and includes stable SSL/GSS flags for Neon
 if "?" in database_url:
@@ -50,17 +56,16 @@ print(f"Connected to Cloud Database (Neon/Postgres)")
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_pre_ping": True,          # Re-enabled: Verify connection before each use
-    "pool_recycle": 270,            # Recycle connections every 270s (before Neon's ~300s idle timeout)
-    "pool_size": 5,
-    "max_overflow": 10,
-    "pool_timeout": 30,
+    "pool_pre_ping": True,          # Verify connection before each use
+    "pool_recycle": 60,             # Still useful to ensure fresh connections
+    "poolclass": NullPool,          # FORCE NO POOLING for serverless session stability
     "connect_args": {
-        "keepalives": 1,            # Enable TCP keepalive
-        "keepalives_idle": 30,      # Send keepalive after 30s idle
-        "keepalives_interval": 10,  # Retry keepalive every 10s
-        "keepalives_count": 5,      # Drop after 5 failed keepalives
-        "connect_timeout": 60       # Increased timeout for unstable connections
+        "keepalives": 1,
+        "keepalives_idle": 30,
+        "keepalives_interval": 10,
+        "keepalives_count": 5,
+        "connect_timeout": 60,
+        "options": "-c search_path=public -c application_name=aptitude_master"
     }
 }
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'super-secret-aptitude-master-key-1234567890')
@@ -219,8 +224,8 @@ def token_required(f):
         current_user = None
         db_error = None
         
-        # Internal Retry Loop (3 attempts, 1s sleep) for DB/DNS flickers
-        for i in range(3):
+        # Internal Retry Loop (5 attempts, increasing sleep) for DB/DNS flickers
+        for i in range(5):
             try:
                 # get() is generally fast and thread-safe for this check.
                 current_user = db.session.get(User, user_id)
@@ -230,12 +235,15 @@ def token_required(f):
                 db_error = e
                 err_str = str(e).lower()
                 # If it's a DNS or connection issue, wait and retry.
-                if "translate host name" in err_str or "connection" in err_str or "reset" in err_str:
-                    print(f"Auth DB Retry {i+1}/3: {err_str[:80]}")
+                if "translate host name" in err_str or "connection" in err_str or "reset" in err_str or "eof" in err_str:
+                    print(f"Auth DB Retry {i+1}/5: {err_str[:100]}")
                     # Dispose pool to force fresh resolution next time
-                    db.engine.dispose()
+                    try:
+                        db.engine.dispose()
+                    except Exception:
+                        pass
                     db.session.remove()
-                    time.sleep(1)
+                    time.sleep(1 + i) # Gradual backoff
                 else:
                     # Not a transient network error, just stop
                     break
@@ -421,6 +429,10 @@ def update_question(current_user, id):
         if not question:
             return jsonify({'message': 'Question not found!'}), 404
         
+        old_correct_option = question.correct_option
+        old_correct_text = question.correct_text_answer
+        old_type = question.question_type
+
         data = request.get_json()
         question.topic = data.get('topic', question.topic)
         question.subtopic = data.get('subtopic', question.subtopic)
@@ -436,8 +448,23 @@ def update_question(current_user, id):
         question.answer_description = data.get('answer_description', question.answer_description)
         question.correct_text_answer = data.get('correct_text_answer', question.correct_text_answer)
         
+        # If the answer or type changed, re-evaluate all submissions
+        if (question.correct_option != old_correct_option or 
+            question.correct_text_answer != old_correct_text or 
+            question.question_type != old_type):
+            
+            submissions = Submission.query.filter_by(question_id=id).all()
+            for sub in submissions:
+                if question.question_type == 'text':
+                    if sub.selected_option and question.correct_text_answer:
+                        sub.is_correct = str(sub.selected_option).strip().lower() == str(question.correct_text_answer).strip().lower()
+                    else:
+                        sub.is_correct = False
+                else:
+                    sub.is_correct = (sub.selected_option == question.correct_option)
+        
         db.session.commit()
-        return jsonify({'message': 'Question updated successfully!'}), 200
+        return jsonify({'message': 'Question updated and student scores re-evaluated!'}), 200
     except Exception as e:
         db.session.rollback()
         print(f"Update Question Error: {e}")
@@ -713,9 +740,7 @@ def get_notifications(current_user):
     # Sort all by timestamp
     notifications.sort(key=lambda x: x['timestamp'], reverse=True)
     
-    # Use explicit slice to avoid lint confusion
-    final_list = notifications[0:10] if len(notifications) > 10 else notifications
-    return jsonify({'notifications': final_list})
+    return jsonify({'notifications': notifications[:10]})
 
 @app.route('/api/export/submissions', methods=['GET'])
 @token_required
