@@ -37,7 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Core Sound Service (SyncSound) ---
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     let audioCtx = null;
-    let isMuted = localStorage.getItem('sound_muted') === 'true';
 
     const soundEffects = {
         message: { freq: [523.25, 783.99], type: 'sine', duration: 0.15 },
@@ -48,7 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function playSound(type) {
-        if (isMuted) return;
         try {
             if (!audioCtx) audioCtx = new AudioContextClass();
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -71,28 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (e) { console.warn("Sound inhibited:", e); }
     }
-
-    const updateSoundUI = () => {
-        ['sound-toggle-top-desktop', 'sound-toggle-mobile'].forEach(id => {
-            const b = document.getElementById(id);
-            if (b) {
-                b.innerHTML = isMuted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>';
-                b.classList.toggle('text-rose-500', isMuted);
-                b.classList.toggle('bg-rose-500/10', isMuted);
-            }
-        });
-    };
-
-    ['sound-toggle-top-desktop', 'sound-toggle-mobile'].forEach(id => {
-        const btn = document.getElementById(id);
-        if (btn) btn.addEventListener('click', () => {
-            isMuted = !isMuted;
-            localStorage.setItem('sound_muted', isMuted);
-            updateSoundUI();
-            if (!isMuted) playSound('pop');
-        });
-    });
-    updateSoundUI();
 
     // Initialize Theme
     const getThemeToggle = () => document.getElementById('theme-toggle-top-desktop') || document.getElementById('theme-toggle-mobile');
