@@ -539,15 +539,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     proofSubs.forEach(sub => {
                         if (!sub.file_path) return;
-                        const ext = sub.file_path.split('.').pop().split('?')[0].toLowerCase();
-                        const allowed = ['pdf', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
-                        if (!sub.file_path.includes('/api/downloads/submission/') && !allowed.includes(ext)) return;
 
-                        const filename = sub.file_path.split('/').pop() || `Proof_ID_${sub.id}.bin`;
-                        let iconClass = 'fa-file-alt';
-                        if (ext === 'pdf') iconClass = 'fa-file-pdf';
-                        else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) iconClass = 'fa-file-image';
-                        else if (ext === 'docx') iconClass = 'fa-file-word';
+                        // Determine file type — paths are stored as /api/downloads/submission/<uuid>
+                        // so we detect type from mimetype hint if available, else mark as unknown
+                        const isBlob = sub.file_path.includes('/api/downloads/submission/');
+                        const uuid = isBlob ? sub.file_path.split('/').pop() : null;
+
+                        // Build a display filename
+                        const filename = isBlob ? `Proof_${sub.username}_${sub.id}` : sub.file_path.split('/').pop();
+
+                        // Icon: default to generic file, can be improved if mimetype is exposed later
+                        let iconClass = 'fa-file-shield';
 
                         const tr = document.createElement('tr');
                         tr.className = 'group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';

@@ -6,7 +6,7 @@ import socket
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import Flask, render_template, request, jsonify, send_from_directory, send_file
+from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, Response
 from flask_cors import CORS
 from dotenv import load_dotenv
 import jwt
@@ -21,52 +21,64 @@ from models import db, User, Question, Submission, MeetLink, Message
 # Load environment variables from .env file
 load_dotenv()
 
+# Force IPv4 for Database Connections (fixes broken NAT64/IPv6 routing dropping connections)
+import socket
+old_getaddrinfo = socket.getaddrinfo
+def new_getaddrinfo(*args, **kwargs):
+    responses = old_getaddrinfo(*args, **kwargs)
+    ipv4_responses = [r for r in responses if r[0] == socket.AF_INET]
+    return ipv4_responses if ipv4_responses else responses
+socket.getaddrinfo = new_getaddrinfo
+
 app = Flask(__name__)
 CORS(app)
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
+# ─── Database Configuration ────────────────────────────────────────────────────
 database_url = os.environ.get('DATABASE_URL')
 
-# Ensure we have a valid database URL
-if not database_url:
-    # Use fallback quietly
-    database_url = "postgresql://neondb_owner:npg_6ravLTU9Bxmt@ep-spring-snow-adlcovzz.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+if database_url:
+    # ── Cloud Mode (Neon Postgres) ──
+    # Handle Render's legacy postgres:// prefix
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
 
-# Handle Render's legacy postgres:// prefix
-if database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
+    # Strip pooler endpoint for session stability
+    if "-pooler" in database_url:
+        database_url = database_url.replace("-pooler", "")
 
-# FORCE direct connection for Stability (strip Neon pooler if present)
-if "-pooler" in database_url:
-    print("DB Maintenance: Switching to Direct Endpoint for session stability.")
-    database_url = database_url.replace("-pooler", "")
-
-# Ensure the URL is clean and includes stable SSL/GSS flags for Neon
-if "?" in database_url:
-    base_part, _ = database_url.split("?", 1)
-    # Reconstruct with optimized parameters for cloud stability
+    # Append SSL and stability parameters
+    base_part = database_url.split("?")[0]
     database_url = f"{base_part}?sslmode=require&connect_timeout=60&gssencmode=disable"
-else:
-    database_url = f"{database_url}?sslmode=require&connect_timeout=60&gssencmode=disable"
 
-print(f"Connected to Cloud Database (Neon/Postgres)")
-
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_pre_ping": True,          # Verify connection before each use
-    "pool_recycle": 60,             # Still useful to ensure fresh connections
-    "poolclass": NullPool,          # FORCE NO POOLING for serverless session stability
-    "connect_args": {
-        "keepalives": 1,
-        "keepalives_idle": 30,
-        "keepalives_interval": 10,
-        "keepalives_count": 5,
-        "connect_timeout": 60,
-        "options": "-c search_path=public -c application_name=aptitude_master"
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        "pool_pre_ping": True,
+        "pool_recycle": 60,
+        "poolclass": NullPool,          # No pooling for serverless stability
+        "connect_args": {
+            "keepalives": 1,
+            "keepalives_idle": 30,
+            "keepalives_interval": 10,
+            "keepalives_count": 5,
+            "connect_timeout": 60,
+            "options": "-c search_path=public -c application_name=aptitude_master"
+        }
     }
-}
+    print("✅ Database: Connected to Cloud (Neon / Postgres)")
+else:
+    # ── Local Fallback Mode (SQLite) ──
+    local_db_path = os.path.join(basedir, 'aptitude_local.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{local_db_path}'
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        "pool_pre_ping": True,
+        "connect_args": {"check_same_thread": False}
+    }
+    print(f"⚠️  Database: Using local SQLite → {local_db_path}")
+    print("   Set DATABASE_URL in .env to switch to Neon Postgres.")
+
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'super-secret-aptitude-master-key-1234567890')
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -329,6 +341,31 @@ def login():
 # -----------------
 # API Admin Features
 # -----------------
+@app.route('/api/questions', methods=['GET'])
+@token_required
+def get_questions(current_user):
+    questions = Question.query.order_by(Question.created_at.desc()).all()
+    output = []
+    for q in questions:
+        output.append({
+            'id': q.id,
+            'topic': q.topic,
+            'subtopic': q.subtopic,
+            'time_limit': q.time_limit,
+            'title': q.title,
+            'description': q.description,
+            'option_a': q.option_a,
+            'option_b': q.option_b,
+            'option_c': q.option_c,
+            'option_d': q.option_d,
+            'correct_option': q.correct_option,
+            'question_type': q.question_type,
+            'answer_description': q.answer_description,
+            'correct_text_answer': q.correct_text_answer,
+            'created_at': q.created_at.strftime('%Y-%m-%d %H:%M:%S') if q.created_at else None
+        })
+    return jsonify({'questions': output})
+
 @app.route('/api/questions', methods=['POST'])
 @token_required
 @admin_required
@@ -468,6 +505,49 @@ def delete_student(current_user, id):
     db.session.commit()
     return jsonify({'message': 'Student deleted!'})
 
+@app.route('/api/submissions', methods=['GET'])
+@token_required
+@admin_required
+def get_submissions(current_user):
+    try:
+        subs = Submission.query.order_by(Submission.timestamp.desc()).all()
+        output = []
+        for s in subs:
+            student = db.session.get(User, s.student_id)
+            question = db.session.get(Question, s.question_id)
+            output.append({
+                'id': s.id,
+                'student': student.full_name or student.username if student else 'Deleted',
+                'username': student.username if student else 'unknown',
+                'question': question.title if question else 'Deleted',
+                'question_id': s.question_id,
+                'topic': question.topic if question else '',
+                'question_type': question.question_type if question else 'mcq',
+                'selected_option': s.selected_option,
+                'correct_answer': (question.correct_option if question and question.question_type != 'text' else (question.correct_text_answer if question else '')) or '',
+                'is_correct': s.is_correct,
+                'file_path': s.file_path,
+                'timestamp': s.timestamp.strftime('%Y-%m-%d %H:%M:%S') if s.timestamp else ''
+            })
+        return jsonify({'submissions': output})
+    except Exception as e:
+        return jsonify({'message': f'Error: {str(e)}'}), 500
+
+@app.route('/api/submissions/<int:id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_submission(current_user, id):
+    try:
+        sub = db.session.get(Submission, id)
+        if not sub:
+            return jsonify({'message': 'Submission not found!'}), 404
+        db.session.delete(sub)
+        db.session.commit()
+        return jsonify({'message': 'Record erased.'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': f'Delete failed: {str(e)}'}), 500
+
 @app.route('/api/submissions', methods=['POST'])
 @token_required
 def submit_answer(current_user):
@@ -486,11 +566,16 @@ def submit_answer(current_user):
         if 'file' in request.files:
             file = request.files['file']
             if file.filename != '':
+                from werkzeug.utils import secure_filename
                 filename = secure_filename(file.filename)
+                
+                # Extract real extension to append to URL so frontend Previews work correctly
+                ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'bin'
+                
                 file_data = file.read()
                 file_mimetype = file.mimetype
                 sub_uuid = str(uuid.uuid4())
-                file_path = f'/api/downloads/submission/{sub_uuid}'
+                file_path = f'/api/downloads/submission/{sub_uuid}.{ext}'
 
     if not question_id: return jsonify({'message': 'Missing data!'}), 400
 
@@ -522,6 +607,38 @@ def submit_answer(current_user):
         'correct_option': question.correct_option if question.question_type != 'text' else question.correct_text_answer,
         'answer_description': question.answer_description
     }), 201
+
+
+@app.route('/api/downloads/submission/<string:submission_uuid>', methods=['GET'])
+@token_required
+def download_submission_file(current_user, submission_uuid):
+    """Serve a file that was stored as binary blob in the database."""
+    try:
+        # Strip extension if present so we can query by raw uuid
+        base_uuid = submission_uuid.rsplit('.', 1)[0]
+        
+        # We need to search by submission_id OR file_path because older entries might just have the raw UUID
+        sub = Submission.query.filter(
+            (Submission.submission_id == base_uuid) | 
+            (Submission.file_path.ilike(f'%{base_uuid}%'))
+        ).first()
+        
+        if not sub or not sub.file_data:
+            return jsonify({'message': 'File not found'}), 404
+        
+        from io import BytesIO
+        from flask import Response
+        mimetype = sub.file_mimetype or 'application/octet-stream'
+        return Response(
+            sub.file_data,
+            mimetype=mimetype,
+            headers={
+                'Content-Disposition': f'inline; filename="proof_{sub.id}"',
+                'Cache-Control': 'no-cache'
+            }
+        )
+    except Exception as e:
+        return jsonify({'message': f'Error serving file: {str(e)}'}), 500
 
 @app.route('/api/notifications', methods=['GET'])
 @token_required
@@ -571,6 +688,137 @@ def get_notifications(current_user):
 
     notifications.sort(key=lambda x: x['timestamp'], reverse=True)
     return jsonify({'notifications': notifications[:10]})
+
+@app.route('/api/meetlinks', methods=['POST'])
+@token_required
+@admin_required
+def add_meetlink(current_user):
+    data = request.get_json()
+    title = data.get('title')
+    url = data.get('url')
+    if not title or not url:
+        return jsonify({'message': 'Title and URL are required'}), 400
+    meetlink = MeetLink(title=title, url=url)
+    db.session.add(meetlink)
+    db.session.commit()
+    return jsonify({'message': 'Meet link broadcasted successfully'}), 201
+
+@app.route('/api/meetlinks', methods=['GET'])
+@token_required
+def get_meetlinks(current_user):
+    meetlinks = MeetLink.query.order_by(MeetLink.created_at.desc()).all()
+    output = []
+    for ml in meetlinks:
+        output.append({
+            'id': ml.id,
+            'title': ml.title,
+            'url': ml.url,
+            'timestamp': ml.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        })
+    return jsonify({'meetlinks': output})
+
+@app.route('/api/meetlinks/<int:id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_meetlink(current_user, id):
+    ml = db.session.get(MeetLink, id)
+    if not ml: return jsonify({'message': 'Link not found'}), 404
+    db.session.delete(ml)
+    db.session.commit()
+    return jsonify({'message': 'Link deleted'})
+
+@app.route('/api/messages', methods=['POST'])
+@token_required
+def send_message(current_user):
+    receiver_id = request.form.get('receiver_id')
+    content = request.form.get('content')
+    if not content: return jsonify({'message': 'Message content is empty'}), 400
+    
+    receiver_id = None if receiver_id == 'all' else int(receiver_id)
+    file_path, file_data, file_mimetype = None, None, None
+    if 'file' in request.files:
+        file = request.files['file']
+        if file.filename != '':
+            from werkzeug.utils import secure_filename
+            import uuid
+            file_data = file.read()
+            file_mimetype = file.mimetype
+            msg_uuid = str(uuid.uuid4())
+            # We reuse the submission file download logic for messages or make a new one, but for simplicity, let's make a generic path or store it similarly
+            # Need a route to download message files too
+            file_path = f'/api/downloads/message/{msg_uuid}'
+            
+    msg = Message(
+        sender_id=current_user.id,
+        sender_role=current_user.role,
+        receiver_id=receiver_id,
+        content=content,
+        file_path=file_path,
+        file_data=file_data,
+        file_mimetype=file_mimetype
+    )
+    # Storing uuid in file_path is fine since we can extract it or add a column. Message model doesn't have msg_uuid column, we'll extract it from file_path in the route.
+    db.session.add(msg)
+    db.session.commit()
+    return jsonify({'message': 'Message sent successfully'}), 201
+
+@app.route('/api/messages', methods=['GET'])
+@token_required
+def get_messages(current_user):
+    if current_user.role == 'admin':
+        messages = Message.query.order_by(Message.timestamp.desc()).all()
+    else:
+        messages = Message.query.filter(
+            (Message.receiver_id == current_user.id) | (Message.receiver_id == None) | (Message.sender_id == current_user.id)
+        ).order_by(Message.timestamp.desc()).all()
+        
+    output = []
+    for m in messages:
+        receiver_user = db.session.get(User, m.receiver_id) if m.receiver_id else None
+        output.append({
+            'id': m.id,
+            'receiver_id': m.receiver_id,
+            'receiver': receiver_user.username if receiver_user else 'All',
+            'sender_role': m.sender_role,
+            'content': m.content,
+            'file_path': m.file_path,
+            'timestamp': m.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        })
+    return jsonify({'messages': output})
+
+@app.route('/api/messages/<int:id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_message(current_user, id):
+    msg = db.session.get(Message, id)
+    if not msg: return jsonify({'message': 'Message not found'}), 404
+    db.session.delete(msg)
+    db.session.commit()
+    return jsonify({'message': 'Message deleted'})
+
+@app.route('/api/downloads/message/<string:msg_uuid>', methods=['GET'])
+@token_required
+def download_message_file(current_user, msg_uuid):
+    try:
+        # The file_path is stored as /api/downloads/message/<msg_uuid>
+        search_path = f'/api/downloads/message/{msg_uuid}'
+        msg = Message.query.filter_by(file_path=search_path).first()
+        if not msg or not msg.file_data:
+            return jsonify({'message': 'File not found'}), 404
+        
+        from io import BytesIO
+        from flask import Response
+        mimetype = msg.file_mimetype or 'application/octet-stream'
+        return Response(
+            msg.file_data,
+            mimetype=mimetype,
+            headers={
+                'Content-Disposition': f'inline; filename="msg_attachment_{msg.id}"',
+                'Cache-Control': 'no-cache'
+            }
+        )
+    except Exception as e:
+        return jsonify({'message': f'Error serving file: {str(e)}'}), 500
 
 @app.route('/api/leaderboard', methods=['GET'])
 @token_required
