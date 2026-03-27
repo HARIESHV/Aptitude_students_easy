@@ -9,6 +9,62 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // --- Core Sound Service (SyncSound) ---
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let isMuted = localStorage.getItem('sound_muted') === 'true';
+
+    const soundEffects = {
+        message: { freq: [523.25, 783.99], type: 'sine', duration: 0.15 },
+        alert: { freq: [880, 440], type: 'square', duration: 0.3 },
+        success: { freq: [440, 554.37, 659.25], type: 'sine', duration: 0.1 },
+        error: { freq: [220, 110], type: 'sawtooth', duration: 0.4 },
+        pop: { freq: [660], type: 'sine', duration: 0.05 }
+    };
+
+    function playSound(type) {
+        if (isMuted) return;
+        try {
+            if (!audioCtx) audioCtx = new AudioContextClass();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const config = soundEffects[type];
+            if (!config) return;
+
+            const now = audioCtx.currentTime;
+            config.freq.forEach((f, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = config.type;
+                osc.frequency.setValueAtTime(f, now + (i * 0.05));
+                gain.gain.setValueAtTime(0.08, now + (i * 0.05));
+                gain.gain.exponentialRampToValueAtTime(0.01, now + (i * 0.05) + config.duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now + (i * 0.05));
+                osc.stop(now + (i * 0.05) + config.duration);
+            });
+        } catch (e) { console.warn("Sound inhibited:", e); }
+    }
+
+    const updateSoundUI = () => {
+        const b = document.getElementById('sound-toggle');
+        if (b) {
+            b.innerHTML = isMuted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>';
+            b.classList.toggle('text-rose-500', isMuted);
+            b.classList.toggle('bg-rose-500/10', isMuted);
+        }
+    };
+
+    const soundBtn = document.getElementById('sound-toggle');
+    if (soundBtn) soundBtn.addEventListener('click', () => {
+        isMuted = !isMuted;
+        localStorage.setItem('sound_muted', isMuted);
+        updateSoundUI();
+        if (!isMuted) playSound('pop');
+    });
+    updateSoundUI();
+
     // Initialize Theme
     const currentTheme = localStorage.getItem('theme') || 'light';
     if (currentTheme === 'dark') {
@@ -316,10 +372,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const allOptionCards = qCard.querySelectorAll('.q-option-card');
                 
                 if (subData.is_correct) {
+                    playSound('success');
                     msgBox.className = 'mt-8 p-8 rounded-3xl font-bold text-center text-xl bg-green-500 text-white shadow-2xl shadow-green-500/30';
                     msgBox.innerHTML = `<i class="fas fa-check-circle text-3xl mb-2 block"></i> Outstanding Intelligence!<br/><span class="text-sm opacity-80 uppercase tracking-widest">Answer Correct</span>`;
                     if(selectedCard) selectedCard.classList.add('correct');
                 } else {
+                    playSound('error');
                     msgBox.className = 'mt-8 p-8 rounded-3xl font-bold text-center text-xl bg-red-500 text-white shadow-2xl shadow-red-500/30';
                     msgBox.innerHTML = `<i class="fas fa-times-circle text-3xl mb-2 block"></i> Logical Discrepancy Found.<br/><span class="text-sm opacity-80 uppercase tracking-widest">Correct Answer: ${subData.correct_option}</span>`;
                     if(selectedCard) {
@@ -367,6 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     clearInterval(activeTimers[qId]);
                     delete activeTimers[qId];
                     badge.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Time's Up!`;
+                    playSound('error');
                     
                     const formEl = document.getElementById(`solve-form-${qId}`);
                     let selectedVal = 'None';

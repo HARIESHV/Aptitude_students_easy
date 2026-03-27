@@ -12,6 +12,66 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // --- Core Sound Service (SyncSound) ---
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let isMuted = localStorage.getItem('sound_muted') === 'true';
+
+    const soundEffects = {
+        message: { freq: [523.25, 783.99], type: 'sine', duration: 0.15 },
+        alert: { freq: [880, 440], type: 'square', duration: 0.3 },
+        success: { freq: [440, 554.37, 659.25], type: 'sine', duration: 0.1 },
+        error: { freq: [220, 110], type: 'sawtooth', duration: 0.4 },
+        pop: { freq: [660], type: 'sine', duration: 0.05 }
+    };
+
+    function playSound(type) {
+        if (isMuted) return;
+        try {
+            if (!audioCtx) audioCtx = new AudioContextClass();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const config = soundEffects[type];
+            if (!config) return;
+
+            const now = audioCtx.currentTime;
+            config.freq.forEach((f, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = config.type;
+                osc.frequency.setValueAtTime(f, now + (i * 0.05));
+                gain.gain.setValueAtTime(0.08, now + (i * 0.05));
+                gain.gain.exponentialRampToValueAtTime(0.01, now + (i * 0.05) + config.duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now + (i * 0.05));
+                osc.stop(now + (i * 0.05) + config.duration);
+            });
+        } catch (e) { console.warn("Sound inhibited:", e); }
+    }
+
+    const updateSoundUI = () => {
+        ['sound-toggle', 'sound-toggle-mob'].forEach(id => {
+            const b = document.getElementById(id);
+            if (b) {
+                b.innerHTML = isMuted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>';
+                b.classList.toggle('text-rose-500', isMuted);
+                b.classList.toggle('bg-rose-500/10', isMuted);
+            }
+        });
+    };
+
+    ['sound-toggle', 'sound-toggle-mob'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.addEventListener('click', () => {
+            isMuted = !isMuted;
+            localStorage.setItem('sound_muted', isMuted);
+            updateSoundUI();
+            if (!isMuted) playSound('pop');
+        });
+    });
+    updateSoundUI();
+
     async function fetchMeetLinks() {
         try {
             const listIds = ['student-meetlinks-list', 'student-meetlinks-mob'];
@@ -265,6 +325,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function showAlert(msg, isError = false) {
+        // Assuming alertBoxDesktop and alertBoxMob are defined globally or accessible
+        // If they are not found, log and play sound, then return.
+        // This part of the instruction seems to imply a fallback if the UI elements aren't ready.
+        const alertBoxDesktop = document.getElementById('dashboard-alert');
+        const alertBoxMob = document.getElementById('dashboard-alert-mob');
+
+        if (!alertBoxDesktop && !alertBoxMob) { // Changed || to && as it makes more sense to return if NEITHER is found
+            if (isError) { console.error(msg); playSound('error'); }
+            else { console.log(msg); playSound('success'); }
+            return;
+        }
+
+        // Play sound regardless if alert boxes are found or not (as per the second playSound instruction)
+        if (isError) playSound('error'); else playSound('success');
+
         const boxes = ['dashboard-alert', 'dashboard-alert-mob'];
         boxes.forEach(id => {
             const box = document.getElementById(id);
