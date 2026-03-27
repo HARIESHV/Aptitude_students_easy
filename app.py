@@ -484,12 +484,14 @@ def get_admin_stats(current_user):
     total_submissions = Submission.query.count()
     total_questions = Question.query.count()
     correct_submissions = Submission.query.filter_by(is_correct=True).count()
+    total_proofs = Submission.query.filter(Submission.file_path.isnot(None)).count()
     global_avg = (correct_submissions / total_submissions * 100) if total_submissions > 0 else 0
         
     return jsonify({
         'total_students': total_students,
         'total_submissions': total_submissions,
         'total_questions': total_questions,
+        'total_proofs': total_proofs,
         'global_average': round(global_avg, 2)
     })
 
