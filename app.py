@@ -39,7 +39,11 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 database_url = os.environ.get('DATABASE_URL')
 
 if not database_url:
-    raise RuntimeError("CRITICAL: DATABASE_URL is not set in .env! This website explicitly requires the Neon Postgres Database to run.")
+    raise RuntimeError(
+        "CRITICAL: DATABASE_URL is missing! "
+        "Locally: Ensure it's in your .env file. "
+        "On Render/Vercel: You MUST add DATABASE_URL in the 'Environment' settings of your dashboard."
+    )
 
 # ── Cloud Mode (Neon Postgres) ──
 # Handle Render's legacy postgres:// prefix
