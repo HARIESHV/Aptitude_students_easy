@@ -38,46 +38,37 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 # ─── Database Configuration ────────────────────────────────────────────────────
 database_url = os.environ.get('DATABASE_URL')
 
-if database_url:
-    # ── Cloud Mode (Neon Postgres) ──
-    # Handle Render's legacy postgres:// prefix
-    if database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql://", 1)
+if not database_url:
+    raise RuntimeError("CRITICAL: DATABASE_URL is not set in .env! This website explicitly requires the Neon Postgres Database to run.")
 
-    # Strip pooler endpoint for session stability
-    if "-pooler" in database_url:
-        database_url = database_url.replace("-pooler", "")
+# ── Cloud Mode (Neon Postgres) ──
+# Handle Render's legacy postgres:// prefix
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
 
-    # Append SSL and stability parameters
-    base_part = database_url.split("?")[0]
-    database_url = f"{base_part}?sslmode=require&connect_timeout=60&gssencmode=disable"
+# Strip pooler endpoint for session stability
+if "-pooler" in database_url:
+    database_url = database_url.replace("-pooler", "")
 
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        "pool_pre_ping": True,
-        "pool_recycle": 60,
-        "poolclass": NullPool,          # No pooling for serverless stability
-        "connect_args": {
-            "keepalives": 1,
-            "keepalives_idle": 30,
-            "keepalives_interval": 10,
-            "keepalives_count": 5,
-            "connect_timeout": 60,
-            "options": "-c search_path=public -c application_name=aptitude_master"
-        }
+# Append SSL and stability parameters
+base_part = database_url.split("?")[0]
+database_url = f"{base_part}?sslmode=require&connect_timeout=60&gssencmode=disable"
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_pre_ping": True,
+    "pool_recycle": 60,
+    "poolclass": NullPool,          # No pooling for serverless stability
+    "connect_args": {
+        "keepalives": 1,
+        "keepalives_idle": 30,
+        "keepalives_interval": 10,
+        "keepalives_count": 5,
+        "connect_timeout": 60,
+        "options": "-c search_path=public -c application_name=aptitude_master"
     }
-    print("✅ Database: Connected to Cloud (Neon / Postgres)")
-else:
-    # ── Local Fallback Mode (SQLite) ──
-    local_db_path = os.path.join(basedir, 'aptitude_local.db')
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{local_db_path}'
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        "pool_pre_ping": True,
-        "connect_args": {"check_same_thread": False}
-    }
-    print(f"⚠️  Database: Using local SQLite → {local_db_path}")
-    print("   Set DATABASE_URL in .env to switch to Neon Postgres.")
-
+}
+print("✅ Database: Connected to Cloud (Neon / Postgres)")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'super-secret-aptitude-master-key-1234567890')
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
