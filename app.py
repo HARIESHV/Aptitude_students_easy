@@ -344,7 +344,15 @@ def login():
 @app.route('/api/questions', methods=['GET'])
 @token_required
 def get_questions(current_user):
-    questions = Question.query.order_by(Question.created_at.desc()).all()
+    all_questions = Question.query.order_by(Question.created_at.desc()).all()
+    
+    # If student, filter out questions they already submitted
+    if current_user.role == 'student':
+        submitted_ids = [s.question_id for s in Submission.query.filter_by(student_id=current_user.id).all()]
+        questions = [q for q in all_questions if q.id not in submitted_ids]
+    else:
+        questions = all_questions
+
     output = []
     for q in questions:
         output.append({
