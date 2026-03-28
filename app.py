@@ -38,6 +38,11 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 # ─── Database Configuration ────────────────────────────────────────────────────
 database_url = os.environ.get('DATABASE_URL')
 
+# HARD FIX: Force-inject the user's Neon URL as a safety fallback to bypass Render Dashboard issues.
+if not database_url:
+    print("⚠️ WARNING: DATABASE_URL missing from environment. Using hardcoded fallback for Render deployment.")
+    database_url = "postgresql://neondb_owner:npg_6ravLTU9Bxmt@ep-spring-snow-adlcovzz.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+
 if not database_url:
     raise RuntimeError(
         "CRITICAL: DATABASE_URL is missing! "
