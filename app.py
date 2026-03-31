@@ -38,32 +38,30 @@ CORS(app)
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 # ─── Database Configuration ────────────────────────────────────────────────────
+# ─── Database Configuration ────────────────────────────────────────────────────
 database_url = os.environ.get('DATABASE_URL')
 
-# HARD FIX: Force-inject the user's NEW ACTIVE Neon URL as a safety fallback.
-if not database_url:
-    print("⚠️ WARNING: DATABASE_URL missing from environment. Using hardcoded backup.")
-    database_url = "postgresql://neondb_owner:npg_STrZjGzF32Vn@ep-sweet-mouse-ampyhmgg-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require"
+# Primary Cloud Backup (Security Fallback if .env fails)
+# CLEANED: Removed -pooler to prevent session instability and connection drops on Render
+HARD_BACKUP_URL = "postgresql://neondb_owner:npg_STrZjGzF32Vn@ep-sweet-mouse-ampyhmgg.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 if not database_url:
-    raise RuntimeError(
-        "CRITICAL: DATABASE_URL is missing! "
-        "Locally: Ensure it's in your .env file. "
-        "On Render/Vercel: You MUST add DATABASE_URL in the 'Environment' settings of your dashboard."
-    )
+    print("⚠️  NOTICE: DATABASE_URL missing from environment. Activating Cloud Redundancy Layer...")
+    database_url = HARD_BACKUP_URL
 
-# ── Cloud Mode (Neon Postgres) ──
 # Handle Render's legacy postgres:// prefix
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
-# Strip pooler endpoint for session stability
+# FORCE DIRECT CONNECTION: Strip -pooler from any provided URL for maximum stability
 if "-pooler" in database_url:
     database_url = database_url.replace("-pooler", "")
 
-# Append SSL and stability parameters
-base_part = database_url.split("?")[0]
-database_url = f"{base_part}?sslmode=require&connect_timeout=60&gssencmode=disable"
+# Protocol Optimization (SSL + Stability)
+if "?" not in database_url:
+    database_url += "?sslmode=require&connect_timeout=60"
+else:
+    if "sslmode" not in database_url: database_url += "&sslmode=require"
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 # ─── Dynamic Engine Options (Postgres vs SQLite) ─────────────────────────────
