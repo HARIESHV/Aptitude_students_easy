@@ -26,7 +26,9 @@ env_path = os.path.join(basedir, '.env')
 if os.path.exists(env_path):
     load_dotenv(env_path, override=True)
 else:
-    print(f"⚠️  WARNING: .env file NOT FOUND at {env_path}")
+    # Only print on local development, skip in Deployment platforms
+    if not any(env in os.environ for env in ['RENDER', 'VERCEL']):
+        print(f"⚠️  NOTICE: .env file missing at {env_path}")
 
 # Force IPv4 for Database Connections (fixes broken NAT64/IPv6 routing dropping connections)
 import socket
@@ -40,18 +42,17 @@ socket.getaddrinfo = new_getaddrinfo
 app = Flask(__name__)
 CORS(app)
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-
-# ─── Database Configuration ────────────────────────────────────────────────────
 # ─── Database Configuration ────────────────────────────────────────────────────
 database_url = os.environ.get('DATABASE_URL')
 
-# Primary Cloud Backup (Security Fallback if .env fails)
+# Primary Cloud Backup (Security Fallback if Hosting Dashboard is misconfigured)
 # CLEANED: Removed -pooler to prevent session instability and connection drops on Render
 HARD_BACKUP_URL = "postgresql://neondb_owner:npg_STrZjGzF32Vn@ep-sweet-mouse-ampyhmgg.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 if not database_url:
-    print("⚠️  NOTICE: DATABASE_URL missing from environment. Activating Cloud Redundancy Layer...")
+    # Only warn if truly missing from environment, skip if hosting dashboard should provide it
+    if not any(env in os.environ for env in ['RENDER', 'VERCEL']):
+        print("⚠️  NOTICE: DATABASE_URL missing from environment. Activating Cloud Redundancy Layer...")
     database_url = HARD_BACKUP_URL
 
 # Handle Render's legacy postgres:// prefix
