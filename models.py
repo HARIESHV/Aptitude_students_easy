@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import deferred
 from datetime import datetime, timedelta
 
 db = SQLAlchemy()
@@ -38,12 +39,12 @@ class Submission(db.Model):
     selected_option = db.Column(db.Text, nullable=True)
     is_correct = db.Column(db.Boolean, nullable=False)
     file_path = db.Column(db.String(255), nullable=True)
-    file_data = db.Column(db.LargeBinary, nullable=True)
+    file_data = deferred(db.Column(db.LargeBinary, nullable=True))
     file_mimetype = db.Column(db.String(100), nullable=True)
     submission_id = db.Column(db.String(36), unique=True, nullable=False)
     timestamp = db.Column(db.DateTime, default=ist_now)
     
-    student = db.relationship('User', backref=db.backref('submissions', lazy=True))
+    student = db.relationship('User', backref=db.backref('submissions', lazy=True, cascade="all, delete-orphan"))
     question = db.relationship('Question', backref=db.backref('submissions', lazy=True))
 
 class MeetLink(db.Model):
@@ -59,9 +60,9 @@ class Message(db.Model):
     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # null means broadcast to all
     content = db.Column(db.Text, nullable=False)
     file_path = db.Column(db.String(255), nullable=True)
-    file_data = db.Column(db.LargeBinary, nullable=True)
+    file_data = deferred(db.Column(db.LargeBinary, nullable=True))
     file_mimetype = db.Column(db.String(100), nullable=True)
     timestamp = db.Column(db.DateTime, default=ist_now)
     
-    sender = db.relationship('User', foreign_keys=[sender_id], backref=db.backref('sent_messages', lazy=True))
-    receiver = db.relationship('User', foreign_keys=[receiver_id], backref=db.backref('received_messages', lazy=True))
+    sender = db.relationship('User', foreign_keys=[sender_id], backref=db.backref('sent_messages', lazy=True, cascade="all, delete-orphan"))
+    receiver = db.relationship('User', foreign_keys=[receiver_id], backref=db.backref('received_messages', lazy=True, cascade="all, delete-orphan"))

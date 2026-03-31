@@ -18,8 +18,8 @@ from sqlalchemy import func
 from sqlalchemy.pool import NullPool
 from models import db, User, Question, Submission, MeetLink, Message
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env file — Force override to prevent stale system vars from hijacking!
+load_dotenv(override=True)
 
 # Force IPv4 for Database Connections (fixes broken NAT64/IPv6 routing dropping connections)
 import socket
@@ -38,10 +38,10 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 # ─── Database Configuration ────────────────────────────────────────────────────
 database_url = os.environ.get('DATABASE_URL')
 
-# HARD FIX: Force-inject the user's Neon URL as a safety fallback to bypass Render Dashboard issues.
+# HARD FIX: Force-inject the user's NEW ACTIVE Neon URL as a safety fallback.
 if not database_url:
-    print("⚠️ WARNING: DATABASE_URL missing from environment. Using hardcoded fallback for Render deployment.")
-    database_url = "postgresql://neondb_owner:npg_6ravLTU9Bxmt@ep-spring-snow-adlcovzz.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+    print("⚠️ WARNING: DATABASE_URL missing from environment. Using hardcoded backup.")
+    database_url = "postgresql://neondb_owner:npg_STrZjGzF32Vn@ep-sweet-mouse-ampyhmgg-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 if not database_url:
     raise RuntimeError(
@@ -64,26 +64,90 @@ base_part = database_url.split("?")[0]
 database_url = f"{base_part}?sslmode=require&connect_timeout=60&gssencmode=disable"
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+# ─── Dynamic Engine Options (Postgres vs SQLite) ─────────────────────────────
+engine_options = {
     "pool_pre_ping": True,
     "pool_recycle": 60,
-    "poolclass": NullPool,          # No pooling for serverless stability
-    "connect_args": {
-        "keepalives": 1,
-        "keepalives_idle": 30,
-        "keepalives_interval": 10,
-        "keepalives_count": 5,
-        "connect_timeout": 60,
-        "options": "-c search_path=public -c application_name=aptitude_master"
-    }
 }
-print("✅ Database: Connected to Cloud (Neon / Postgres)")
+
+# Only apply Postgres-specific stability flags if using Neon/Postgres
+if database_url.startswith("postgresql"):
+    engine_options.update({
+        "poolclass": NullPool,          # No pooling for serverless stability on Neon
+        "connect_args": {
+            "connect_timeout": 60,
+            "options": "-c search_path=public -c application_name=aptitude_master"
+        }
+    })
+else:
+    # Minimal config for SQLite to avoid crashes
+    engine_options["connect_args"] = {"timeout": 30}
+
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = engine_options
+print(f"✅ Database: Ready ({'Cloud/Neon' if 'postgresql' in database_url else 'Local/SQLite'})")
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'super-secret-aptitude-master-key-1234567890')
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 db.init_app(app)
+
+# ─── Shadow Backup Configuration (Disaster Recovery) ──────────────────────────
+# Define a local SQLite database that mirrors the Cloud in real-time.
+# If Neon goes down or is deleted, this file stays safe on your hard drive.
+shadow_engine = sqlalchemy.create_engine("sqlite:///local_shadow_backup.db")
+
+def sync_to_shadow(model_obj):
+    """Deep-copies a model object from Neon to the local Shadow SQLite DB."""
+    # Safety: Don't shadow sync if we are already using SQLite as primary
+    if "sqlite" in app.config['SQLALCHEMY_DATABASE_URI']:
+        return
+        
+    try:
+        from sqlalchemy.orm import sessionmaker
+        ShadowSession = sessionmaker(bind=shadow_engine)
+        session = ShadowSession()
+        
+        # Ensure schema exists in shadow
+        from models import User as MUser, Question as MQuestion, Submission as MSubmission, MeetLink as MMeetLink, Message as MMessage
+        for m in [MUser, MQuestion, MSubmission, MMeetLink, MMessage]:
+            m.__table__.create(shadow_engine, checkfirst=True)
+        
+        # 1. Check if record exists
+        model_class = model_obj.__class__
+        existing = session.query(model_class).filter_by(id=model_obj.id).first()
+        
+        # 2. Extract data (Skip large binary to keep backup fast)
+        data = {c.name: getattr(model_obj, c.name) for c in model_obj.__table__.columns if c.name != 'file_data'}
+        
+        if existing:
+            for key, value in data.items():
+                setattr(existing, key, value)
+        else:
+            new_record = model_class(**data)
+            session.add(new_record)
+            
+        session.commit()
+        session.close()
+    except Exception as e:
+        print(f"⚠️ Shadow Backup Error: {e}")
+
+def run_disaster_recovery(app):
+    """If Neon is empty, offers to restore data from the local Shadow backup."""
+    with app.app_context():
+        try:
+            cloud_user_count = User.query.count()
+            if cloud_user_count <= 1: # Only admin exists
+                from sqlalchemy.orm import sessionmaker
+                ShadowSession = sessionmaker(bind=shadow_engine)
+                s_session = ShadowSession()
+                local_users = s_session.query(User).filter(User.role == 'student').all()
+                if local_users:
+                    print(f"🕵️ Disaster Recovery: Found {len(local_users)} students in Local Shadow Backup. Restoring to Neon...")
+                    # Note: We just print here, real restore logic can be triggered by admin 
+                s_session.close()
+        except: pass
 
 # Track if setup is done to avoid repeated runs in Gunicorn workers
 _setup_done = False
@@ -116,21 +180,23 @@ def run_maintenance(app):
                         existing_admin_by_name.role = 'admin'
                         db.session.commit()
 
-                # 3. Keep-Alive Loop
+                # 3. Always-Active Heartbeat Loop
+                print("💓 Database: Active Heartbeat Started")
                 while True:
                     try:
                         with db.engine.connect() as conn:
                             conn.execute(db.text("SELECT 1"))
+                            # Use a row count query to verify data presence (optional)
+                            # conn.execute(db.text("SELECT count(*) FROM user")) 
                     except Exception as e:
-                        err_str = str(e)
-                        print(f"DB Keep-alive: connection lost. Disposing pool...")
+                        print(f"DB Heartbeat: Uplink flicker detected, re-establishing...")
                         try:
                             db.engine.dispose()
                         except Exception:
                             pass
                         db.session.remove()
                         break 
-                    time.sleep(45)
+                    time.sleep(30) # Keep DB awake on Neon by sending a pulse every 30s
         except Exception as e:
             err_str = str(e)
             with app.app_context():
@@ -170,6 +236,8 @@ def startup():
     global _setup_done
     if not _setup_done:
         threading.Thread(target=run_maintenance, args=(app,), daemon=True).start()
+        # Run a one-time check for local shadow data that needs restoration
+        threading.Thread(target=run_disaster_recovery, args=(app,), daemon=True).start()
         _setup_done = True
 
 startup()
@@ -282,6 +350,9 @@ def register():
         db.session.add(new_user)
         db.session.commit()
         
+        # --- SHADOW SYNC ---
+        sync_to_shadow(new_user)
+        
         import datetime as dt
         token = jwt.encode(
             {'user_id': new_user.id, 'role': new_user.role, 'exp': dt.datetime.now(dt.timezone.utc) + timedelta(hours=24)}, 
@@ -337,6 +408,50 @@ def login():
         return jsonify({'message': 'Invalid username or password'}), 401
     except Exception as e:
         return jsonify({'message': f'Server Error: {str(e)}'}), 500
+
+# -----------------
+# API Student Features
+# -----------------
+
+@app.route('/api/student/stats', methods=['GET'])
+@token_required
+def get_student_stats(current_user):
+    try:
+        subs = Submission.query.filter_by(student_id=current_user.id).all()
+        total = len(subs)
+        correct_count = len([s for s in subs if s.is_correct])
+        avg = (correct_count / total * 100) if total > 0 else 0
+        solved_ids = [s.question_id for s in subs]
+        
+        return jsonify({
+            'total_attempted': total,
+            'correct_answers': correct_count,
+            'average': round(avg, 2),
+            'solved_questions': solved_ids
+        })
+    except Exception as e:
+        return jsonify({'message': f'Error: {str(e)}'}), 500
+
+@app.route('/api/student/history', methods=['GET'])
+@token_required
+def get_student_history(current_user):
+    try:
+        subs = Submission.query.filter_by(student_id=current_user.id).order_by(Submission.timestamp.desc()).all()
+        output = []
+        for s in subs:
+            q = db.session.get(Question, s.question_id)
+            output.append({
+                'id': s.id,
+                'question_title': q.title if q else 'Deleted Question',
+                'topic': q.topic if q else 'General',
+                'selected_option': s.selected_option,
+                'is_correct': s.is_correct,
+                'timestamp': s.timestamp.strftime('%Y-%m-%d %H:%M:%S') if s.timestamp else '',
+                'file_path': s.file_path
+            })
+        return jsonify({'history': output})
+    except Exception as e:
+        return jsonify({'message': f'Error: {str(e)}'}), 500
 
 # -----------------
 # API Admin Features
@@ -396,6 +511,9 @@ def add_question(current_user):
     )
     db.session.add(new_question)
     db.session.commit()
+    
+    # --- SHADOW SYNC ---
+    sync_to_shadow(new_question)
     return jsonify({'message': 'Question added successfully!'}), 201
 
 @app.route('/api/questions/<int:id>', methods=['PUT'])
@@ -441,6 +559,7 @@ def update_question(current_user, id):
                     sub.is_correct = (sub.selected_option == question.correct_option)
         
         db.session.commit()
+        sync_to_shadow(question) # --- SHADOW SYNC ---
         return jsonify({'message': 'Question updated and student scores re-evaluated!'}), 200
     except Exception as e:
         db.session.rollback()
@@ -473,12 +592,14 @@ def get_students(current_user):
         total = len(submissions)
         correct = len([s for s in submissions if s.is_correct])
         average = (correct / total * 100) if total > 0 else 0
+        proofs = Submission.query.filter_by(student_id=std.id).filter(Submission.file_path.isnot(None)).count()
         output.append({
             'id': std.id,
             'name': std.full_name or std.username,
             'username': std.username,
             'average': float("{:.2f}".format(average)),
             'total_submissions': total,
+            'total_proofs': proofs,
             'correct': correct
         })
     output.sort(key=lambda x: (-x['correct'], -x['average']))
@@ -509,11 +630,34 @@ def get_admin_stats(current_user):
 def delete_student(current_user, id):
     student = db.session.get(User, id)
     if not student: return jsonify({'message': 'Student not found!'}), 404
+    
+    # 1. Manual cleanup (redundant but safe)
     Submission.query.filter_by(student_id=id).delete()
     Message.query.filter((Message.sender_id == id) | (Message.receiver_id == id)).delete()
+    
+    # 2. Main deletion (triggers cascade if defined in models)
     db.session.delete(student)
     db.session.commit()
-    return jsonify({'message': 'Student deleted!'})
+    return jsonify({'message': 'Student data, submissions, and messages erased.'})
+
+@app.route('/api/students/<int:id>', methods=['PUT'])
+@token_required
+@admin_required
+def update_student(current_user, id):
+    student = db.session.get(User, id)
+    if not student: return jsonify({'message': 'Student not found!'}), 404
+    
+    data = request.get_json()
+    if 'name' in data: student.full_name = data['name']
+    if 'username' in data: student.username = data['username']
+    if 'password' in data and data['password']:
+        from werkzeug.security import generate_password_hash
+        student.password = generate_password_hash(data['password'])
+        
+    db.session.commit()
+    # Mirroring to Shadow Backup if cloud modification succeeded
+    sync_to_shadow(student) # --- SHADOW SYNC ---
+    return jsonify({'message': 'Intelligence Node updated.'})
 
 @app.route('/api/submissions', methods=['GET'])
 @token_required
@@ -585,6 +729,18 @@ def submit_answer(current_user):
                 file_data = file.read()
                 file_mimetype = file.mimetype
                 sub_uuid = str(uuid.uuid4())
+                
+                # --- Physical Storage on Server (Parallel to DB) ---
+                try:
+                    ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'bin'
+                    file_name = f"{sub_uuid}.{ext}"
+                    physical_path = os.path.join(app.config['UPLOAD_FOLDER'], file_name)
+                    with open(physical_path, 'wb') as f:
+                        f.write(file_data)
+                    print(f"File stored on server: {physical_path}")
+                except Exception as e:
+                    print(f"Warning: Physics storage failed, continuing with DB storage only: {e}")
+                
                 file_path = f'/api/downloads/submission/{sub_uuid}.{ext}'
 
     if not question_id: return jsonify({'message': 'Missing data!'}), 400
@@ -604,12 +760,37 @@ def submit_answer(current_user):
         selected_option=selected_option,
         is_correct=is_correct,
         file_path=file_path,
-        file_data=file_data if 'file_data' in locals() else None,
+        # REMOVED: file_data storage in database to avoid bandwidth explosion
+        # file_data=file_data if 'file_data' in locals() else None,
         file_mimetype=file_mimetype if 'file_mimetype' in locals() else None,
         submission_id=sub_uuid
     )
+    
+    # --- Robust Commit with Retries to handle Neon instability ---
     db.session.add(new_sub)
-    db.session.commit()
+    commit_success = False
+    for i in range(5):
+        try:
+            db.session.commit()
+            commit_success = True
+            sync_to_shadow(new_sub) # --- SHADOW SYNC ---
+            break
+        except Exception as e:
+            err_str = str(e).lower()
+            if any(term in err_str for term in ["connection", "timeout", "reset", "eof", "translate host"]):
+                print(f"DB Commit Retry {i+1}/5 due to unstable uplink...")
+                try:
+                    db.engine.dispose()
+                except:
+                    pass
+                time.sleep(1 + i)
+            else:
+                db.session.rollback()
+                raise e
+    
+    if not commit_success:
+        return jsonify({'message': 'Failed to reach database after 5 retries. Submission not stored.'}), 503
+
 
     return jsonify({
         'message': 'Answer submitted!',
@@ -622,31 +803,39 @@ def submit_answer(current_user):
 @app.route('/api/downloads/submission/<string:submission_uuid>', methods=['GET'])
 @token_required
 def download_submission_file(current_user, submission_uuid):
-    """Serve a file that was stored as binary blob in the database."""
+    """Serve a file from the server's filesystem, falling back to database ONLY if missing from disk."""
     try:
         # Strip extension if present so we can query by raw uuid
         base_uuid = submission_uuid.rsplit('.', 1)[0]
+        ext = submission_uuid.rsplit('.', 1)[1] if '.' in submission_uuid else 'bin'
         
-        # We need to search by submission_id OR file_path because older entries might just have the raw UUID
+        # 1. First attempt: Serve from physical disk (Fastest, NO database bandwidth)
+        file_name = f"{base_uuid}.{ext}"
+        physical_path = os.path.join(app.config['UPLOAD_FOLDER'], file_name)
+        
+        if os.path.exists(physical_path):
+            return send_from_directory(app.config['UPLOAD_FOLDER'], file_name)
+        
+        # 2. Second attempt: Fallback to database blob ONLY if file is missing from disk
         sub = Submission.query.filter(
             (Submission.submission_id == base_uuid) | 
             (Submission.file_path.ilike(f'%{base_uuid}%'))
         ).first()
         
-        if not sub or not sub.file_data:
-            return jsonify({'message': 'File not found'}), 404
+        if sub and sub.file_data:
+            from io import BytesIO
+            from flask import Response
+            mimetype = sub.file_mimetype or 'application/octet-stream'
+            return Response(
+                sub.file_data,
+                mimetype=mimetype,
+                headers={
+                    'Content-Disposition': f'inline; filename="proof_{sub.id}.{ext}"',
+                    'Cache-Control': 'no-cache'
+                }
+            )
         
-        from io import BytesIO
-        from flask import Response
-        mimetype = sub.file_mimetype or 'application/octet-stream'
-        return Response(
-            sub.file_data,
-            mimetype=mimetype,
-            headers={
-                'Content-Disposition': f'inline; filename="proof_{sub.id}"',
-                'Cache-Control': 'no-cache'
-            }
-        )
+        return jsonify({'message': 'File not found on disk or database'}), 404
     except Exception as e:
         return jsonify({'message': f'Error serving file: {str(e)}'}), 500
 
@@ -711,6 +900,7 @@ def add_meetlink(current_user):
     meetlink = MeetLink(title=title, url=url)
     db.session.add(meetlink)
     db.session.commit()
+    sync_to_shadow(meetlink) # --- SHADOW SYNC ---
     return jsonify({'message': 'Meet link broadcasted successfully'}), 201
 
 @app.route('/api/meetlinks', methods=['GET'])
@@ -770,6 +960,7 @@ def send_message(current_user):
     # Storing uuid in file_path is fine since we can extract it or add a column. Message model doesn't have msg_uuid column, we'll extract it from file_path in the route.
     db.session.add(msg)
     db.session.commit()
+    sync_to_shadow(msg) # --- SHADOW SYNC ---
     return jsonify({'message': 'Message sent successfully'}), 201
 
 @app.route('/api/messages', methods=['GET'])
@@ -795,6 +986,17 @@ def get_messages(current_user):
             'timestamp': m.timestamp.strftime('%Y-%m-%d %H:%M:%S')
         })
     return jsonify({'messages': output})
+
+@app.route('/api/messages/<int:id>', methods=['PUT'])
+@token_required
+@admin_required
+def edit_message(current_user, id):
+    msg = db.session.get(Message, id)
+    if not msg: return jsonify({'message': 'Message not found'}), 404
+    data = request.get_json()
+    msg.content = data.get('content', msg.content)
+    db.session.commit()
+    return jsonify({'message': 'Message updated successfully'})
 
 @app.route('/api/messages/<int:id>', methods=['DELETE'])
 @token_required

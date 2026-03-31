@@ -31,7 +31,7 @@ database_url = os.environ.get('DATABASE_URL')
 # Ensure we have a valid database URL
 if not database_url:
     # Use fallback quietly
-    database_url = "postgresql://neondb_owner:npg_6ravLTU9Bxmt@ep-spring-snow-adlcovzz.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+    database_url = "postgresql://neondb_owner:npg_STrZjGzF32Vn@ep-sweet-mouse-ampyhmgg.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 # Handle Render's legacy postgres:// prefix
 if database_url.startswith("postgres://"):
@@ -59,10 +59,10 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     "pool_recycle": 60,             # Still useful to ensure fresh connections
     "poolclass": NullPool,          # FORCE NO POOLING for serverless session stability
     "connect_args": {
-        "keepalives": 1,
-        "keepalives_idle": 30,
-        "keepalives_interval": 10,
-        "keepalives_count": 5,
+        ,
+        ,
+        ,
+        ,
         "connect_timeout": 60,
         "options": "-c search_path=public -c application_name=aptitude_master"
     }

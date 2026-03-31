@@ -826,150 +826,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('preview-body').innerHTML = '';
     };
 
-    window.deleteSubmission = async (id) => {
-        if (!confirm('Erase this record?')) return;
-        try {
-            const res = await fetch(`${API_BASE}/submissions/${id}`, { method: 'DELETE', headers: getHeaders() });
-            if (res.ok) { showAlert('Record erased.'); fetchSubmissions(); }
-        } catch (err) { console.error(err); }
-    };
-
-    // --- Meet Links Section ---
-    document.getElementById('add-meetlink-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const data = { title: document.getElementById('m-title').value, url: document.getElementById('m-url').value };
-        try {
-            const res = await fetch(`${API_BASE}/meetlinks`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(data) });
-            if (res.ok) { showAlert('Signal established!'); document.getElementById('add-meetlink-form').reset(); fetchMeetLinks(); }
-        } catch (error) { showAlert('Error', true); }
-    });
-
-    async function fetchMeetLinks() {
-        const list = document.getElementById('meetlinks-list');
-        if (!list) return;
-
-        try {
-            const res = await fetch(`${API_BASE}/meetlinks`, { headers: getHeaders() });
-            const data = await res.json();
-            list.innerHTML = '';
-            
-            if (!data.meetlinks || data.meetlinks.length === 0) {
-                list.innerHTML = emptyState('No active broadcast signals detected.');
-                return;
-            }
-            
-            data.meetlinks.forEach(l => {
-                const item = document.createElement('div');
-                item.className = 'content-card p-6 flex justify-between items-center group';
-                item.innerHTML = `
-                    <div class="space-y-1">
-                        <h4 class="font-bold text-lg text-slate-900 dark:text-white">${l.title}</h4>
-                        <a href="${l.url}" target="_blank" class="text-xs text-indigo-500 font-medium hover:underline truncate block max-w-[200px]">${l.url}</a>
-                    </div>
-                    <button class="w-10 h-10 bg-red-50 text-red-600 rounded-xl flex items-center justify-center lg:opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 hover:text-white" onclick="deleteMeetLink(${l.id})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                `;
-                list.appendChild(item);
-            });
-        } catch (err) { 
-            list.innerHTML = emptyState('Loss of signal. Check uplink.');
-            console.error(err); 
-        }
-    }
-
-    window.deleteMeetLink = async (id) => {
-        try { await fetch(`${API_BASE}/meetlinks/${id}`, { method: 'DELETE', headers: getHeaders() }); fetchMeetLinks(); } catch (err) { console.error(err); }
-    };
-
-    // --- Messages Section ---
-    document.getElementById('send-msg-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const f = new FormData();
-        f.append('receiver_id', document.getElementById('msg-receiver').value);
-        f.append('content', document.getElementById('msg-content').value);
-        const fi = document.getElementById('msg-file');
-        if(fi.files.length > 0) f.append('file', fi.files[0]);
-        try {
-            const res = await fetch(`${API_BASE}/messages`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: f });
-            if (res.ok) { showAlert('Broadcast sent!'); document.getElementById('send-msg-form').reset(); fetchMessages(); }
-            else showAlert('Broadcast failed', true);
-        } catch (error) { showAlert('Error', true); }
-    });
-
-    async function fetchMessages() {
-        const list = document.getElementById('messages-list');
-        if (!list) return;
-
-        try {
-            const res = await fetch(`${API_BASE}/messages`, { headers: getHeaders() });
-            const data = await res.json();
-            list.innerHTML = '';
-            
-            if (!data.messages || data.messages.length === 0) {
-                list.innerHTML = emptyState('No transmission history found.');
-                return;
-            }
-            
-            data.messages.forEach(m => {
-                const item = document.createElement('div');
-                item.className = 'content-card p-8 space-y-4';
-                const isBroadcast = m.receiver_id === null;
-                item.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs"><i class="fas fa-shield-alt"></i></div>
-                            <div>
-                                <div class="text-[10px] font-black uppercase tracking-widest text-slate-400">${isBroadcast ? 'Broadcast Signal' : 'To: ' + m.receiver}</div>
-                                <div class="text-xs font-bold text-slate-500">${m.timestamp}</div>
-                            </div>
-                        </div>
-                        <button class="text-slate-300 hover:text-red-500 transition-colors" onclick="deleteMessage(${m.id})"><i class="fas fa-trash"></i></button>
-                    </div>
-                    <p class="text-slate-600 dark:text-slate-300 font-medium">${m.content}</p>
-                    ${m.file_path ? `<button onclick="previewFile('${m.file_path}')" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-600 active:scale-95 transition-all"><i class="fas fa-file-alt"></i> View Attachment</button>` : ''}
-                `;
-                list.appendChild(item);
-            });
-        } catch (err) { 
-            list.innerHTML = emptyState('Failed to decrypt transmissions.');
-            console.error(err); 
-        }
-    }
-    
-    async function fetchStudentsForMessages() {
-        const s = document.getElementById('msg-receiver');
-        if (!s) return;
-
-        try {
-            const res = await fetch(`${API_BASE}/students`, { headers: getHeaders() });
-            const data = await res.json();
-            s.innerHTML = '<option value="all" selected>All Intelligence Nodes (Broadcast)</option>';
-            data.students.forEach(std => {
-                const o = document.createElement('option');
-                o.value = std.id; o.innerText = std.username;
-                s.appendChild(o);
-            });
-        } catch (err) { console.error(err); }
-    }
-
     // --- Leaderboard & Registry ---
     async function fetchLeaderboard() {
         const tbody = document.getElementById('leaderboard-tbody');
         if (!tbody) return;
-
         try {
             const res = await fetch(`${API_BASE}/leaderboard`, { headers: getHeaders() });
             if (!res.ok) throw new Error('Failed to fetch');
-            
             const data = await res.json();
             tbody.innerHTML = '';
-            
             if (!data.leaderboard || data.leaderboard.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-slate-400 font-bold">No rankings found.</td></tr>`;
                 return;
             }
-            
             data.leaderboard.forEach((std, i) => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
@@ -984,28 +853,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 tbody.appendChild(tr);
             });
-        } catch (err) { 
-            tbody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-red-500 font-bold">Error calculating standings.</td></tr>`;
-            console.error(err); 
-        }
+        } catch (err) { tbody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-red-500 font-bold">Error calculating standings.</td></tr>`; }
     }
 
     async function fetchStudents() {
         const tbody = document.getElementById('students-tbody');
         if (!tbody) return;
-
         try {
             const res = await fetch(`${API_BASE}/students`, { headers: getHeaders() });
             if (!res.ok) throw new Error('Failed to fetch');
-            
             const data = await res.json();
             tbody.innerHTML = '';
-            
             if (!data.students || data.students.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-slate-400 font-bold">No students registered yet.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-400 font-bold">No students registered yet.</td></tr>`;
                 return;
             }
-            
             data.students.forEach((std, i) => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors';
@@ -1015,12 +877,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="font-bold text-slate-900 dark:text-white">${std.name}</div>
                         <div class="text-[10px] text-indigo-500 font-bold uppercase tracking-tight -mt-0.5">@${std.username}</div>
                     </td>
-                    <td class="px-10 py-6 text-center">
-                        <span class="font-bold text-slate-600 dark:text-slate-200">${std.total_submissions}</span>
-                    </td>
-                    <td class="px-10 py-6 text-center">
-                        <span class="font-bold text-indigo-600 dark:text-indigo-400">${std.total_proofs}</span>
-                    </td>
+                    <td class="px-10 py-6 text-center"><span class="font-bold text-slate-600 dark:text-slate-200">${std.total_submissions}</span></td>
+                    <td class="px-10 py-6 text-center"><span class="font-bold text-indigo-600 dark:text-indigo-400">${std.total_proofs}</span></td>
                     <td class="px-10 py-6 text-center"><span class="px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-bold">${std.average}%</span></td>
                     <td class="px-10 py-6 text-right">
                         <div class="flex items-center justify-end gap-2">
@@ -1031,14 +889,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 tbody.appendChild(tr);
             });
-        } catch (err) { 
-            tbody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-red-500 font-bold">Registry link failed.</td></tr>`;
-            console.error(err); 
-        }
+        } catch (err) { tbody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-red-500 font-bold">Registry link failed.</td></tr>`; }
     }
     
     window.deleteStudent = async (id) => {
-        if(!confirm('Decommission this intelligence node?')) return;
+        if(!confirm('Decommission this student node? All their history and messages will be purged.')) return;
         try {
             const res = await fetch(`${API_BASE}/students/${id}`, { method: 'DELETE', headers: getHeaders() });
             if(res.ok) { showAlert('Node decommissioned.'); fetchStudents(); fetchGlobalStats(); }
@@ -1046,9 +901,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.editStudent = (std) => {
-        document.getElementById('edit-student-id').value = std.id;
-        document.getElementById('edit-student-name').value = std.name || '';
-        document.getElementById('edit-student-username').value = std.username || '';
+        const idInput = document.getElementById('edit-student-id');
+        const nameInput = document.getElementById('edit-student-name');
+        const userMark = document.getElementById('edit-student-username');
+        if(idInput) idInput.value = std.id;
+        if(nameInput) nameInput.value = std.name || '';
+        if(userMark) userMark.value = std.username || '';
         document.getElementById('edit-student-password').value = '';
         openEditStudentModal();
     };
@@ -1056,83 +914,57 @@ document.addEventListener('DOMContentLoaded', () => {
     window.openEditStudentModal = () => document.getElementById('edit-student-modal').classList.remove('hidden');
     window.closeEditStudentModal = () => document.getElementById('edit-student-modal').classList.add('hidden');
 
-    document.getElementById('edit-student-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const id = document.getElementById('edit-student-id').value;
-        const data = {
-            name: document.getElementById('edit-student-name').value,
-            username: document.getElementById('edit-student-username').value,
-            password: document.getElementById('edit-student-password').value
-        };
+    const editStudentForm = document.getElementById('edit-student-form');
+    if (editStudentForm) {
+        editStudentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-student-id').value;
+            const data = {
+                name: document.getElementById('edit-student-name').value,
+                username: document.getElementById('edit-student-username').value,
+                password: document.getElementById('edit-student-password').value
+            };
+            try {
+                const res = await fetch(`${API_BASE}/students/${id}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(data) });
+                if (res.ok) { showAlert('Student profile updated!'); closeEditStudentModal(); fetchStudents(); }
+                else { const err = await res.json(); showAlert(err.message || 'Update failed', true); }
+            } catch (error) { showAlert('Error connecting to server', true); }
+        });
+    }
 
-        try {
-            const res = await fetch(`${API_BASE}/students/${id}`, {
-                method: 'PUT',
-                headers: getHeaders(),
-                body: JSON.stringify(data)
-            });
-            if (res.ok) {
-                showAlert('Student profile updated!');
-                closeEditStudentModal();
-                fetchStudents();
-            } else {
-                const err = await res.json();
-                showAlert(err.message || 'Update failed', true);
-            }
-        } catch (error) { showAlert('Error connecting to server', true); }
-    });
-
-    window.deleteMessage = async (id) => {
-        if(!confirm('Purge transmission?')) return;
-        try {
-            const res = await fetch(`${API_BASE}/messages/${id}`, { method: 'DELETE', headers: getHeaders() });
-            if(res.ok) { showAlert('Transmission purged.'); fetchMessages(); }
-        } catch (err) { console.error(err); }
-    };
-
-    // --- Meet Links API ---
+    // --- Meet Links Section ---
     const addMeetLink = document.getElementById('add-meetlink-form');
     if (addMeetLink) {
         addMeetLink.addEventListener('submit', async (e) => {
             e.preventDefault();
             const title = document.getElementById('m-title').value;
             const url = document.getElementById('m-url').value;
-
             try {
                 showAlert('Broadcasting link...', false);
-                const res = await fetch(`${API_BASE}/admin/meetlinks`, {
+                const res = await fetch(`${API_BASE}/meetlinks`, {
                     method: 'POST',
                     headers: getHeaders(),
                     body: JSON.stringify({ title, url })
                 });
-
                 if (res.ok) {
                     addMeetLink.reset();
                     showAlert('Link broadcasted successfully!');
                     fetchMeetLinks();
-                } else {
-                    showAlert('Failed to broadcast link.', true);
-                }
-            } catch (err) {
-                showAlert('Network Error', true);
-            }
+                } else showAlert('Failed to broadcast link.', true);
+            } catch (err) { showAlert('Network Error', true); }
         });
     }
 
     async function fetchMeetLinks() {
+        const list = document.getElementById('meetlinks-list');
+        if (!list) return;
         try {
-            const list = document.getElementById('meetlinks-list');
-            if(!list) return;
-            list.innerHTML = emptyState('Scanning for active links...');
             const res = await fetch(`${API_BASE}/meetlinks`, { headers: getHeaders() });
-            if (!res.ok) throw new Error('Failed to fetch');
             const data = await res.json();
-            
             if (!data.meetlinks || data.meetlinks.length === 0) {
                 list.innerHTML = emptyState('No active meet links recorded.');
                 return;
             }
-
             list.innerHTML = data.meetlinks.map(m => `
                 <div class="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative text-left">
                     <button onclick="deleteMeetLink(${m.id})" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-xl bg-red-100/50 dark:bg-red-900/30 text-red-500 hover:bg-red-500 hover:text-white transition-all">
@@ -1141,18 +973,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 flex items-center justify-center mb-4 text-xl">
                         <i class="fas fa-video"></i>
                     </div>
-                    <div class="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-widest">${m.created_at}</div>
+                    <div class="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-widest">${m.timestamp || ''}</div>
                     <div class="font-bold text-lg mb-4 text-slate-900 dark:text-white">${m.title}</div>
                     <a href="${m.url}" target="_blank" class="w-full inline-block text-center py-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 font-bold rounded-xl border border-indigo-100 dark:border-indigo-800/30 active:scale-[0.98] transition-all">
                          Join Meeting <i class="fas fa-external-link-alt ml-1 text-xs opacity-70"></i>
                     </a>
                 </div>
             `).join('');
-        } catch (err) {
-            console.error(err);
-            const list = document.getElementById('meetlinks-list');
-            if(list) list.innerHTML = emptyState('Error connecting to active links.');
-        }
+        } catch (err) { console.error(err); }
     }
     window.fetchMeetLinks = fetchMeetLinks;
 
@@ -1160,16 +988,80 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!confirm('Are you sure you want to stop broadcasting this link?')) return;
         try {
             showAlert('Deleting broadcast...', false);
-            const res = await fetch(`${API_BASE}/admin/meetlinks/${id}`, { method: 'DELETE', headers: getHeaders() });
-            if (res.ok) {
-                showAlert('Link disconnected!');
-                fetchMeetLinks();
-            } else {
-                showAlert('Failed to disconnect link.', true);
+            const res = await fetch(`${API_BASE}/meetlinks/${id}`, { method: 'DELETE', headers: getHeaders() });
+            if (res.ok) { showAlert('Link disconnected!'); fetchMeetLinks(); }
+            else showAlert('Failed to disconnect link.', true);
+        } catch(err) { showAlert('Error', true); }
+    };
+
+    // --- Messages Section ---
+    const sendMsgForm = document.getElementById('send-msg-form');
+    if (sendMsgForm) {
+        sendMsgForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const f = new FormData();
+            f.append('receiver_id', document.getElementById('msg-receiver').value);
+            f.append('content', document.getElementById('msg-content').value);
+            const fi = document.getElementById('msg-file');
+            if(fi.files.length > 0) f.append('file', fi.files[0]);
+            try {
+                const res = await fetch(`${API_BASE}/messages`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: f });
+                if (res.ok) { showAlert('Broadcast sent!'); sendMsgForm.reset(); fetchMessages(); }
+                else showAlert('Broadcast failed', true);
+            } catch (error) { showAlert('Error', true); }
+        });
+    }
+
+    async function fetchMessages() {
+        const list = document.getElementById('messages-list');
+        if (!list) return;
+        try {
+            const res = await fetch(`${API_BASE}/messages`, { headers: getHeaders() });
+            const data = await res.json();
+            if (!data.messages || data.messages.length === 0) {
+                list.innerHTML = emptyState('No transmission history found.');
+                return;
             }
-        } catch(err) {
-            showAlert('Error', true);
-        }
+            list.innerHTML = data.messages.map(m => `
+                <div class="content-card p-8 space-y-4">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs"><i class="fas fa-shield-alt"></i></div>
+                            <div>
+                                <div class="text-[10px] font-black uppercase tracking-widest text-slate-400">${m.receiver_id === null ? 'Broadcast Signal' : 'To: ' + m.receiver}</div>
+                                <div class="text-xs font-bold text-slate-500">${m.timestamp}</div>
+                            </div>
+                        </div>
+                        <button class="text-slate-300 hover:text-red-500 transition-colors" onclick="deleteMessage(${m.id})"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <p class="text-slate-600 dark:text-slate-300 font-medium">${m.content}</p>
+                    ${m.file_path ? `<button onclick="previewFile('${m.file_path}')" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-600 active:scale-95 transition-all"><i class="fas fa-file-alt"></i> View Attachment</button>` : ''}
+                </div>
+            `).join('');
+        } catch (err) { console.error(err); }
+    }
+
+    async function fetchStudentsForMessages() {
+        const s = document.getElementById('msg-receiver');
+        if (!s) return;
+        try {
+            const res = await fetch(`${API_BASE}/students`, { headers: getHeaders() });
+            const data = await res.json();
+            s.innerHTML = '<option value="all" selected>All Intelligence Nodes (Broadcast)</option>';
+            data.students.forEach(std => {
+                const o = document.createElement('option');
+                o.value = std.id; o.innerText = std.username;
+                s.appendChild(o);
+            });
+        } catch (err) { console.error(err); }
+    }
+
+    window.deleteMessage = async (id) => {
+        if(!confirm('Purge transmission?')) return;
+        try {
+            const res = await fetch(`${API_BASE}/messages/${id}`, { method: 'DELETE', headers: getHeaders() });
+            if(res.ok) { showAlert('Transmission purged.'); fetchMessages(); }
+        } catch (err) { console.error(err); }
     };
 
     // --- Excel Export ---
@@ -1187,23 +1079,19 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) { showAlert('Error', true); }
     }
 
-    // --- Excel Export Safeguards ---
     const subExport = document.getElementById('export-submissions-btn');
     if (subExport) subExport.addEventListener('click', () => downloadExcelBlob('export/submissions', 'Submissions.xlsx'));
-    
     const regExport = document.getElementById('export-registry-btn');
     if (regExport) regExport.addEventListener('click', () => downloadExcelBlob('export/students', 'StudentsRegistry.xlsx'));
-    
     const lbExport = document.getElementById('export-leaderboard-btn');
     if (lbExport) lbExport.addEventListener('click', () => downloadExcelBlob('export/students', 'Leaderboard.xlsx'));
 
+    // --- Stats & Notifications ---
     async function fetchGlobalStats() {
         try {
             const res = await fetch(`${API_BASE}/admin/stats`, { headers: getHeaders() });
-            if (res.status === 401) return;
             if (!res.ok) return;
             const data = await res.json();
-            
             const stats = {
                 'global-stat-students': data.total_students,
                 'stat-students-mobile': data.total_students,
@@ -1214,7 +1102,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 'global-stat-proofs': data.total_proofs,
                 'global-stat-questions': data.total_questions
             };
-
             for (const [id, val] of Object.entries(stats)) {
                 const el = document.getElementById(id);
                 if (el) el.innerText = val;
@@ -1222,69 +1109,41 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) { console.error(err); }
     }
 
-    window.handleLogout = () => {
-        localStorage.clear();
-        window.location.href = '/login';
-    };
-
-    const logoutBtnDesktop = document.getElementById('logout-btn-desktop');
-    if(logoutBtnDesktop) logoutBtnDesktop.addEventListener('click', handleLogout);
-
-    // --- Notifications logic ---
     let lastNotiCheck = localStorage.getItem('last_noti_read_admin') || '1970-01-01 00:00:00';
     let lastNotiSoundTime = localStorage.getItem('last_noti_sound_admin') || '1970-01-01 00:00:00';
-    
-    // Low-latency professional notification sound
     const notiSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
     notiSound.volume = 0.5;
 
-    const playNotiSound = () => {
-        notiSound.play().catch(e => console.warn('Sound blocked by browser policy. Interaction required.'));
-    };
-
-    const fetchNotifications = async () => {
+    async function fetchNotifications() {
         try {
             const res = await fetch(`${API_BASE}/notifications`, { headers: getHeaders() });
             if (!res.ok) return;
             const data = await res.json();
             renderNotifications(data.notifications);
-        } catch (err) { console.error('Noti Error:', err); }
-    };
+        } catch (err) { console.error(err); }
+    }
 
-    const renderNotifications = (notis) => {
+    function renderNotifications(notis) {
         const list = document.getElementById('noti-list-desktop');
         const badge = document.getElementById('noti-badge-desktop');
         if (!list) return;
-
         const filteredNotis = notis.slice(0, 5);
-        
-        // 1. Update Badge for "Unread"
         const unreadCount = filteredNotis.filter(n => n.timestamp > lastNotiCheck).length;
-        if (unreadCount > 0) {
-            badge.innerText = unreadCount;
-            badge.classList.remove('hidden');
-        } else {
-            badge.classList.add('hidden');
-        }
+        if (unreadCount > 0) { badge.innerText = unreadCount; badge.classList.remove('hidden'); }
+        else badge.classList.add('hidden');
 
-        // 2. Play sound for "Newly Arrived" (since last poll/sound)
         if (filteredNotis.length > 0) {
             const latestTimestamp = filteredNotis[0].timestamp;
             if (latestTimestamp > lastNotiSoundTime) {
-                // If this is the FIRST time we have any sound time, don't play on initial load
-                if (lastNotiSoundTime !== '1970-01-01 00:00:00') {
-                    playNotiSound();
-                }
+                if (lastNotiSoundTime !== '1970-01-01 00:00:00') notiSound.play().catch(()=>{});
                 lastNotiSoundTime = latestTimestamp;
                 localStorage.setItem('last_noti_sound_admin', latestTimestamp);
             }
         }
-
         if (filteredNotis.length === 0) {
             list.innerHTML = '<div class="p-8 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">No new updates</div>';
             return;
         }
-
         list.innerHTML = filteredNotis.map(n => `
             <div class="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex gap-4 ${n.timestamp > lastNotiCheck ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}">
                 <div class="w-10 h-10 shrink-0 rounded-xl ${n.type === 'submission' ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-100 text-indigo-600'} flex items-center justify-center text-sm">
@@ -1297,38 +1156,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         `).join('');
-    };
+    }
 
     window.markAllRead = () => {
-        // Set lastRead to current time string "YYYY-MM-DD HH:MM:SS"
-        const now = new Date();
-        const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)).toISOString().replace('T', ' ').split('.')[0];
+        const istTime = new Date(new Date().getTime() + 19800000).toISOString().replace('T', ' ').split('.')[0];
         lastNotiCheck = istTime;
         localStorage.setItem('last_noti_read_admin', lastNotiCheck);
         fetchNotifications();
     };
 
-    // Toggle dropdown
     const notiBtn = document.getElementById('noti-btn-desktop');
     const notiDropdown = document.getElementById('noti-dropdown-desktop');
     if (notiBtn && notiDropdown) {
-        notiBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            notiDropdown.classList.toggle('hidden');
-        });
+        notiBtn.addEventListener('click', (e) => { e.stopPropagation(); notiDropdown.classList.toggle('hidden'); });
+        document.addEventListener('click', () => notiDropdown.classList.add('hidden'));
         notiDropdown.addEventListener('click', (e) => e.stopPropagation());
     }
 
-    document.addEventListener('click', () => {
-        if (notiDropdown) notiDropdown.classList.add('hidden');
-    });
-
-    // Start polling
-    fetchNotifications();
+    // Initial Polls
+    fetchQuestions(); fetchGlobalStats(); fetchMeetLinks(); fetchNotifications();
     setInterval(fetchNotifications, 30000);
-
-    // Initial Load
-    fetchQuestions();
-    fetchGlobalStats();
-    fetchMeetLinks();
 });

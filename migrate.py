@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 database_url = os.environ.get('DATABASE_URL')
 if not database_url:
-    database_url = "postgresql://neondb_owner:npg_6ravLTU9Bxmt@ep-spring-snow-adlcovzz-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+    database_url = "postgresql://neondb_owner:npg_STrZjGzF32Vn@ep-sweet-mouse-ampyhmgg-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
