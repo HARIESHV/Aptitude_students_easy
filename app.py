@@ -5,6 +5,8 @@ import time
 import socket
 from datetime import datetime, timedelta
 from functools import wraps
+import zlib
+import mimetypes
 
 from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, Response
 from flask_cors import CORS
@@ -736,7 +738,7 @@ def submit_answer(current_user):
                     file_name = f"{sub_uuid}.{ext}"
                     physical_path = os.path.join(app.config['UPLOAD_FOLDER'], file_name)
                     with open(physical_path, 'wb') as f:
-                        f.write(file_data)
+                        f.write(zlib.compress(file_data))
                     print(f"File stored on server: {physical_path}")
                 except Exception as e:
                     print(f"Warning: Physics storage failed, continuing with DB storage only: {e}")
@@ -814,7 +816,16 @@ def download_submission_file(current_user, submission_uuid):
         physical_path = os.path.join(app.config['UPLOAD_FOLDER'], file_name)
         
         if os.path.exists(physical_path):
-            return send_from_directory(app.config['UPLOAD_FOLDER'], file_name)
+            with open(physical_path, 'rb') as f:
+                data = f.read()
+            
+            try:
+                final_data = zlib.decompress(data)
+            except:
+                final_data = data # Compatibility with old uncompressed files
+            
+            mimetype, _ = mimetypes.guess_type(file_name)
+            return Response(final_data, mimetype=mimetype or 'application/octet-stream')
         
         # 2. Second attempt: Fallback to database blob ONLY if file is missing from disk
         sub = Submission.query.filter(
@@ -948,14 +959,17 @@ def send_message(current_user):
             # Need a route to download message files too
             file_path = f'/api/downloads/message/{msg_uuid}'
             
+    # Message attachments are and compressed for storage
+    compressed_file_data = zlib.compress(file_data) if file_data else None
+    
     msg = Message(
         sender_id=current_user.id,
         sender_role=current_user.role,
         receiver_id=receiver_id,
         content=content,
         file_path=file_path,
-        file_data=file_data,
-        file_mimetype=file_mimetype
+        file_data=compressed_file_data,
+        file_mimetype=file_mimetype if 'file_mimetype' in locals() else None,
     )
     # Storing uuid in file_path is fine since we can extract it or add a column. Message model doesn't have msg_uuid column, we'll extract it from file_path in the route.
     db.session.add(msg)
@@ -1021,8 +1035,14 @@ def download_message_file(current_user, msg_uuid):
         from io import BytesIO
         from flask import Response
         mimetype = msg.file_mimetype or 'application/octet-stream'
+        
+        try:
+            final_data = zlib.decompress(msg.file_data)
+        except:
+            final_data = msg.file_data # Backwards compatibility
+            
         return Response(
-            msg.file_data,
+            final_data,
             mimetype=mimetype,
             headers={
                 'Content-Disposition': f'inline; filename="msg_attachment_{msg.id}"',
