@@ -20,8 +20,13 @@ from sqlalchemy import func
 from sqlalchemy.pool import NullPool
 from models import db, User, Question, Submission, MeetLink, Message
 
-# Load environment variables from .env file — Force override to prevent stale system vars from hijacking!
-load_dotenv(override=True)
+basedir = os.path.abspath(os.path.dirname(__file__))
+# 1. Load environment variables using absolute path ONLY to avoid relative lookup failure
+env_path = os.path.join(basedir, '.env')
+if os.path.exists(env_path):
+    load_dotenv(env_path, override=True)
+else:
+    print(f"⚠️  WARNING: .env file NOT FOUND at {env_path}")
 
 # Force IPv4 for Database Connections (fixes broken NAT64/IPv6 routing dropping connections)
 import socket
