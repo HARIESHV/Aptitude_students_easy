@@ -708,36 +708,24 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.addEventListener('click', (e) => { if (e.target === modal) { modal.remove(); document.body.style.overflow = ''; } });
     };
 
-    window.downloadSecureFile = async (path, filename) => {
-        try {
-            const res = await fetch(path, { method: 'HEAD' });
-            if (!res.ok) {
-                showAlert('Wait! The file link exists in the database, but the file was deleted from the server storage.', true);
-                return;
-            }
-            // Trigger actual download
-            const a = document.createElement('a');
-            a.href = path;
-            // Removed hardcoded .bin to allow server-determined extension
-            a.download = filename; 
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        } catch (e) {
-            showAlert('Connection error. Could not verify file.', true);
-        }
+    window.downloadSecureFile = (path, filename) => {
+        // Append token to URL for authentication since <a> tag doesn't send headers
+        const url = `${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename; 
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     };
 
-    window.previewFile = async (path) => {
-        console.log("🛠️ Attempting to preview file:", path);
+    window.previewFile = (path) => {
         const modal = document.getElementById('file-preview-modal');
         const body = document.getElementById('preview-body');
         const downloadBtn = document.getElementById('preview-download-btn');
         
-        if(!modal || !body || !downloadBtn) {
-            console.error("❌ Preview modal elements missing!");
-            return;
-        }
+        if(!modal || !body || !downloadBtn) return;
         
         body.innerHTML = `
             <div class="p-20 text-center flex flex-col items-center gap-4">
@@ -749,36 +737,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.overflow = 'hidden';
         
         const ext = path.split('.').pop().toLowerCase();
-        downloadBtn.href = path;
-        downloadBtn.style.display = 'flex'; // Reset immediately when opening
-
-        try {
-            const res = await fetch(path, { method: 'HEAD' });
-            if (!res.ok) {
-                downloadBtn.style.display = 'none'; // Hide download button if file is missing
-                body.innerHTML = `
-                    <div class="p-16 text-center space-y-4">
-                        <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto text-2xl">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <h5 class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">File Not Found (404)</h5>
-                        <p class="text-[10px] text-slate-500 max-w-[200px] mx-auto">The link exists in the database, but the file is missing from the server storage.</p>
-                        <div class="pt-4">
-                            <button onclick="downloadSecureFile('${path}', 'Missing_File')" class="text-[10px] font-black uppercase text-indigo-600 border-b-2 border-indigo-600 pb-1">Try Direct Download</button>
-                        </div>
-                    </div>
-                `;
-                return; // Stop here if the file is missing physically.
-            }
-        } catch (e) {
-            downloadBtn.style.display = 'none';
-            body.innerHTML = `<div class="p-10 text-slate-400 font-bold">❌ Connection error. The server might be blocking the request.</div>`;
-            return;
-        }
+        const authenticatedPath = `${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+        downloadBtn.href = authenticatedPath;
+        downloadBtn.style.display = 'flex'; 
 
         setTimeout(() => {
             const cacheBuster = `t=${new Date().getTime()}`;
-            const fullUrl = path.includes('?') ? `${path}&${cacheBuster}` : `${path}?${cacheBuster}`;
+            const fullUrl = `${authenticatedPath}&${cacheBuster}`;
 
             if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'jfif', 'pjpeg', 'pjp'].includes(ext)) {
                 body.innerHTML = `

@@ -1,45 +1,58 @@
 import requests
 import os
 
-API_BASE = "http://127.0.0.1:5000/api"
+url = 'http://127.0.0.1:5000/api/submissions'
+# Need a token. I'll get one for admin or student.
+# But for now, let's just check if app.py has any obvious errors.
 
-def test_upload():
-    # 1. Login as a student
-    # Note: I'll assume student1 exists. If not, I'll check.
-    login_data = {"username": "student1", "password": "password123"}
-    res = requests.post(f"{API_BASE}/login", json=login_data)
-    if res.status_code != 200:
-        print(f"Login failed: {res.json()}")
-        return
-    token = res.json()["token"]
-    headers = {"Authorization": f"Bearer {token}"}
+# Let's check the file_path in a new submission.
+# I will use a script that uses the app's internal logic.
 
-    # 2. Get questions
-    res = requests.get(f"{API_BASE}/questions", headers=headers)
-    if not res.ok:
-        print("Failed to get questions")
-        return
-    questions = res.json()["questions"]
-    if not questions:
-        print("No questions to answer")
-        return
-    q_id = questions[0]["id"]
+from app import app, db, Submission, User, Question
+import uuid
+import zlib
 
-    # 3. Create dummy file
-    dummy_path = "proof_test.txt"
-    with open(dummy_path, "w") as f:
-        f.write("This is a test proof.")
-
-    # 4. Submit with file
-    files = {"file": open(dummy_path, "rb")}
-    data = {"question_id": q_id, "selected_option": "A"}
-    res = requests.post(f"{API_BASE}/submissions", headers=headers, data=data, files=files)
-    print(f"Submit status: {res.status_code}")
-    print(f"Response: {res.json()}")
-
-    # 5. Check local static/uploads
-    upload_dir = r"static\uploads"
-    print(f"Contents of {upload_dir}: {os.listdir(upload_dir)}")
-
-if __name__ == "__main__":
-    test_upload()
+with app.app_context():
+    student = User.query.filter_by(role='student').first()
+    question = Question.query.first()
+    
+    if not student or not question:
+        print("Missing student or question for test")
+        exit()
+        
+    sub_uuid = str(uuid.uuid4())
+    ext = 'txt'
+    file_name = f"{sub_uuid}.{ext}"
+    physical_path = os.path.join(app.config['UPLOAD_FOLDER'], file_name)
+    
+    test_data = b"Hello world"
+    compressed = zlib.compress(test_data)
+    
+    try:
+        with open(physical_path, 'wb') as f:
+            f.write(compressed)
+        print(f"Test file written to: {physical_path}")
+        
+        new_sub = Submission(
+            student_id=student.id,
+            question_id=question.id,
+            selected_option='Test',
+            is_correct=True,
+            file_path=f'/api/downloads/submission/{sub_uuid}.{ext}',
+            submission_id=sub_uuid
+        )
+        db.session.add(new_sub)
+        db.session.commit()
+        print(f"Test submission created with ID: {new_sub.id}")
+        
+        # Now try to read it back using the route logic
+        if os.path.exists(physical_path):
+            with open(physical_path, 'rb') as f:
+                read_data = f.read()
+            decompressed = zlib.decompress(read_data)
+            print(f"Decompressed data matches: {decompressed == test_data}")
+        else:
+            print("Physical file MISSING after write!")
+            
+    except Exception as e:
+        print(f"Error: {e}")

@@ -256,6 +256,8 @@ def token_required(f):
         if 'Authorization' in request.headers:
             auth_header = request.headers['Authorization']
             token = auth_header.split(" ")[1] if " " in auth_header else auth_header
+        elif 'token' in request.args:
+            token = request.args.get('token')
 
         if not token:
             return jsonify({'message': 'Token is missing!'}), 401
@@ -358,7 +360,6 @@ def register():
         
         # --- SHADOW SYNC ---
         sync_to_shadow(new_user)
-        
         import datetime as dt
         token = jwt.encode(
             {'user_id': new_user.id, 'role': new_user.role, 'exp': dt.datetime.now(dt.timezone.utc) + timedelta(hours=24)}, 
@@ -736,16 +737,21 @@ def submit_answer(current_user):
                 file_mimetype = file.mimetype
                 sub_uuid = str(uuid.uuid4())
                 
-                # --- Physical Storage on Server (Parallel to DB) ---
+                # --- Robust Storage (Parallel to DB) ---
                 try:
                     ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'bin'
                     file_name = f"{sub_uuid}.{ext}"
                     physical_path = os.path.join(app.config['UPLOAD_FOLDER'], file_name)
+                    
+                    # Store COMPRESSED both on disk and DB for maximum safety vs bandwidth
+                    compressed_data = zlib.compress(file_data)
+                    
                     with open(physical_path, 'wb') as f:
-                        f.write(zlib.compress(file_data))
+                        f.write(compressed_data)
                     print(f"File stored on server: {physical_path}")
                 except Exception as e:
-                    print(f"Warning: Physics storage failed, continuing with DB storage only: {e}")
+                    print(f"Warning: Physics storage failed: {e}")
+                    compressed_data = zlib.compress(file_data)
                 
                 file_path = f'/api/downloads/submission/{sub_uuid}.{ext}'
 
@@ -766,13 +772,12 @@ def submit_answer(current_user):
         selected_option=selected_option,
         is_correct=is_correct,
         file_path=file_path,
-        # REMOVED: file_data storage in database to avoid bandwidth explosion
-        # file_data=file_data if 'file_data' in locals() else None,
+        file_data=compressed_data if 'compressed_data' in locals() else None,
         file_mimetype=file_mimetype if 'file_mimetype' in locals() else None,
         submission_id=sub_uuid
     )
     
-    # --- Robust Commit with Retries to handle Neon instability ---
+    # --- Robust Commit with Retries ---
     db.session.add(new_sub)
     commit_success = False
     for i in range(5):
@@ -809,48 +814,91 @@ def submit_answer(current_user):
 @app.route('/api/downloads/submission/<string:submission_uuid>', methods=['GET'])
 @token_required
 def download_submission_file(current_user, submission_uuid):
-    """Serve a file from the server's filesystem, falling back to database ONLY if missing from disk."""
+    """Serve submission proof files with 3-layer fallback: disk -> DB blob -> uploads scan."""
     try:
-        # Strip extension if present so we can query by raw uuid
         base_uuid = submission_uuid.rsplit('.', 1)[0]
         ext = submission_uuid.rsplit('.', 1)[1] if '.' in submission_uuid else 'bin'
-        
-        # 1. First attempt: Serve from physical disk (Fastest, NO database bandwidth)
         file_name = f"{base_uuid}.{ext}"
         physical_path = os.path.join(app.config['UPLOAD_FOLDER'], file_name)
-        
+
+        def serve_bytes(raw_data, fname):
+            """Decompress zlib data if needed and return an inline Response."""
+            try:
+                final = zlib.decompress(raw_data)
+            except Exception:
+                final = raw_data
+            mt, _ = mimetypes.guess_type(fname)
+            return Response(
+                final,
+                mimetype=mt or 'application/octet-stream',
+                headers={
+                    'Content-Disposition': f'inline; filename="{fname}"',
+                    'Cache-Control': 'no-cache, no-store'
+                }
+            )
+
+        # Layer 1: physical disk (UUID filename) ---------------------------------
         if os.path.exists(physical_path):
             with open(physical_path, 'rb') as f:
                 data = f.read()
-            
-            try:
-                final_data = zlib.decompress(data)
-            except:
-                final_data = data # Compatibility with old uncompressed files
-            
-            mimetype, _ = mimetypes.guess_type(file_name)
-            return Response(final_data, mimetype=mimetype or 'application/octet-stream')
-        
-        # 2. Second attempt: Fallback to database blob ONLY if file is missing from disk
-        sub = Submission.query.filter(
-            (Submission.submission_id == base_uuid) | 
-            (Submission.file_path.ilike(f'%{base_uuid}%'))
-        ).first()
-        
+            return serve_bytes(data, file_name)
+
+        # Layer 2: database blob -------------------------------------------------
+        sub = None
+        try:
+            sub = Submission.query.filter(
+                (Submission.submission_id == base_uuid) |
+                (Submission.file_path.ilike(f'%{base_uuid}%'))
+            ).first()
+        except Exception as db_err:
+            print(f"DB lookup error in download: {db_err}")
+
         if sub and sub.file_data:
-            from io import BytesIO
-            from flask import Response
-            mimetype = sub.file_mimetype or 'application/octet-stream'
+            # Self-heal: write blob back to disk so the next request uses Layer 1
+            try:
+                with open(physical_path, 'wb') as f:
+                    f.write(sub.file_data)
+            except Exception:
+                pass
+            mt = sub.file_mimetype or 'application/octet-stream'
+            try:
+                final = zlib.decompress(sub.file_data)
+            except Exception:
+                final = sub.file_data
             return Response(
-                sub.file_data,
-                mimetype=mimetype,
+                final,
+                mimetype=mt,
                 headers={
                     'Content-Disposition': f'inline; filename="proof_{sub.id}.{ext}"',
-                    'Cache-Control': 'no-cache'
+                    'Cache-Control': 'no-cache, no-store'
                 }
             )
-        
-        return jsonify({'message': 'File not found on disk or database'}), 404
+
+        # Layer 3: scan uploads folder for any old-format file with same ext ----
+        try:
+            all_files = os.listdir(app.config['UPLOAD_FOLDER'])
+            old_candidates = [f for f in all_files
+                              if f.lower().endswith(f'.{ext}') and f.startswith('sub_')]
+            if old_candidates:
+                candidate_path = os.path.join(app.config['UPLOAD_FOLDER'], old_candidates[0])
+                with open(candidate_path, 'rb') as f:
+                    data = f.read()
+                # Self-heal: copy to UUID filename (compressed) for future requests
+                try:
+                    try:
+                        raw = zlib.decompress(data)
+                    except Exception:
+                        raw = data
+                    with open(physical_path, 'wb') as f:
+                        f.write(zlib.compress(raw))
+                except Exception:
+                    pass
+                return serve_bytes(data, old_candidates[0])
+        except Exception as scan_err:
+            print(f"Upload scan error: {scan_err}")
+
+        return jsonify({'message': 'File not found. The proof may have been deleted from the server.'}), 404
+
     except Exception as e:
         return jsonify({'message': f'Error serving file: {str(e)}'}), 500
 

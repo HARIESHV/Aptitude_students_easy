@@ -1,4 +1,9 @@
 import os
-p = r"C:\Users\harie\Desktop\hh\Aptitude_students_easy\static\uploads\sub_20260320101509_WhatsApp_Image_2026-03-20_at_3.41.41_PM_2.jpeg"
-print(f"Path: {p}")
-print(f"Exists: {os.path.exists(p)}")
+upload_folder = r'c:\Users\harie\Desktop\hh\Aptitude_students_easy\static\uploads'
+files = os.listdir(upload_folder)
+print(f"Files in {upload_folder}:")
+for f in files:
+    print(f" - {f}")
+uuid_to_check = 'b72bf45e-9fd9-41b8-a57e-4fd2c264e9cf.jpeg'
+path = os.path.join(upload_folder, uuid_to_check)
+print(f"Checking for {uuid_to_check}: {os.path.exists(path)}")

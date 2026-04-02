@@ -1,78 +1,49 @@
-from app import app, db
-from models import Question, Submission, User
-from werkzeug.security import generate_password_hash
+import os
+import zlib
+from app import app, db, Submission, User, Question
 import uuid
 
-def test_answer_update():
-    with app.app_context():
-        # Clean up
-        Submission.query.delete()
-        Question.query.delete()
-        User.query.filter_by(username='test_student').delete()
-        db.session.commit()
-
-        # Setup
-        student = User(username='test_student', password=generate_password_hash('pass'), role='student')
-        db.session.add(student)
-        db.session.commit()
-
-        q = Question(
-            title="Test Q",
-            description="What is 1+1?",
-            option_a="1",
-            option_b="2",
-            correct_option="A", # Correct is A initially
-            question_type="mcq"
-        )
-        db.session.add(q)
-        db.session.commit()
-
-        sub1 = Submission(
-            student_id=student.id,
-            question_id=q.id,
-            selected_option="A",
-            is_correct=True,
-            submission_id=str(uuid.uuid4())
-        )
-        sub2 = Submission(
-            student_id=student.id,
-            question_id=q.id,
-            selected_option="B",
-            is_correct=False,
-            submission_id=str(uuid.uuid4())
-        )
-        db.session.add_all([sub1, sub1])
-        db.session.commit()
-
-        print(f"Initial: Sub1 is_correct={sub1.is_correct}, Sub2 is_correct={sub2.is_correct}")
-
-        # Update question correct answer to B
-        q.correct_option = "B"
+with app.app_context():
+    # 1. Setup test data
+    student = User.query.filter_by(role='student').first()
+    question = Question.query.first()
+    
+    if not student or not question:
+        print("Missing student or question for test")
+        exit()
         
-        # Manually apply the logic we added to app.py (to test it)
-        # We need to simulate the loop
-        submissions = Submission.query.filter_by(question_id=q.id).all()
-        for sub in submissions:
-            if q.question_type == 'text':
-                if sub.selected_option and q.correct_text_answer:
-                    sub.is_correct = str(sub.selected_option).strip().lower() == str(q.correct_text_answer).strip().lower()
-                else:
-                    sub.is_correct = False
-            else:
-                sub.is_correct = (sub.selected_option == q.correct_option)
+    sub_uuid = str(uuid.uuid4())
+    test_binary = b"Detailed working proof data"
+    
+    # 2. Simulate storage (as done in submit_answer)
+    compressed = zlib.compress(test_binary)
+    
+    new_sub = Submission(
+        student_id=student.id,
+        question_id=question.id,
+        selected_option='Test Correct',
+        is_correct=True,
+        file_path=f'/api/downloads/submission/{sub_uuid}.png',
+        file_data=compressed,
+        submission_id=sub_uuid
+    )
+    
+    db.session.add(new_sub)
+    db.session.commit()
+    print(f"Created sub {new_sub.id} with compressed data in DB.")
+    
+    # 3. Simulate retrieval (as done in download_submission_file)
+    fetched = Submission.query.get(new_sub.id)
+    if fetched.file_data:
+        try:
+            decompressed = zlib.decompress(fetched.file_data)
+            print(f"Success! Retrieved and decompressed: {decompressed.decode()}")
+        except Exception as e:
+            print(f"Decompression failed: {e}")
+    else:
+        print("Error: No file_data in DB")
         
-        db.session.commit()
-
-        # Refresh
-        db.session.refresh(sub1)
-        db.session.refresh(sub2)
-
-        print(f"After update: Sub1 is_correct={sub1.is_correct}, Sub2 is_correct={sub2.is_correct}")
-
-        if sub1.is_correct == False and sub2.is_correct == True:
-            print("SUCCESS: Submissions updated correctly.")
-        else:
-            print("FAILURE: Submissions not updated correctly.")
-
-if __name__ == "__main__":
-    test_answer_update()
+    # Cleanup
+    db.session.delete(new_sub)
+    db.session.commit()
+    print("Test record cleaned up.")
